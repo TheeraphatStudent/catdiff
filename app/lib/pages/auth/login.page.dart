@@ -10,6 +10,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoginTab = true;
+  String _selectedRole = "ผู้ใช้ทั่วไป"; // เพิ่มตัวแปรเก็บบทบาทที่เลือก
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -67,6 +68,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+  void _handleRegister() {
+    print("สมัครเป็น$_selectedRole");
+    // เพิ่มโค้ดการสมัครสมาชิกตามบทบาทที่เลือก
   }
 
   @override
@@ -277,9 +283,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ElevatedButton(
-          onPressed: () {
-            print("สมัครเป็นผู้ใช้ทั่วไป");
-          },
+          onPressed: _handleRegister,
           style: ElevatedButton.styleFrom(
             backgroundColor: Color(0xFFDFFFD6),
             foregroundColor: Colors.black,
@@ -288,7 +292,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: Text("สมัครเป็น “ผู้ใช้ทั่วไป” →"),
+          child: Text("สมัครเป็น "), // ใช้ตัวแปร _selectedRole
         ),
         SizedBox(height: 20),
 
@@ -306,10 +310,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ],
           ),
           child: Text(
-            "การใช้งาน Cat Diff ในฐานะผู้ใช้ทั่วไป\n\n"
-            "คุณจะได้รับความสะดวกสบายในการสั่งของได้ทุกเวลา\n"
-            "เลือกสินค้าง่าย ส่งสินค้าปลอดภัยตรงเวลา\n"
-            "พร้อมมั่นใจว่ามีทีมจัดการขนส่งที่รวดเร็วและปลอดภัย",
+            _selectedRole == "ผู้ใช้ทั่วไป"
+                ? "การใช้งาน Cat Diff ในฐานะผู้ใช้ทั่วไป\n\n"
+                      "คุณจะได้รับความสะดวกสบายในการสั่งของได้ทุกเวลา\n"
+                      "เลือกสินค้าง่าย ส่งสินค้าปลอดภัยตรงเวลา\n"
+                      "พร้อมมั่นใจว่ามีทีมจัดการขนส่งที่รวดเร็วและปลอดภัย"
+                : "การใช้งาน Cat Diff ในฐานะคนส่งของ\n\n"
+                      "คุณจะได้รับรายได้เสริมจากการส่งของ\n"
+                      "เลือกงานได้ตามเวลาที่สะดวก\n"
+                      "ระบบจัดการเส้นทางอัตโนมัติ เพิ่มประสิทธิภาพในการขนส่ง",
             style: TextStyle(fontSize: 14, color: Colors.black87),
             textAlign: TextAlign.center,
           ),
@@ -320,8 +329,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // _roleCard("ผู้ใช้ทั่วไป", "assets/cat_user.png"),
-            // _roleCard("คนส่งของ", "assets/cat_rider.png"),
+            _roleCard("ผู้ใช้ทั่วไป", "assets/cat_user.png"),
+            _roleCard("คนส่งของ", "assets/cat_rider.png"),
           ],
         ),
       ],
@@ -329,23 +338,61 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   Widget _roleCard(String title, String asset) {
-    return Container(
-      width: 140,
-      height: 160,
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(asset, height: 80),
-          SizedBox(height: 10),
-          Text(
-            title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ],
+    bool isSelected = _selectedRole == title; // ตรวจสอบว่าเลือกหรือไม่
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedRole = title; // เปลี่ยนบทบาทที่เลือก
+        });
+      },
+      child: Container(
+        width: 140,
+        height: 160,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors
+                    .green
+                    .shade200 // สีเข้มขึ้นเมื่อถูกเลือก
+              : Colors.green.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(
+                  color: Colors.green,
+                  width: 2,
+                ) // เพิ่มขอบเมื่อถูกเลือก
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Image.asset(asset, height: 80),
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                title == "ผู้ใช้ทั่วไป" ? Icons.person : Icons.delivery_dining,
+                size: 40,
+                color: isSelected
+                    ? Colors.green.shade700
+                    : Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color: isSelected ? Colors.green.shade700 : Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
