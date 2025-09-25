@@ -44,6 +44,10 @@ dependencies:
   flutter_svg: ^2.0.10
   image_picker: ^1.2.0
   easy_stepper: ^0.8.5+1
+  geolocator: ^14.0.2
+  latlong2: ^0.9.1
+  sliding_up_panel: ^2.0.0+1
+  flutter_map: ^8.2.2
 
 dev_dependencies:
   flutter_test:
