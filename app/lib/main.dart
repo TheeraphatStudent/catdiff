@@ -1,4 +1,5 @@
 import 'package:app/config/share/app_data.dart';
+import 'package:app/pages/auth/login.page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ void main() async {
   );
 
   runApp(
+    
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (context) => AppData())],
       child: const MyApp(),
@@ -31,7 +33,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       initialRoute: '/',
-      getPages: [GetPage(name: '/', page: () => const OnBoardingPage())],
+      getPages: [
+        GetPage(name: '/', page: () => const OnBoardingPage()),
+        GetPage(name: '/login', page: () => const LoginPage()),
+      ],
     );
   }
 }

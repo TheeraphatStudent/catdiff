@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:app/config/share/app_data.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget body;
@@ -16,15 +18,15 @@ class MainLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appData = context.watch<AppData>();
     return Container(
-      // decoration: const BoxDecoration(gradient: AppColors.softGradientPrimary),
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(color: appData.themeToken.color),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color.fromARGB(0, 255, 255, 255),
         // appBar: appBar ?? (showHeader ? const Header() : null),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: body,
-        ),
+        body: body,
         // bottomNavigationBar: showFooter ? const Footer() : null,
       ),
     );
