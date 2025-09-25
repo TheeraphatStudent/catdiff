@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       initialRoute: '/',
       getPages: [
-        GetPage(name: '/', page: () => OnBoardingPage()),
+        GetPage(name: '/', page: () => const OnBoardingPage()),
         GetPage(name: '/login', page: () => LoginPage()),
       ],
     );
