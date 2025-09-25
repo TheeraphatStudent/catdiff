@@ -3,6 +3,7 @@ import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
 
 class DebugPage extends StatelessWidget {
@@ -42,34 +43,59 @@ class DebugPage extends StatelessWidget {
 
             // ButtonUnderline(text: 'Button'),
             // ButtonUnderline(text: 'Button', active: true),
-            InputField(
-              label: 'Input',
-              type: InputType.line,
-              hintText: 'Input',
-              validate: true,
-              errorText: 'Error',
-            ),
-            InputField(
-              label: 'Input',
-              type: InputType.fill,
-              hintText: 'Input',
-              validate: true,
-              errorText: 'Error',
-            ),
-            InputField(
-              label: 'Input',
-              type: InputType.fill,
-              hintText: 'Input',
-              validate: true,
-              errorText: 'Error',
-              suffixIcon: const Icon(Icons.add),
+
+            // InputField(
+            //   label: 'Input',
+            //   type: InputType.line,
+            //   hintText: 'Input',
+            //   validate: true,
+            //   errorText: 'Error',
+            // ),
+            // InputField(
+            //   label: 'Input',
+            //   type: InputType.fill,
+            //   hintText: 'Input',
+            //   validate: true,
+            //   errorText: 'Error',
+            // ),
+            // InputField(
+            //   label: 'Input',
+            //   type: InputType.fill,
+            //   hintText: 'Input',
+            //   validate: true,
+            //   errorText: 'Error',
+            //   suffixIcon: const Icon(Icons.add),
+            // ),
+
+            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xl),
+            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.md),
+            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.sm),
+            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xs),
+            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xxs),
+            StepperWidget(
+              steps: [
+                StepData(label: 'Step 1', active: true),
+                StepData(label: 'Step 2', active: false),
+                StepData(label: 'Step 3', active: false),
+              ],
             ),
 
-            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xl),
-            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.md),
-            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.sm),
-            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xs),
-            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xxs),
+            StepperWidget(
+              steps: [
+                StepData(label: 'Step 1', active: true),
+                StepData(label: 'Step 2', active: true),
+                StepData(label: 'Step 3', active: true),
+              ],
+            ),
+
+            StepperWidget(
+              steps: [
+                StepData(label: 'Step 1', active: true),
+                StepData(label: 'Step 2', active: true),
+                StepData(label: 'Step 3', active: true),
+                StepData(label: 'Step 4', active: true),
+              ],
+            ),
           ],
         ),
       ),
