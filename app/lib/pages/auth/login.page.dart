@@ -122,7 +122,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               child: GestureDetector(
                                 onTap: () => setState(() => _isLoginTab = true),
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
                                   decoration: BoxDecoration(
                                     border: Border(
                                       bottom: BorderSide(
@@ -292,7 +291,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: Text("สมัครเป็น "), // ใช้ตัวแปร _selectedRole
+          child: Text("สมัครเป็น$_selectedRole"), // ใช้ตัวแปร _selectedRole
         ),
         SizedBox(height: 20),
 
