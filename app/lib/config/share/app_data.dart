@@ -3,8 +3,16 @@ import 'package:flutter/material.dart';
 
 class AppData with ChangeNotifier {
   ThemeToken _themeToken = ThemeToken();
+  User _user = User(uid: '');
 
   ThemeToken get themeToken => _themeToken;
+  User get user => _user;
+}
+
+class User {
+  String uid;
+
+  User({required this.uid});
 }
 
 class ThemeToken {

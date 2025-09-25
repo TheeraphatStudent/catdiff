@@ -2,6 +2,7 @@ import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
+import 'package:app/widget/profile_img.widget.dart';
 import 'package:flutter/material.dart';
 
 class DebugPage extends StatelessWidget {
@@ -63,6 +64,12 @@ class DebugPage extends StatelessWidget {
               errorText: 'Error',
               suffixIcon: const Icon(Icons.add),
             ),
+
+            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xl),
+            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.md),
+            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.sm),
+            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xs),
+            ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xxs),
           ],
         ),
       ),

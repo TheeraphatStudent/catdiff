@@ -253,7 +253,7 @@ class _InputFieldState extends State<InputField> {
                     fontFamily: 'Mali',
                     color: _hasError
                         ? AppColors.darkDanger
-                        : const Color.fromARGB(255, 56, 77, 57),
+                        : AppColors.primary1,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
