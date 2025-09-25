@@ -1,22 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Thai App Login',
-      theme: ThemeData(fontFamily: 'Roboto'),
-      home: LoginPage(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -74,11 +58,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       return;
     }
 
-    // Add your login logic here
     print(
       'Login attempt: ${_phoneController.text}, ${_passwordController.text}',
     );
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('กำลังเข้าสู่ระบบ...'),
@@ -103,15 +85,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             opacity: _fadeAnimation,
             child: Column(
               children: [
-                // Header Section
+                // Header
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFF8F9FA), Color(0xFFFFFFFF)],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(30),
                       bottomRight: Radius.circular(30),
@@ -125,31 +103,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     ],
                   ),
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(30, 40, 30, 30),
+                    padding: EdgeInsets.fromLTRB(30, 40, 30, 20),
                     child: Column(
                       children: [
-                        // Logo
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Color(0xFF4CAF50),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFF4CAF50).withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.directions_bike,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 30),
+                        // Image.asset("assets/cat_bike.png", height: 80),
+                        SizedBox(height: 20),
 
                         // Tabs
                         Row(
@@ -163,7 +121,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     border: Border(
                                       bottom: BorderSide(
                                         color: _isLoginTab
-                                            ? Color(0xFF4CAF50)
+                                            ? Colors.green
                                             : Colors.transparent,
                                         width: 2,
                                       ),
@@ -175,8 +133,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: _isLoginTab
-                                          ? Color(0xFF4CAF50)
-                                          : Color(0xFF666666),
+                                          ? Colors.green
+                                          : Colors.grey,
                                       fontWeight: _isLoginTab
                                           ? FontWeight.w600
                                           : FontWeight.normal,
@@ -195,7 +153,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     border: Border(
                                       bottom: BorderSide(
                                         color: !_isLoginTab
-                                            ? Color(0xFF4CAF50)
+                                            ? Colors.green
                                             : Colors.transparent,
                                         width: 2,
                                       ),
@@ -207,8 +165,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: !_isLoginTab
-                                          ? Color(0xFF4CAF50)
-                                          : Color(0xFF666666),
+                                          ? Colors.green
+                                          : Colors.grey,
                                       fontWeight: !_isLoginTab
                                           ? FontWeight.w600
                                           : FontWeight.normal,
@@ -226,238 +184,168 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
                 SizedBox(height: 20),
 
-                // Form Section
+                // Content
                 Expanded(
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 20),
-                    padding: EdgeInsets.all(30),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 32,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Phone Number Field
-                          Text(
-                            'เบอร์โทร:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
-                              controller: _phoneController,
-                              keyboardType: TextInputType.phone,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[\d\-]'),
-                                ),
-                                LengthLimitingTextInputFormatter(
-                                  12,
-                                ), // 000-000-0000
-                                TextInputFormatter.withFunction((
-                                  oldValue,
-                                  newValue,
-                                ) {
-                                  String newText = newValue.text.replaceAll(
-                                    '-',
-                                    '',
-                                  );
-                                  if (newText.length <= 10) {
-                                    String formatted = _formatPhoneNumber(
-                                      newText,
-                                    );
-                                    return TextEditingValue(
-                                      text: formatted,
-                                      selection: TextSelection.collapsed(
-                                        offset: formatted.length,
-                                      ),
-                                    );
-                                  }
-                                  return oldValue;
-                                }),
-                              ],
-                              decoration: InputDecoration(
-                                hintText: '000-000-0000',
-                                hintStyle: TextStyle(
-                                  color: Color(0xFFBBBBBB),
-                                  fontSize: 14,
-                                ),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.9),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFE0E0E0),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF4CAF50),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFE0E0E0),
-                                  ),
-                                ),
-                                contentPadding: EdgeInsets.all(15),
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: 25),
-
-                          // Password Field
-                          Text(
-                            'รหัสผ่าน:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
-                              controller: _passwordController,
-                              obscureText: true,
-                              decoration: InputDecoration(
-                                hintText: '••••••••••',
-                                hintStyle: TextStyle(
-                                  color: Color(0xFFBBBBBB),
-                                  fontSize: 14,
-                                ),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.9),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFE0E0E0),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF4CAF50),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFE0E0E0),
-                                  ),
-                                ),
-                                contentPadding: EdgeInsets.all(15),
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: 20),
-
-                          // Forgot Password
-                          Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                // Handle forgot password
-                                print('Forgot password tapped');
-                              },
-                              child: Text(
-                                'จำรหัสผ่านไม่ได้?',
-                                style: TextStyle(
-                                  color: Color(0xFFFFA726),
-                                  fontSize: 14,
-                                  decoration: TextDecoration.none,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: 30),
-
-                          // Login Button
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0xFF4CAF50).withOpacity(0.3),
-                                  blurRadius: 15,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: _handleLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                padding: EdgeInsets.symmetric(vertical: 15),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              child: Text(
-                                'เข้าสู่ระบบ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: _isLoginTab ? _buildLoginForm() : _buildRegisterUI(),
                   ),
                 ),
-
-                SizedBox(height: 20),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // 🔹 ฟอร์มเข้าสู่ระบบ
+  Widget _buildLoginForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'เบอร์โทร:',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        SizedBox(height: 8),
+        TextFormField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d\-]')),
+            LengthLimitingTextInputFormatter(12),
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              String newText = newValue.text.replaceAll('-', '');
+              if (newText.length <= 10) {
+                String formatted = _formatPhoneNumber(newText);
+                return TextEditingValue(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              }
+              return oldValue;
+            }),
+          ],
+          decoration: InputDecoration(
+            hintText: '000-000-0000',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+
+        SizedBox(height: 25),
+
+        Text(
+          'รหัสผ่าน:',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        SizedBox(height: 8),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            hintText: '••••••••',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+
+        SizedBox(height: 30),
+
+        ElevatedButton(
+          onPressed: _handleLogin,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            minimumSize: Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text("เข้าสู่ระบบ"),
+        ),
+      ],
+    );
+  }
+
+  // 🔹 สมัครสมาชิก UI
+  Widget _buildRegisterUI() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            print("สมัครเป็นผู้ใช้ทั่วไป");
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFFDFFFD6),
+            foregroundColor: Colors.black,
+            minimumSize: Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text("สมัครเป็น “ผู้ใช้ทั่วไป” →"),
+        ),
+        SizedBox(height: 20),
+
+        Container(
+          padding: EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            "การใช้งาน Cat Diff ในฐานะผู้ใช้ทั่วไป\n\n"
+            "คุณจะได้รับความสะดวกสบายในการสั่งของได้ทุกเวลา\n"
+            "เลือกสินค้าง่าย ส่งสินค้าปลอดภัยตรงเวลา\n"
+            "พร้อมมั่นใจว่ามีทีมจัดการขนส่งที่รวดเร็วและปลอดภัย",
+            style: TextStyle(fontSize: 14, color: Colors.black87),
+            textAlign: TextAlign.center,
+          ),
+        ),
+
+        SizedBox(height: 30),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // _roleCard("ผู้ใช้ทั่วไป", "assets/cat_user.png"),
+            // _roleCard("คนส่งของ", "assets/cat_rider.png"),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _roleCard(String title, String asset) {
+    return Container(
+      width: 140,
+      height: 160,
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(asset, height: 80),
+          SizedBox(height: 10),
+          Text(
+            title,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
