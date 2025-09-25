@@ -17,6 +17,7 @@ class ButtonActions extends StatefulWidget {
     this.icon,
     this.onLabelPressed,
     this.iconPosition = IconPosition.right,
+    this.height = 48,
   });
 
   final String text;
@@ -27,6 +28,7 @@ class ButtonActions extends StatefulWidget {
   final IconData? icon;
   final VoidCallback? onPressed;
   final VoidCallback? onLabelPressed;
+  final double? height;
 
   final IconPosition iconPosition;
 
@@ -200,89 +202,96 @@ class _ButtonActionsState extends State<ButtonActions>
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  decoration: ShapeDecoration(
-                    color: backgroundColor,
-                    shape: shape,
-                    shadows: boxShadows,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: widget.icon != null
-                        ? (widget.iconPosition == IconPosition.left
-                              ? MainAxisAlignment.start
-                              : MainAxisAlignment.end)
-                        : MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (widget.icon != null &&
-                          widget.iconPosition == IconPosition.left)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          transform: Matrix4.translationValues(
-                            _isHovered ? -2 : 0,
-                            0,
-                            0,
-                          ),
-                          child: Icon(
-                            widget.icon,
-                            size: 24,
-                            color: foregroundColor,
-                          ),
+                  child: Container(
+                    width: double.infinity,
+                    height: widget.height,
+                    decoration: ShapeDecoration(
+                      color: backgroundColor,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(width: 1, color: AppColors.black),
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(12),
                         ),
-
-                      if (widget.icon == null)
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            color: foregroundColor,
-                            fontSize: 16,
-                            fontFamily: 'Mali',
-                            fontWeight: FontWeight.w700,
-                          ),
-                          child: Text(widget.text),
-                        ),
-
-                      if (widget.icon != null)
-                        Expanded(
-                          child: AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 200),
-                            style: TextStyle(
-                              color: foregroundColor,
-                              fontSize: 16,
-                              fontFamily: 'Mali',
-                              fontWeight: FontWeight.w700,
+                      ),
+                      shadows: widget.hasShadow ? boxShadows : null,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: widget.icon != null
+                            ? (widget.iconPosition == IconPosition.left
+                                  ? MainAxisAlignment.start
+                                  : MainAxisAlignment.end)
+                            : MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (widget.icon != null &&
+                              widget.iconPosition == IconPosition.left)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              transform: Matrix4.translationValues(
+                                _isHovered ? -2 : 0,
+                                0,
+                                0,
+                              ),
+                              child: Icon(
+                                widget.icon,
+                                size: 24,
+                                color: foregroundColor,
+                              ),
                             ),
-                            child: Text(
-                              widget.text,
-                              textAlign:
-                                  widget.iconPosition == IconPosition.left
-                                  ? TextAlign.right
-                                  : TextAlign.left,
-                            ),
-                          ),
-                        ),
 
-                      if (widget.icon != null &&
-                          widget.iconPosition == IconPosition.right)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          transform: Matrix4.translationValues(
-                            _isHovered ? 2 : 0,
-                            0,
-                            0,
-                          ),
-                          child: Icon(
-                            widget.icon,
-                            size: 24,
-                            color: foregroundColor,
-                          ),
-                        ),
-                    ],
+                          if (widget.icon == null)
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                color: foregroundColor,
+                                fontSize: 16,
+                                fontFamily: 'Mali',
+                                fontWeight: FontWeight.w700,
+                              ),
+                              child: Text(widget.text),
+                            ),
+
+                          if (widget.icon != null)
+                            Expanded(
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: TextStyle(
+                                  color: foregroundColor,
+                                  fontSize: 16,
+                                  fontFamily: 'Mali',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                child: Text(
+                                  widget.text,
+                                  textAlign:
+                                      widget.iconPosition == IconPosition.left
+                                      ? TextAlign.right
+                                      : TextAlign.left,
+                                ),
+                              ),
+                            ),
+
+                          if (widget.icon != null &&
+                              widget.iconPosition == IconPosition.right)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              transform: Matrix4.translationValues(
+                                _isHovered ? 2 : 0,
+                                0,
+                                0,
+                              ),
+                              child: Icon(
+                                widget.icon,
+                                size: 24,
+                                color: foregroundColor,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -324,12 +333,14 @@ class ButtonTab extends StatelessWidget {
   final String text;
   final bool isActive;
   final VoidCallback? onTap;
+  final double height;
 
   const ButtonTab({
     super.key,
     required this.text,
     required this.isActive,
     this.onTap,
+    this.height = 48,
   });
 
   @override
@@ -338,7 +349,7 @@ class ButtonTab extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 48,
+          height: height,
           decoration: ShapeDecoration(
             color: AppColors.primary5,
             shape: RoundedRectangleBorder(
