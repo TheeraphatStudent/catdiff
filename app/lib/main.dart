@@ -18,7 +18,6 @@ void main() async {
   );
 
   runApp(
-    
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (context) => AppData())],
       child: const MyApp(),
@@ -34,8 +33,8 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       initialRoute: '/',
       getPages: [
-        GetPage(name: '/', page: () => const OnBoardingPage()),
-        GetPage(name: '/login', page: () => const LoginPage()),
+        GetPage(name: '/', page: () => OnBoardingPage()),
+        GetPage(name: '/login', page: () => LoginPage()),
       ],
     );
   }
