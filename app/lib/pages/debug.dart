@@ -36,10 +36,12 @@ class DebugPage extends StatelessWidget {
             // ButtonActions(text: 'Button', variant: ButtonVariant.outline),
             // ButtonActions(text: 'Button', variant: ButtonVariant.warning),
             // ButtonActions(text: 'Button', variant: ButtonVariant.danger),
-            HeaderCard(),
+            // HeaderCard(),
 
-            ButtonUnderline(text: 'Button'),
-            ButtonUnderline(text: 'Button', active: true),
+            // ButtonUnderline(text: 'Button'),
+            // ButtonUnderline(text: 'Button', active: true),
+
+            
           ],
         ),
       ),

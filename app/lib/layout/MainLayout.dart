@@ -7,6 +7,8 @@ class MainLayout extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final bool showHeader;
   final bool showFooter;
+  final bool resizeToAvoidBottomInset;
+  final EdgeInsets? padding;
 
   const MainLayout({
     super.key,
@@ -14,11 +16,15 @@ class MainLayout extends StatelessWidget {
     this.appBar,
     this.showHeader = true,
     this.showFooter = true,
+    this.resizeToAvoidBottomInset = true,
+    this.padding,
   });
 
   @override
   Widget build(BuildContext context) {
     final appData = context.watch<AppData>();
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -26,7 +32,20 @@ class MainLayout extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color.fromARGB(0, 255, 255, 255),
         // appBar: appBar ?? (showHeader ? const Header() : null),
-        body: body,
+        resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+        body: SafeArea(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding:
+                padding ??
+                EdgeInsets.only(
+                  bottom: keyboardHeight > 0
+                      ? 16.0
+                      : 0.0
+                ),
+            child: body,
+          ),
+        ),
         // bottomNavigationBar: showFooter ? const Footer() : null,
       ),
     );
