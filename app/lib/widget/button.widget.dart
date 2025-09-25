@@ -8,10 +8,10 @@ enum ButtonVariant { primary, light, outline, warning, danger }
 class ButtonActions extends StatefulWidget {
   const ButtonActions({
     super.key,
-    this.text = '',
+    required this.text,
     this.label,
     this.hasShadow = true,
-    this.variant = ButtonVariant.light,
+    required this.variant,
     this.theme,
     this.onPressed,
     this.icon,
@@ -343,7 +343,7 @@ class ButtonTab extends StatelessWidget {
             color: AppColors.primary5,
             shape: RoundedRectangleBorder(
               side: isActive
-                  ? BorderSide(width: 1, color: const Color(0xFFC13433))
+                  ? BorderSide(width: 1, color: AppColors.darkDanger)
                   : BorderSide.none,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(8),
@@ -358,9 +358,7 @@ class ButtonTab extends StatelessWidget {
               text,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isActive
-                    ? const Color(0xFF840100)
-                    : const Color(0xFFAE9DA0),
+                color: isActive ? AppColors.darkDanger : AppColors.lightDanger,
                 fontSize: 14,
                 fontFamily: 'Mali',
                 fontWeight: FontWeight.w700,
@@ -368,6 +366,113 @@ class ButtonTab extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ButtonUnderline extends StatefulWidget {
+  const ButtonUnderline({
+    super.key,
+    required this.text,
+    this.onPressed,
+    this.active = false,
+  });
+
+  final String text;
+  final VoidCallback? onPressed;
+  final bool active;
+
+  @override
+  State<ButtonUnderline> createState() => _ButtonUnderlineState();
+}
+
+class _ButtonUnderlineState extends State<ButtonUnderline>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    _animationController.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    _animationController.reverse();
+    widget.onPressed?.call();
+  }
+
+  void _handleTapCancel() {
+    _animationController.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 128),
+              child: Container(
+                width: 156,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  border: widget.active
+                      ? Border(
+                          bottom: BorderSide(
+                            width: 2,
+                            color: AppColors.primary1,
+                          ),
+                        )
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  spacing: 10,
+                  children: [
+                    Text(
+                      widget.text,
+                      style: TextStyle(
+                        color: widget.active
+                            ? AppColors.primary1
+                            : AppColors.primary2.withOpacity(0.7),
+                        fontSize: 20,
+                        fontFamily: 'Mali',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
