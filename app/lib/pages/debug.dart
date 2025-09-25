@@ -1,6 +1,7 @@
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/header_card.widget.dart';
+import 'package:app/widget/input.widget.dart';
 import 'package:flutter/material.dart';
 
 class DebugPage extends StatelessWidget {
@@ -40,8 +41,28 @@ class DebugPage extends StatelessWidget {
 
             // ButtonUnderline(text: 'Button'),
             // ButtonUnderline(text: 'Button', active: true),
-
-            
+            InputField(
+              label: 'Input',
+              type: InputType.line,
+              hintText: 'Input',
+              validate: true,
+              errorText: 'Error',
+            ),
+            InputField(
+              label: 'Input',
+              type: InputType.fill,
+              hintText: 'Input',
+              validate: true,
+              errorText: 'Error',
+            ),
+            InputField(
+              label: 'Input',
+              type: InputType.fill,
+              hintText: 'Input',
+              validate: true,
+              errorText: 'Error',
+              suffixIcon: const Icon(Icons.add),
+            ),
           ],
         ),
       ),

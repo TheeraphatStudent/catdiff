@@ -10,9 +10,5 @@ class AppData with ChangeNotifier {
 class ThemeToken {
   Color color = AppColors.grayInsight;
 
-  LinearGradient gradient = const LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x00D3ECA5), Color(0x90D3ECA5), Color(0xFFD3ECA5)],
-  );
+  LinearGradient gradient = AppColors.gradientPrimary;
 }
