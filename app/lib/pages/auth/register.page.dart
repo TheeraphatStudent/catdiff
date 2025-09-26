@@ -67,7 +67,7 @@ class _RegisterPageState extends State<RegisterPage>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Header section
+            // User header section
             HeaderStepperCard(
               steps: [
                 StepData(label: 'ข้อมูลส่วนตัว', active: _currentStep == 0),
@@ -75,6 +75,17 @@ class _RegisterPageState extends State<RegisterPage>
                 StepData(label: 'ผู้ใช้ทั่วไป', active: _currentStep == 2),
               ],
             ),
+
+            // Rider header section
+            HeaderStepperCard(
+              steps: [
+                StepData(label: 'ข้อมูลส่วนตัว', active: _currentStep == 0),
+                StepData(label: 'ยานพาหนะ', active: _currentStep == 1),
+                StepData(label: 'รูปโปรไฟล์', active: _currentStep == 2),
+                StepData(label: 'ไรเดอร์', active: _currentStep == 3),
+              ],
+            ),
+
             Flexible(
               child: Form(
                 key: _formKey,

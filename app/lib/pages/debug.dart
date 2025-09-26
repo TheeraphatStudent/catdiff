@@ -2,11 +2,8 @@ import 'dart:developer';
 
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
-import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
-import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map.widget.dart';
-import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,6 +17,43 @@ class DebugPage extends StatefulWidget {
 class _DebugPageState extends State<DebugPage> {
   bool _isMapModalOpened = false;
   final TextEditingController _locationController = TextEditingController();
+  final FocusNode _locationFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listener to focus node to detect focus changes
+    _locationFocusNode.addListener(() {
+      if (_locationFocusNode.hasFocus) {
+        _openMapModal();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    _locationFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _openMapModal() {
+    setState(() {
+      _isMapModalOpened = true;
+    });
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() {
+          _isMapModalOpened = false;
+        });
+      }
+    });
+  }
+
+  void _onModalClosed() {
+    // Unfocus the specific input field when modal closes
+    _locationFocusNode.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,16 +93,7 @@ class _DebugPageState extends State<DebugPage> {
               errorText: 'Error',
               suffixIcon: const Icon(Icons.location_on),
               controller: _locationController,
-              onFocus: () {
-                setState(() {
-                  _isMapModalOpened = true;
-                });
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  setState(() {
-                    _isMapModalOpened = false;
-                  });
-                });
-              },
+              focusNode: _locationFocusNode,
             ),
 
             MapsLocationSelector(
@@ -86,6 +111,7 @@ class _DebugPageState extends State<DebugPage> {
                       'Lat: ${selectedLocation.latitude.toStringAsFixed(6)}, Lng: ${selectedLocation.longitude.toStringAsFixed(6)}';
                 }
               },
+              onModalClosed: _onModalClosed,
             ),
           ],
         ),

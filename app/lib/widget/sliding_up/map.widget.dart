@@ -59,6 +59,7 @@ class MapsLocationSelector extends StatefulWidget {
   final bool isShowingAction;
   final bool isOpened;
   final VoidCallback? onConfirmLocation;
+  final VoidCallback? onModalClosed;
 
   const MapsLocationSelector({
     super.key,
@@ -68,6 +69,7 @@ class MapsLocationSelector extends StatefulWidget {
     this.isShowingAction = false,
     this.isOpened = false,
     this.onConfirmLocation,
+    this.onModalClosed,
   });
 
   @override
@@ -80,6 +82,9 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lonController = TextEditingController();
 
+  bool _isModalCurrentlyOpen = false;
+  bool _hasProcessedOpenRequest = false;
+
   static const String googleApiKey = "AIzaSyCK3UAtqWx2NprxrJoLh0n5gDw3G_DpNdk";
 
   @override
@@ -91,10 +96,19 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   @override
   void didUpdateWidget(MapsLocationSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isOpened && !oldWidget.isOpened) {
+
+    if (widget.isOpened &&
+        !oldWidget.isOpened &&
+        !_isModalCurrentlyOpen &&
+        !_hasProcessedOpenRequest) {
+      _hasProcessedOpenRequest = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _openLocationModal();
       });
+    }
+
+    if (!widget.isOpened && oldWidget.isOpened) {
+      _hasProcessedOpenRequest = false;
     }
   }
 
@@ -200,30 +214,55 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   }
 
   void _openLocationModal() {
+    if (_isModalCurrentlyOpen) {
+      return; // Prevent opening multiple modals
+    }
+
+    _isModalCurrentlyOpen = true;
+
     WoltModalSheet.show<LatLng?>(
-      context: context,
-      pageListBuilder: (modalSheetContext) {
-        final textTheme = Theme.of(context).textTheme;
-        return [_buildLocationSelectorPage(modalSheetContext, textTheme)];
-      },
-      modalTypeBuilder: (context) {
-        final size = MediaQuery.sizeOf(context).width;
-        if (size < _pageBreakpoint) {
-          return const WoltBottomSheetType();
-        } else {
-          return const WoltDialogType();
-        }
-      },
-      onModalDismissedWithBarrierTap: () {
-        log('Closed modal sheet with barrier tap');
-        Navigator.of(context).pop();
-      },
-    ).then((selectedLocation) {
-      if (selectedLocation != null) {
-        log('Location selected: $selectedLocation');
-        widget.onLocationSelected?.call(selectedLocation);
-      }
-    });
+          context: context,
+          pageListBuilder: (modalSheetContext) {
+            final textTheme = Theme.of(context).textTheme;
+            return [_buildLocationSelectorPage(modalSheetContext, textTheme)];
+          },
+          modalTypeBuilder: (context) {
+            final size = MediaQuery.sizeOf(context).width;
+            if (size < _pageBreakpoint) {
+              return const WoltBottomSheetType();
+            } else {
+              return const WoltDialogType();
+            }
+          },
+          barrierDismissible: true,
+          enableDrag: true,
+          onModalDismissedWithBarrierTap: () {
+            log('Closed modal sheet with barrier tap');
+          },
+        )
+        .then((selectedLocation) {
+          // Modal is now closed
+          _isModalCurrentlyOpen = false;
+          _hasProcessedOpenRequest = false;
+          
+          // Call the modal closed callback to unfocus input
+          widget.onModalClosed?.call();
+
+          if (selectedLocation != null) {
+            log('Location selected: $selectedLocation');
+            widget.onLocationSelected?.call(selectedLocation);
+          }
+        })
+        .catchError((error) {
+          // Handle any errors and reset state
+          _isModalCurrentlyOpen = false;
+          _hasProcessedOpenRequest = false;
+          
+          // Call the modal closed callback even on error
+          widget.onModalClosed?.call();
+          
+          log('Modal error: $error');
+        });
   }
 
   SliverWoltModalSheetPage _buildLocationSelectorPage(
@@ -231,6 +270,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     TextTheme textTheme,
   ) {
     return SliverWoltModalSheetPage(
+      // pageTitle: Text(widget.isOpened.toString()),
       // pageTitle: Padding(
       //   padding: const EdgeInsets.all(_pagePadding),
       //   child: Row(
@@ -480,6 +520,9 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                       variant: ButtonVariant.danger,
                       icon: Icons.arrow_back,
                       onPressed: () {
+                        _isModalCurrentlyOpen = false;
+                        _hasProcessedOpenRequest = false;
+                        widget.onModalClosed?.call();
                         Navigator.of(context).pop();
                       },
                     ),
@@ -495,7 +538,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                           // fillColor: Theme.of(
                           //   context,
                           // ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                          fillColor: AppColors.primary2,
+                          fillColor: AppColors.primary4,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -507,7 +550,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: AppColors.lightDanger,
+                              color: AppColors.primary1,
                               width: 2,
                             ),
                           ),
@@ -541,7 +584,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                               children: [
                                 Icon(
                                   Icons.location_on,
-                                  color: AppColors.primary5,
+                                  color: AppColors.primary1,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
@@ -570,7 +613,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                                               .structuredFormatting!
                                               .secondaryText!,
                                           style: TextStyle(
-                                            color: AppColors.grayLight,
+                                            color: AppColors.primary4,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -587,15 +630,23 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                     SizedBox(width: 16),
                     Obx(
                       () => Opacity(
-                        opacity: controller.selectedLocation.value != null ? 1.0 : 0.5,
+                        opacity: controller.selectedLocation.value != null
+                            ? 1.0
+                            : 0.5,
                         child: ButtonActions(
                           variant: ButtonVariant.primary,
                           icon: Icons.arrow_forward,
                           onPressed: controller.selectedLocation.value != null
                               ? () {
-                                  final selectedLocation = controller.selectedLocation.value;
+                                  final selectedLocation =
+                                      controller.selectedLocation.value;
                                   if (selectedLocation != null) {
-                                    widget.onLocationSelected?.call(selectedLocation);
+                                    _isModalCurrentlyOpen = false;
+                                    _hasProcessedOpenRequest = false;
+                                    widget.onModalClosed?.call();
+                                    widget.onLocationSelected?.call(
+                                      selectedLocation,
+                                    );
                                     Navigator.of(context).pop(selectedLocation);
                                   }
                                 }
