@@ -1,30 +1,69 @@
 // To parse this JSON data, do
 //
-//     final dataRaider = dataRaiderFromJson(jsonString);
+//     final user = userFromJson(jsonString);
 
 import 'dart:convert';
 
-DataRaider dataRaiderFromJson(String str) =>
-    DataRaider.fromJson(json.decode(str));
+User userFromJson(String str) => User.fromJson(json.decode(str));
 
-String dataRaiderToJson(DataRaider data) => json.encode(data.toJson());
+String userToJson(User data) => json.encode(data.toJson());
 
-class DataRaider {
-  String imageurl;
+class User {
+  String imagesUrl;
   String name;
   String phone;
+  String role;
+  String addressId;
+  Verhicle verhicle;
 
-  DataRaider({required this.imageurl, required this.name, required this.phone});
+  User({
+    required this.imagesUrl,
+    required this.name,
+    required this.phone,
+    required this.role,
+    required this.addressId,
+    required this.verhicle,
+  });
 
-  factory DataRaider.fromJson(Map<String, dynamic> json) => DataRaider(
-    imageurl: json["imageurl"],
+  factory User.fromJson(Map<String, dynamic> json) => User(
+    imagesUrl: json["images_url"],
     name: json["name"],
     phone: json["phone"],
+    role: json["role"],
+    addressId: json["address_id"],
+    verhicle: Verhicle.fromJson(json["verhicle"]),
   );
 
   Map<String, dynamic> toJson() => {
-    "image": imageurl,
+    "images_url": imagesUrl,
     "name": name,
     "phone": phone,
+    "role": role,
+    "address_id": addressId,
+    "verhicle": verhicle.toJson(),
+  };
+}
+
+class Verhicle {
+  String driveImageUrl;
+  String licencePlate;
+  String type;
+
+  Verhicle({
+    required this.driveImageUrl,
+    required this.licencePlate,
+    required this.type,
+  });
+
+  factory Verhicle.fromJson(Map<String, dynamic> json) => Verhicle(
+    driveImageUrl: json["drive_image_url"],
+    licencePlate: json["licence_plate"],
+    type: json["type"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "drive_image_url": driveImageUrl,
+    "licence_plate": licencePlate,
+    "type": type,
   };
 }
