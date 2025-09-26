@@ -3,6 +3,7 @@ import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map.widget.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
 
@@ -59,7 +60,7 @@ class DebugPage extends StatelessWidget {
             // ),
             // InputField(
             //   label: 'Input',
-            //   type: InputType.fill,
+            //  y type: InputType.fill,
             //   hintText: 'Input',
             //   validate: true,
             //   errorText: 'Error',
@@ -95,14 +96,15 @@ class DebugPage extends StatelessWidget {
             //     StepData(label: 'Step 4', active: true),
             //   ],
             // ),
-            HeaderStepperCard(
-              steps: [
-                StepData(label: 'Step 1', active: true),
-                StepData(label: 'Step 2', active: true),
-                StepData(label: 'Step 3', active: true),
-                StepData(label: 'Step 4', active: false),
-              ],
-            ),
+            // HeaderStepperCard(
+            //   steps: [
+            //     StepData(label: 'Step 1', active: true),
+            //     StepData(label: 'Step 2', active: true),
+            //     StepData(label: 'Step 3', active: true),
+            //     StepData(label: 'Step 4', active: false),
+            //   ],
+            // ),
+            LocationSelectorPage(),
           ],
         ),
       ),
