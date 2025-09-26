@@ -1,14 +1,14 @@
 // To parse this JSON data, do
 //
-//     final user = userFromJson(jsonString);
+//     final Raider = RaiderFromJson(jsonString);
 
 import 'dart:convert';
 
-User userFromJson(String str) => User.fromJson(json.decode(str));
+Raider RaiderFromJson(String str) => Raider.fromJson(json.decode(str));
 
-String userToJson(User data) => json.encode(data.toJson());
+String RaiderToJson(Raider data) => json.encode(data.toJson());
 
-class User {
+class Raider {
   String imagesUrl;
   String name;
   String phone;
@@ -16,7 +16,7 @@ class User {
   String addressId;
   Verhicle verhicle;
 
-  User({
+  Raider({
     required this.imagesUrl,
     required this.name,
     required this.phone,
@@ -25,7 +25,7 @@ class User {
     required this.verhicle,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
+  factory Raider.fromJson(Map<String, dynamic> json) => Raider(
     imagesUrl: json["images_url"],
     name: json["name"],
     phone: json["phone"],
