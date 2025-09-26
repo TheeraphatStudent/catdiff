@@ -1,4 +1,5 @@
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/widget/button.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
@@ -152,36 +153,12 @@ class OnBoardingPage extends GetView<OnBoardingController> {
                   bottom: 60,
                   left: 60,
                   right: 60,
-                  child: GestureDetector(
-                    onTap: controller.goToLogin,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: ShapeDecoration(
-                        color: const Color(0xFFB5D57D), // Primary-Green3
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        shadows: const [
-                          BoxShadow(
-                            color: Color(0x3F0A400C),
-                            blurRadius: 4,
-                            offset: Offset(0, 4),
-                            spreadRadius: 0,
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        'เข้าสู่ระบบ',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFFFAFFF1), // General-White
-                          fontSize: 20,
-                          fontFamily: 'Mali',
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
+                  child: ButtonActions(
+                    text: 'เข้าสู่ระบบ',
+                    variant: ButtonVariant.primary,
+                    onPressed: () {
+                      Get.toNamed('/login');
+                    },
                   ),
                 ),
               ],

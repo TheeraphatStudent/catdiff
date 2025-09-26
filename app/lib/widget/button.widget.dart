@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-enum ButtonVariant { primary, light, outline, warning, danger }
+enum ButtonVariant { primary, secondary, light, outline, warning, danger }
 
 class ButtonActions extends StatefulWidget {
   const ButtonActions({
@@ -124,6 +124,11 @@ class _ButtonActionsState extends State<ButtonActions>
             ? Color.lerp(accent, AppColors.primary2, 0.1)!
             : accent;
         foregroundColor = isSecondaryTheme ? AppColors.primary5 : Colors.white;
+        shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+        break;
+      case ButtonVariant.secondary:
+        backgroundColor = AppColors.primary5;
+        foregroundColor = AppColors.primary1;
         shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
         break;
 
@@ -447,7 +452,7 @@ class _ButtonUnderlineState extends State<ButtonUnderline>
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: 128),
+              constraints: BoxConstraints(minWidth: 128, minHeight: 48),
               child: Container(
                 width: 156,
                 padding: const EdgeInsets.all(10),

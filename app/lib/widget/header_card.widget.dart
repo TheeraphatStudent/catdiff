@@ -3,11 +3,21 @@ import 'dart:developer';
 import 'package:app/widget/button.widget.dart';
 import 'package:flutter/material.dart';
 
+enum Actions { login, register }
+
 class HeaderCard extends StatelessWidget {
-  const HeaderCard({super.key});
+  final Function(Actions) onPressed;
+  final Actions Function() activeState;
+
+  const HeaderCard({
+    super.key,
+    required this.onPressed,
+    required this.activeState,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final currentActive = activeState();
     return Container(
       width: double.infinity,
       height: 256,
@@ -67,13 +77,13 @@ class HeaderCard extends StatelessWidget {
             children: [
               ButtonUnderline(
                 text: 'เข้าสู่ระบบ',
-                active: true,
-                onPressed: () => {log("On press login work")},
+                active: currentActive == Actions.login,
+                onPressed: () => onPressed(Actions.login),
               ),
               ButtonUnderline(
                 text: 'สมัครสมาชิก',
-                active: false,
-                onPressed: () => {log("On press register work")},
+                active: currentActive == Actions.register,
+                onPressed: () => onPressed(Actions.register),
               ),
             ],
           ),
