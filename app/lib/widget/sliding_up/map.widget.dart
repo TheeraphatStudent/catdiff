@@ -85,7 +85,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   bool _isModalCurrentlyOpen = false;
   bool _hasProcessedOpenRequest = false;
 
-  static const String googleApiKey = "AIzaSyCK3UAtqWx2NprxrJoLh0n5gDw3G_DpNdk";
+  static const String googleApiKey = "AIzaSyA41Nfgldl3x9OetJGYW71moonj-OkxIv0";
 
   @override
   void initState() {
@@ -244,7 +244,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
           // Modal is now closed
           _isModalCurrentlyOpen = false;
           _hasProcessedOpenRequest = false;
-          
+
           // Call the modal closed callback to unfocus input
           widget.onModalClosed?.call();
 
@@ -257,10 +257,10 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
           // Handle any errors and reset state
           _isModalCurrentlyOpen = false;
           _hasProcessedOpenRequest = false;
-          
+
           // Call the modal closed callback even on error
           widget.onModalClosed?.call();
-          
+
           log('Modal error: $error');
         });
   }
@@ -508,6 +508,10 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                             myLocationButtonEnabled: false,
                             zoomControlsEnabled: false,
                             mapToolbarEnabled: false,
+                            compassEnabled: false,
+                            rotateGesturesEnabled: false,
+                            scrollGesturesEnabled: false,
+                            zoomGesturesEnabled: false,
                           ),
                   ),
                 ),
@@ -523,7 +527,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                         _isModalCurrentlyOpen = false;
                         _hasProcessedOpenRequest = false;
                         widget.onModalClosed?.call();
-                        Navigator.of(context).pop();
+                        Get.back();
                       },
                     ),
                     SizedBox(width: 16),

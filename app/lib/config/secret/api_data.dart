@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
 
 class ApiData extends ChangeNotifier {
-  final String apiKey = "AIzaSyCK3UAtqWx2NprxrJoLh0n5gDw3G_DpNdk";
+  final String apiKey = "AIzaSyA41Nfgldl3x9OetJGYW71moonj-OkxIv0";
 }

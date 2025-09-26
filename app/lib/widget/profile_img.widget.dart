@@ -71,21 +71,46 @@ class ProfileController extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final uploadedUrl = await UploadService.uploadProfileImage(
+      // First check if storage is accessible
+      log("Checking storage access...");
+      final storageAccessible = await UploadService.checkStorageAccess();
+      if (!storageAccessible) {
+        log("Storage access check failed - proceeding anyway");
+        // Don't fail here, let the upload attempt proceed
+      }
+
+      // Try upload with retry logic for better reliability
+      final uploadedUrl = await UploadService.uploadProfileImageWithRetry(
         _selectedFile!,
         userId,
+        maxRetries: 3,
       );
 
       if (uploadedUrl != null) {
         _uploadedUrl = uploadedUrl;
         _selectedFile = null;
+        log("Upload successful: $uploadedUrl");
       } else {
-        _error = 'Failed to upload image';
+        _error = 'Failed to upload image - please check your internet connection and try again';
+        log("Upload failed: no URL returned");
       }
 
       return uploadedUrl;
     } catch (e) {
+      log('Upload failed with exception: $e');
       _error = 'Upload failed: ${e.toString()}';
+
+      // Provide user-friendly error messages
+      if (e.toString().contains('permission-denied')) {
+        _error = 'Permission denied - please check app permissions';
+      } else if (e.toString().contains('network-request-failed')) {
+        _error = 'Network error - please check your internet connection';
+      } else if (e.toString().contains('object-not-found')) {
+        _error = 'Storage configuration error - please contact support';
+      } else if (e.toString().contains('quota-exceeded')) {
+        _error = 'Storage quota exceeded - please contact support';
+      }
+
       return null;
     } finally {
       _isUploading = false;
