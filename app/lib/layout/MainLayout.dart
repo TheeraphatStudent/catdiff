@@ -9,6 +9,7 @@ class MainLayout extends StatelessWidget {
   final bool showFooter;
   final bool resizeToAvoidBottomInset;
   final EdgeInsets? padding;
+  final bool scrollable;
 
   const MainLayout({
     super.key,
@@ -18,6 +19,7 @@ class MainLayout extends StatelessWidget {
     this.showFooter = true,
     this.resizeToAvoidBottomInset = true,
     this.padding,
+    this.scrollable = true,
   });
 
   @override
@@ -34,15 +36,25 @@ class MainLayout extends StatelessWidget {
         // appBar: appBar ?? (showHeader ? const Header() : null),
         resizeToAvoidBottomInset: resizeToAvoidBottomInset,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding:
-                  padding ??
-                  EdgeInsets.only(bottom: keyboardHeight > 0 ? 16.0 : 0.0),
-              child: body,
-            ),
-          ),
+          child: scrollable
+              ? SingleChildScrollView(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding:
+                        padding ??
+                        EdgeInsets.only(
+                          bottom: keyboardHeight > 0 ? 16.0 : 0.0,
+                        ),
+                    child: body,
+                  ),
+                )
+              : AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding:
+                      padding ??
+                      EdgeInsets.only(bottom: keyboardHeight > 0 ? 16.0 : 0.0),
+                  child: body,
+                ),
         ),
         // bottomNavigationBar: showFooter ? const Footer() : null,
       ),
