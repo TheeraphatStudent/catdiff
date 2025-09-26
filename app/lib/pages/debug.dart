@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/header_card.widget.dart';
@@ -103,7 +105,21 @@ class DebugPage extends StatelessWidget {
             //     StepData(label: 'Step 4', active: false),
             //   ],
             // ),
-            MapsLocationSelector(),
+            ButtonActions(variant: ButtonVariant.primary, icon: Icons.add),
+
+            InputField(
+              type: InputType.line,
+              hintText: 'ค้นหาที่อยู่',
+              validate: true,
+              errorText: 'Error',
+              suffixIcon: const Icon(Icons.location_on),
+            ),
+
+            MapsLocationSelector(
+              onLocationSelected: (location) {
+                log("Location selected: $location");
+              },
+            ),
           ],
         ),
       ),
