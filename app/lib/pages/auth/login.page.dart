@@ -1,4 +1,11 @@
-import 'package:flutter/material.dart';
+import 'dart:developer';
+
+import 'package:app/config/theme/app_theme.dart';
+import 'package:app/layout/MainLayout.dart';
+import 'package:app/widget/button.widget.dart';
+import 'package:app/widget/header_card.widget.dart';
+import 'package:app/widget/input.widget.dart';
+import 'package:flutter/material.dart' hide Actions;
 import 'package:flutter/services.dart';
 
 class LoginPage extends StatefulWidget {
@@ -74,133 +81,43 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   void _handleRegister() {
     print("สมัครเป็น$_selectedRole");
-    // เพิ่มโค้ดการสมัครสมาชิกตามบทบาทที่เลือก
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8F9FA), Color(0xFFE8F5E8), Color(0xFFD4E8D4)],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 15,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(30, 40, 30, 20),
-                    child: Column(
-                      children: [
-                        // Image.asset("assets/cat_bike.png", height: 80),
-                        SizedBox(height: 20),
-
-                        // Tabs
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(() => _isLoginTab = true),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: _isLoginTab
-                                            ? Colors.green
-                                            : Colors.transparent,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'เข้าสู่ระบบ',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: _isLoginTab
-                                          ? Colors.green
-                                          : Colors.grey,
-                                      fontWeight: _isLoginTab
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isLoginTab = false),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: !_isLoginTab
-                                            ? Colors.green
-                                            : Colors.transparent,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'สมัครสมาชิก',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: !_isLoginTab
-                                          ? Colors.green
-                                          : Colors.grey,
-                                      fontWeight: !_isLoginTab
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: 20),
-
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(20),
-                    child: _isLoginTab ? _buildLoginForm() : _buildRegisterUI(),
-                  ),
-                ),
-              ],
+    return MainLayout(
+      scrollable: true,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
+          children: [
+            // Header
+            HeaderCard(
+              onPressed: (context) {
+                switch (context) {
+                  case Actions.login:
+                    setState(() => _isLoginTab = true);
+                    break;
+                  case Actions.register:
+                    setState(() => _isLoginTab = false);
+                    break;
+                }
+              },
+              activeState: () => _isLoginTab ? Actions.login : Actions.register,
             ),
-          ),
+
+            SizedBox(height: 32),
+
+            _isLoginTab
+                ? Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 36),
+                    child: _buildLoginForm(),
+                  )
+                : Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 36),
+                    child: _buildRegisterUI(),
+                  ),
+          ],
         ),
       ),
     );
@@ -209,70 +126,52 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   // 🔹 ฟอร์มเข้าสู่ระบบ
   Widget _buildLoginForm() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 48,
       children: [
-        Text(
-          'เบอร์โทร:',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        SizedBox(height: 8),
-        TextFormField(
+        InputField(
+          hintText: '000-000-0000',
+          label: 'เบอร์โทรศัพท์',
           controller: _phoneController,
           keyboardType: TextInputType.phone,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[\d\-]')),
-            LengthLimitingTextInputFormatter(12),
-            TextInputFormatter.withFunction((oldValue, newValue) {
-              String newText = newValue.text.replaceAll('-', '');
-              if (newText.length <= 10) {
-                String formatted = _formatPhoneNumber(newText);
-                return TextEditingValue(
-                  text: formatted,
-                  selection: TextSelection.collapsed(offset: formatted.length),
-                );
-              }
-              return oldValue;
-            }),
-          ],
-          decoration: InputDecoration(
-            hintText: '000-000-0000',
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          onChanged: (value) {
+            _phoneController.text = value;
+          },
         ),
-
-        SizedBox(height: 25),
-
-        Text(
-          'รหัสผ่าน:',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: true,
-          decoration: InputDecoration(
-            hintText: '••••••••',
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
-
-        SizedBox(height: 30),
-
-        ElevatedButton(
-          onPressed: _handleLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            minimumSize: Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          spacing: 32,
+          children: [
+            InputField(
+              hintText: '**********',
+              label: 'รหัสผ่าน',
+              controller: _passwordController,
+              keyboardType: TextInputType.phone,
+              onChanged: (value) {
+                _passwordController.text = value;
+              },
             ),
-          ),
-          child: Text("เข้าสู่ระบบ"),
+            GestureDetector(
+              onTap: () => {log("On reset password work")},
+              child: Text(
+                'จำรหัสผ่านไม่ได้?',
+                style: TextStyle(
+                  color: AppColors.darkWarning,
+                  fontSize: 16,
+                  fontFamily: 'Mali',
+                  fontWeight: FontWeight.w400,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            SizedBox(height: 32),
+
+            ButtonActions(text: "เข้าสู่ระบบ", variant: ButtonVariant.primary),
+          ],
         ),
       ],
     );
@@ -283,116 +182,188 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ElevatedButton(
-          onPressed: _handleRegister,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFFDFFFD6),
-            foregroundColor: Colors.black,
-            minimumSize: Size(double.infinity, 50),
+        ButtonActions(
+          text: "สมัครเป็น\"$_selectedRole\"",
+          variant: ButtonVariant.secondary,
+          onPressed: () => {_handleRegister()},
+        ),
+
+        SizedBox(height: 24),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: ShapeDecoration(
+            color: AppColors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: Text("สมัครเป็น$_selectedRole"), // ใช้ตัวแปร _selectedRole
-        ),
-        SizedBox(height: 20),
-
-        Container(
-          padding: EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: Offset(0, 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            spacing: 10,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    _selectedRole == "ผู้ใช้ทั่วไป"
+                        ? 'การใช้งาน Cat Diff ในฐานะผู้ใช้ทั่วไป'
+                        : 'เมื่อเข้าร่วมเป็น Rider กับ Cat Diff ',
+                    style: TextStyle(
+                      color: AppColors.black,
+                      fontSize: 14,
+                      fontFamily: 'Mali',
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    _selectedRole == "ผู้ใช้ทั่วไป"
+                        ? 'คุณจะได้รับความสะดวกสบายในการส่งของได้ทุกเวลา\nเลือกตำแหน่งรับ–ส่งผ่านแผนที่ได้อย่างแม่นยำ พร้อมมั่นใจว่าสินค้าของคุณจะถูกจัดการอย่างรวดเร็ว และปลอดภัย '
+                        : 'มีระบบที่ใช้งานง่าย ช่วยให้การรับ–ส่งสินค้าเป็นเรื่องสะดวก ปลอดภัย และมั่นใจได้ว่าทุกการส่งมีการติดตามแบบเรียลไทม์ ',
+                    style: TextStyle(
+                      color: AppColors.primary1,
+                      fontSize: 12,
+                      fontFamily: 'Mali',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          child: Text(
-            _selectedRole == "ผู้ใช้ทั่วไป"
-                ? "การใช้งาน Cat Diff ในฐานะผู้ใช้ทั่วไป\n\n"
-                      "คุณจะได้รับความสะดวกสบายในการสั่งของได้ทุกเวลา\n"
-                      "เลือกสินค้าง่าย ส่งสินค้าปลอดภัยตรงเวลา\n"
-                      "พร้อมมั่นใจว่ามีทีมจัดการขนส่งที่รวดเร็วและปลอดภัย"
-                : "การใช้งาน Cat Diff ในฐานะคนส่งของ\n\n"
-                      "คุณจะได้รับรายได้เสริมจากการส่งของ\n"
-                      "เลือกงานได้ตามเวลาที่สะดวก\n"
-                      "ระบบจัดการเส้นทางอัตโนมัติ เพิ่มประสิทธิภาพในการขนส่ง",
-            style: TextStyle(fontSize: 14, color: Colors.black87),
-            textAlign: TextAlign.center,
-          ),
         ),
 
-        SizedBox(height: 30),
+        SizedBox(height: 96),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _roleCard("ผู้ใช้ทั่วไป", "assets/cat_user.png"),
-            _roleCard("คนส่งของ", "assets/cat_rider.png"),
+            _roleCard("ผู้ใช้ทั่วไป", "lib/assets/images/user.png"),
+            _roleCard("คนส่งของ", "lib/assets/images/rider.png"),
           ],
         ),
       ],
     );
   }
 
-  Widget _roleCard(String title, String asset) {
-    bool isSelected = _selectedRole == title; // ตรวจสอบว่าเลือกหรือไม่
+  Widget _roleCard(String title, String assetPath) {
+    bool isSelected = _selectedRole == title;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedRole = title; // เปลี่ยนบทบาทที่เลือก
-        });
-      },
-      child: Container(
-        width: 140,
-        height: 160,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors
-                    .green
-                    .shade200 // สีเข้มขึ้นเมื่อถูกเลือก
-              : Colors.green.shade50,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? Border.all(
-                  color: Colors.green,
-                  width: 2,
-                ) // เพิ่มขอบเมื่อถูกเลือก
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Image.asset(asset, height: 80),
-            Container(
-              height: 80,
-              width: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                title == "ผู้ใช้ทั่วไป" ? Icons.person : Icons.delivery_dining,
-                size: 40,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedRole = title;
+          });
+          // Optional: Add haptic feedback
+          // HapticFeedback.lightImpact();
+        },
+        child: Container(
+          width: 140,
+          height: 160,
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? AppColors.gradientPrimary
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.grayInsight, AppColors.grayLight],
+                  ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppColors.primary3 : AppColors.grayMedium,
+              width: isSelected ? 2.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
                 color: isSelected
-                    ? Colors.green.shade700
-                    : Colors.grey.shade600,
+                    ? AppColors.primary3.withOpacity(0.3)
+                    : AppColors.grayMedium.withOpacity(0.2),
+                spreadRadius: isSelected ? 2 : 1,
+                blurRadius: isSelected ? 8 : 4,
+                offset: const Offset(0, 2),
               ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.green.shade700 : Colors.black,
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 84,
+                width: 84,
+                // decoration: BoxDecoration(
+                //   color: isSelected
+                //       ? AppColors.white.withValues(alpha: 0.9)
+                //       : AppColors.white,
+                //   borderRadius: BorderRadius.circular(16),
+                //   boxShadow: [
+                //     BoxShadow(
+                //       color: Colors.black.withOpacity(0.1),
+                //       spreadRadius: 0,
+                //       blurRadius: 4,
+                //       offset: const Offset(0, 2),
+                //     ),
+                //   ],
+                // ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        title == "ผู้ใช้ทั่วไป"
+                            ? Icons.person_rounded
+                            : Icons.delivery_dining_rounded,
+                        size: 64,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: isSelected ? 17 : 16,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? AppColors.primary1 : AppColors.grayMedium,
+                  letterSpacing: 0.2,
+                ),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              if (isSelected) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary3,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
