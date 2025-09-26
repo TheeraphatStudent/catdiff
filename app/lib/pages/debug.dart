@@ -96,15 +96,16 @@ class DebugPage extends StatelessWidget {
             //     StepData(label: 'Step 4', active: true),
             //   ],
             // ),
-            // HeaderStepperCard(
-            //   steps: [
-            //     StepData(label: 'Step 1', active: true),
-            //     StepData(label: 'Step 2', active: true),
-            //     StepData(label: 'Step 3', active: true),
-            //     StepData(label: 'Step 4', active: false),
-            //   ],
-            // ),
-            LocationSelectorPage(),
+            HeaderStepperCard(
+              steps: [
+                StepData(label: 'Step 1', active: true),
+                StepData(label: 'Step 2', active: true),
+                StepData(label: 'Step 3', active: true),
+                StepData(label: 'Step 4', active: false),
+              ],
+            ),
+
+            // LocationSelectorPage(),
           ],
         ),
       ),
