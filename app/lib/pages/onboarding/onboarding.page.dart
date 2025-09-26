@@ -154,7 +154,7 @@ class OnBoardingPage extends GetView<OnBoardingController> {
                   left: 60,
                   right: 60,
                   child: ButtonActions(
-                    text: 'เข้าสู่ระบบ',
+                    text: 'ไปกันเลย',
                     variant: ButtonVariant.primary,
                     onPressed: () {
                       Get.toNamed('/login');

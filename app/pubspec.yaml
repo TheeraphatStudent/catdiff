@@ -51,6 +51,7 @@ dependencies:
   google_maps_flutter: ^2.13.1
   google_places_flutter: ^2.1.1
   http: ^1.5.0
+  firebase_app_check: ^0.3.2+10
 
 dev_dependencies:
   flutter_test:

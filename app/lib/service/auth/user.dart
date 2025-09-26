@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:app/types/role.dart';
 import 'package:app/types/user_auth.dart'; // import User และ Verhicle
 import 'package:app/types/raider_auth.dart' hide User; // import Raider
 
@@ -16,38 +16,70 @@ class AuthService {
     required String phone,
     required String address,
     required String password,
-    String role = 'user', // 'user' หรือ 'raider'
+    required UserRole role, // Use UserRole enum instead of string
   }) async {
     try {
-      // สร้าง email ชั่วคราวจาก user_id
-      final email = "$user_id@app.local";
+      // Format phone number as email for Firebase Auth compatibility
+      final phoneEmail =
+          "${phone.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
 
       // สร้าง Firebase Auth user
       final userCredential = await fb.FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+          .createUserWithEmailAndPassword(
+            email: phoneEmail,
+            password: password,
+          );
 
-      // ข้อมูลพื้นฐาน
-      final userData = {
-        'name': user_id,
-        'phone': phone,
-        'password': password, // ควร hash ใน production
-        'address_id': address,
-        'role': role,
-        'images_url': '',
-        'verhicle': {'drive_image_url': '', 'licence_plate': '', 'type': ''},
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      // ข้อมูลพื้นฐาน - different structure for User vs Raider
+      final Map<String, dynamic> userData;
+      
+      if (role == UserRole.rider) {
+        // Raider structure: no password, no user_id
+        userData = {
+          'name': user_id,
+          'phone': phone,
+          'address_id': address,
+          'role': role.name,
+          'images_url': '',
+          'verhicle': {
+            'drive_image_url': '',
+            'licence_plate': '',
+            'type': '',
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+      } else {
+        // User structure: includes password and user_id
+        userData = {
+          'name': user_id,
+          'phone': phone,
+          'password': password,
+          'address_id': address,
+          'role': role.name,
+          'images_url': '',
+          'verhicle': {
+            'drive_image_url': '',
+            'licence_plate': '',
+            'type': '',
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+      }
 
       // บันทึกลง Firestore
+      final String collectionName = role == UserRole.rider ? 'rider' : 'user';
       await FirebaseFirestore.instance
-          .collection(role == 'raider' ? 'raiders' : 'users')
+          .collection(collectionName)
           .doc(userCredential.user!.uid)
           .set(userData);
 
       // แปลงเป็น object
-      final userObject = role == 'raider'
-          ? Raider.fromJson({...userData, 'user_id': userCredential.user!.uid})
-          : User.fromJson({...userData, 'user_id': userCredential.user!.uid});
+      final userObject = role == UserRole.rider
+          ? Raider.fromJson(userData) // Raider doesn't need user_id
+          : User.fromJson({
+              ...userData,
+              'user_id': userCredential.user!.uid, // User needs user_id
+            });
 
       return {
         'success': true,
@@ -84,18 +116,22 @@ class AuthService {
   static Future<Map<String, dynamic>> loginUser({
     required String user_id,
     required String password,
-    String role = 'user', // 'user' หรือ 'raider'
+    required UserRole role, // Use UserRole enum instead of string
   }) async {
     try {
-      final email = "$user_id@app.local";
+      // Format phone number as email for Firebase Auth compatibility
+      // This is a workaround since full phone auth requires SMS verification
+      final phoneEmail =
+          "${user_id.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
 
-      // ล็อคอิน Firebase Auth
+      // ล็อคอิน Firebase Auth using email/password format
       final userCredential = await fb.FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+          .signInWithEmailAndPassword(email: phoneEmail, password: password);
 
       // ดึงข้อมูลจาก Firestore
+      final String collectionName = role == UserRole.rider ? 'rider' : 'user';
       final doc = await FirebaseFirestore.instance
-          .collection(role == 'raider' ? 'raiders' : 'users')
+          .collection(collectionName)
           .doc(userCredential.user!.uid)
           .get();
 
@@ -104,9 +140,12 @@ class AuthService {
       }
 
       final userData = doc.data()!;
-      final userObject = role == 'raider'
-          ? Raider.fromJson({...userData, 'user_id': userCredential.user!.uid})
-          : User.fromJson({...userData, 'user_id': userCredential.user!.uid});
+      final userObject = role == UserRole.rider
+          ? Raider.fromJson(userData) // Raider doesn't need user_id
+          : User.fromJson({
+              ...userData,
+              'user_id': userCredential.user!.uid, // User needs user_id
+            });
 
       return {'success': true, 'message': 'ล็อคอินสำเร็จ', 'user': userObject};
     } on fb.FirebaseAuthException catch (e) {
