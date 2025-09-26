@@ -18,6 +18,7 @@ class InputField extends StatefulWidget {
 
   final Function(String)? onChanged;
   final Function(String)? onSubmitted;
+  final VoidCallback? onFocus;
 
   const InputField({
     super.key,
@@ -28,6 +29,7 @@ class InputField extends StatefulWidget {
     this.controller,
     this.onChanged,
     this.onSubmitted,
+    this.onFocus,
     this.keyboardType,
     this.obscureText = false,
     this.suffixIcon,
@@ -62,6 +64,7 @@ class _InputFieldState extends State<InputField> {
     setState(() {
       _isFocused = _focusNode.hasFocus;
     });
+    widget.onFocus?.call();
   }
 
   void _validateInput(String value) {

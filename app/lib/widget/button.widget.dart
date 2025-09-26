@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 enum ButtonVariant { primary, secondary, light, outline, warning, danger }
 
+enum ButtonWidth { full, fit }
+
 class ButtonActions extends StatefulWidget {
   const ButtonActions({
     super.key,
@@ -18,6 +20,7 @@ class ButtonActions extends StatefulWidget {
     this.onLabelPressed,
     this.iconPosition = IconPosition.right,
     this.height = 48,
+    this.width = ButtonWidth.fit,
   });
 
   final String? text;
@@ -29,6 +32,7 @@ class ButtonActions extends StatefulWidget {
   final VoidCallback? onPressed;
   final VoidCallback? onLabelPressed;
   final double? height;
+  final ButtonWidth width;
 
   final IconPosition iconPosition;
 
@@ -208,7 +212,9 @@ class _ButtonActionsState extends State<ButtonActions>
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                   child: Container(
-                    width: double.infinity,
+                    width: widget.width == ButtonWidth.full
+                        ? double.infinity
+                        : null,
                     height: widget.height,
                     decoration: ShapeDecoration(
                       color: backgroundColor,

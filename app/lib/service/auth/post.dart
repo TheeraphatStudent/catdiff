@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../upload/post.dart';
-import '../../types/auth.dart';
 
 class AuthService {
   static Future<AuthResponse?> login(LoginRequest request) async {

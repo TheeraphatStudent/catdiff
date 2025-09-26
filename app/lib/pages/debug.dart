@@ -8,9 +8,18 @@ import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map.widget.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-class DebugPage extends StatelessWidget {
+class DebugPage extends StatefulWidget {
   const DebugPage({super.key});
+
+  @override
+  State<DebugPage> createState() => _DebugPageState();
+}
+
+class _DebugPageState extends State<DebugPage> {
+  bool _isMapModalOpened = false;
+  final TextEditingController _locationController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -18,106 +27,64 @@ class DebugPage extends StatelessWidget {
       body: Center(
         child: Column(
           children: [
-            // ButtonActions(text: 'Button', variant: ButtonVariant.primary),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.light),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.outline),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.warning),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.danger),
-
-            // ButtonActions(
-            //   text: 'Button',
-            //   variant: ButtonVariant.primary,
-            //   icon: Icons.add,
-            //   iconPosition: IconPosition.right,
-            // ),
-            // ButtonActions(
-            //   text: 'Button',
-            //   variant: ButtonVariant.primary,
-            //   icon: Icons.add,
-            //   iconPosition: IconPosition.left,
-            // ),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.light),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.outline),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.warning),
-            // ButtonActions(text: 'Button', variant: ButtonVariant.danger),
-
-            // ButtonUnderline(text: 'Button'),
-            // ButtonUnderline(text: 'Button', active: true),
-
-            // // HeaderCard(),
-            // InputField(
-            //   label: 'Input',
-            //   type: InputType.line,
-            //   hintText: 'Input',
-            //   validate: true,
-            //   errorText: 'Error',
-            // ),
-            // InputField(
-            //   label: 'Input',
-            //   type: InputType.fill,
-            //   hintText: 'Input',
-            //   validate: true,
-            //   errorText: 'Error',
-            // ),
-            // InputField(
-            //   label: 'Input',
-            //   type: InputType.fill,
-            //   hintText: 'Input',
-            //   validate: true,
-            //   errorText: 'Error',
-            //   suffixIcon: const Icon(Icons.add),
-            // ),
-
-            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xl),
-            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.md),
-            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.sm),
-            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xs),
-            // ProfileWidgets.avatar(isEdited: true, size: ProfileSize.xxs),
-            // StepperWidget(
-            //   steps: [
-            //     StepData(label: 'Step 1', active: true),
-            //     StepData(label: 'Step 2', active: false),
-            //     StepData(label: 'Step 3', active: false),
-            //   ],
-            // ),
-
-            // StepperWidget(
-            //   steps: [
-            //     StepData(label: 'Step 1', active: true),
-            //     StepData(label: 'Step 2', active: true),
-            //     StepData(label: 'Step 3', active: true),
-            //   ],
-            // ),
-
-            // StepperWidget(
-            //   steps: [
-            //     StepData(label: 'Step 1', active: true),
-            //     StepData(label: 'Step 2', active: true),
-            //     StepData(label: 'Step 3', active: true),
-            //     StepData(label: 'Step 4', active: true),
-            //   ],
-            // ),
-            // HeaderStepperCard(
-            //   steps: [
-            //     StepData(label: 'Step 1', active: true),
-            //     StepData(label: 'Step 2', active: true),
-            //     StepData(label: 'Step 3', active: true),
-            //     StepData(label: 'Step 4', active: false),
-            //   ],
-            // ),
-            ButtonActions(variant: ButtonVariant.primary, icon: Icons.add),
+            Row(
+              children: [
+                ButtonActions(
+                  variant: ButtonVariant.danger,
+                  icon: Icons.arrow_back,
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: InputField(
+                    type: InputType.fill,
+                    hintText: 'ค้นหาที่อยู่',
+                    validate: true,
+                    errorText: 'Error',
+                    suffixIcon: const Icon(Icons.search_sharp),
+                  ),
+                ),
+                SizedBox(width: 16),
+                ButtonActions(
+                  variant: ButtonVariant.primary,
+                  icon: Icons.arrow_forward,
+                ),
+              ],
+            ),
 
             InputField(
-              type: InputType.line,
-              hintText: 'ค้นหาที่อยู่',
+              label: 'ที่อยู่เริ่มต้น (สำหรับรับสินค้า):',
+              type: InputType.fill,
+              hintText: 'เลือกที่อยู่ในแมพ',
               validate: true,
               errorText: 'Error',
               suffixIcon: const Icon(Icons.location_on),
+              controller: _locationController,
+              onFocus: () {
+                setState(() {
+                  _isMapModalOpened = true;
+                });
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  setState(() {
+                    _isMapModalOpened = false;
+                  });
+                });
+              },
             ),
 
             MapsLocationSelector(
+              isOpened: _isMapModalOpened,
               onLocationSelected: (location) {
                 log("Location selected: $location");
+                _locationController.text =
+                    'Lat: ${location.latitude.toStringAsFixed(6)}, Lng: ${location.longitude.toStringAsFixed(6)}';
+              },
+              onConfirmLocation: () {
+                final selectedLocation = Get.find<MapLocationController>().selectedLocation.value;
+                if (selectedLocation != null) {
+                  log("Location confirmed: $selectedLocation");
+                  _locationController.text =
+                      'Lat: ${selectedLocation.latitude.toStringAsFixed(6)}, Lng: ${selectedLocation.longitude.toStringAsFixed(6)}';
+                }
               },
             ),
           ],

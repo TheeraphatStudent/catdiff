@@ -1,4 +1,6 @@
 import 'dart:developer';
+import 'package:app/config/theme/app_theme.dart';
+import 'package:app/widget/button.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -20,7 +22,7 @@ class MapLocationController extends GetxController {
     selectedLocation.value = location;
     updateMarker(location);
     locationStatus.value =
-        'Selected: ${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+        'ตำแหน่งที่เลือก: ${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
   }
 
   void updateMarker(LatLng location) {
@@ -29,7 +31,7 @@ class MapLocationController extends GetxController {
       Marker(
         markerId: const MarkerId('selected_location'),
         position: location,
-        infoWindow: const InfoWindow(title: 'Selected Location'),
+        infoWindow: const InfoWindow(title: 'เลือกที่อยู่'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
@@ -38,7 +40,7 @@ class MapLocationController extends GetxController {
   void moveCamera(LatLng location) {
     mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: location, zoom: 16.0),
+        CameraPosition(target: location, zoom: 18.0),
       ),
     );
   }
@@ -55,6 +57,8 @@ class MapsLocationSelector extends StatefulWidget {
   final Function(LatLng)? onLocationSelected;
   final Function(String)? onMapSearch;
   final bool isShowingAction;
+  final bool isOpened;
+  final VoidCallback? onConfirmLocation;
 
   const MapsLocationSelector({
     super.key,
@@ -62,6 +66,8 @@ class MapsLocationSelector extends StatefulWidget {
     this.onLocationSelected,
     this.onMapSearch,
     this.isShowingAction = false,
+    this.isOpened = false,
+    this.onConfirmLocation,
   });
 
   @override
@@ -80,6 +86,16 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+  }
+
+  @override
+  void didUpdateWidget(MapsLocationSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isOpened && !oldWidget.isOpened) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openLocationModal();
+      });
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -183,352 +199,420 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     _searchController.text = prediction.description ?? '';
   }
 
+  void _openLocationModal() {
+    WoltModalSheet.show<LatLng?>(
+      context: context,
+      pageListBuilder: (modalSheetContext) {
+        final textTheme = Theme.of(context).textTheme;
+        return [_buildLocationSelectorPage(modalSheetContext, textTheme)];
+      },
+      modalTypeBuilder: (context) {
+        final size = MediaQuery.sizeOf(context).width;
+        if (size < _pageBreakpoint) {
+          return const WoltBottomSheetType();
+        } else {
+          return const WoltDialogType();
+        }
+      },
+      onModalDismissedWithBarrierTap: () {
+        log('Closed modal sheet with barrier tap');
+        Navigator.of(context).pop();
+      },
+    ).then((selectedLocation) {
+      if (selectedLocation != null) {
+        log('Location selected: $selectedLocation');
+        widget.onLocationSelected?.call(selectedLocation);
+      }
+    });
+  }
+
   SliverWoltModalSheetPage _buildLocationSelectorPage(
     BuildContext modalSheetContext,
     TextTheme textTheme,
   ) {
     return SliverWoltModalSheetPage(
-      pageTitle: Padding(
-        padding: const EdgeInsets.all(_pagePadding),
-        child: Text(
-          'Select Location',
-          style: textTheme.headlineMedium!.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      trailingNavBarWidget: IconButton(
-        padding: const EdgeInsets.all(_pagePadding),
-        icon: const Icon(Icons.close),
-        onPressed: Navigator.of(modalSheetContext).pop,
-      ),
-      stickyActionBar: Padding(
-        padding: const EdgeInsets.all(_pagePadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(
-              () => Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
+      // pageTitle: Padding(
+      //   padding: const EdgeInsets.all(_pagePadding),
+      //   child: Row(
+      //     children: [
+      //       ButtonActions(
+      //         variant: ButtonVariant.danger,
+      //         icon: Icons.arrow_back,
+      //       ),
+      //       SizedBox(width: 16),
+      //       Expanded(
+      //         child: GooglePlaceAutoCompleteTextField(
+      //           textEditingController: _searchController,
+      //           googleAPIKey: googleApiKey,
+      //           inputDecoration: InputDecoration(
+      //             hintText: 'ค้นหาที่อยู่',
+      //             prefixIcon: Icon(Icons.search_sharp),
+      //             filled: true,
+      //             fillColor: Theme.of(
+      //               context,
+      //             ).colorScheme.surfaceVariant.withOpacity(0.5),
+      //             border: OutlineInputBorder(
+      //               borderRadius: BorderRadius.circular(12),
+      //               borderSide: BorderSide.none,
+      //             ),
+      //             enabledBorder: OutlineInputBorder(
+      //               borderRadius: BorderRadius.circular(12),
+      //               borderSide: BorderSide.none,
+      //             ),
+      //             focusedBorder: OutlineInputBorder(
+      //               borderRadius: BorderRadius.circular(12),
+      //               borderSide: BorderSide(
+      //                 color: Theme.of(context).colorScheme.primary,
+      //                 width: 2,
+      //               ),
+      //             ),
+      //             contentPadding: const EdgeInsets.symmetric(
+      //               horizontal: 16,
+      //               vertical: 16,
+      //             ),
+      //           ),
+      //           debounceTime: 1000,
+      //           countries: const ["th"],
+      //           isLatLngRequired: true,
+      //           getPlaceDetailWithLatLng: (Prediction prediction) {
+      //             log('Place selected: ${prediction.description}');
+      //             _onPlaceSelected(prediction);
+      //           },
+      //           itemClick: (Prediction prediction) {
+      //             _searchController.text = prediction.description ?? '';
+      //             _searchController.selection = TextSelection.fromPosition(
+      //               TextPosition(offset: prediction.description?.length ?? 0),
+      //             );
+      //           },
+      //           seperatedBuilder: const Divider(),
+      //           containerHorizontalPadding: 0,
+      //           itemBuilder: (context, index, Prediction prediction) {
+      //             return Container(
+      //               padding: const EdgeInsets.all(12),
+      //               child: Row(
+      //                 children: [
+      //                   Icon(
+      //                     Icons.location_on,
+      //                     color: Theme.of(context).colorScheme.primary,
+      //                     size: 20,
+      //                   ),
+      //                   const SizedBox(width: 12),
+      //                   Expanded(
+      //                     child: Column(
+      //                       crossAxisAlignment: CrossAxisAlignment.start,
+      //                       children: [
+      //                         Text(
+      //                           prediction.structuredFormatting?.mainText ?? '',
+      //                           style: const TextStyle(
+      //                             fontWeight: FontWeight.w500,
+      //                             fontSize: 14,
+      //                           ),
+      //                         ),
+      //                         if (prediction
+      //                                 .structuredFormatting
+      //                                 ?.secondaryText !=
+      //                             null) ...[
+      //                           const SizedBox(height: 2),
+      //                           Text(
+      //                             prediction
+      //                                 .structuredFormatting!
+      //                                 .secondaryText!,
+      //                             style: TextStyle(
+      //                               color: Colors.grey[600],
+      //                               fontSize: 12,
+      //                             ),
+      //                           ),
+      //                         ],
+      //                       ],
+      //                     ),
+      //                   ),
+      //                 ],
+      //               ),
+      //             );
+      //           },
+      //         ),
+      //       ),
+      //       SizedBox(width: 16),
+      //       ButtonActions(
+      //         variant: ButtonVariant.primary,
+      //         icon: Icons.arrow_forward,
+      //       ),
+      //     ],
+      //   ),
+      // ),
+
+      // trailingNavBarWidget: IconButton(
+      //   padding: const EdgeInsets.all(_pagePadding),
+      //   icon: const Icon(Icons.close),
+      //   onPressed: Navigator.of(modalSheetContext).pop,
+      // ),
+      // stickyActionBar: Padding(
+      //   padding: const EdgeInsets.all(_pagePadding),
+      //   child: Column(
+      //     mainAxisSize: MainAxisSize.min,
+      //     children: [
+      //       Obx(
+      //         () => Container(
+      //           width: double.infinity,
+      //           padding: const EdgeInsets.all(12),
+      //           decoration: BoxDecoration(
+      //             color: Theme.of(context).colorScheme.surfaceVariant,
+      //             borderRadius: BorderRadius.circular(8),
+      //           ),
+      //           child: Text(
+      //             controller.locationStatus.value,
+      //             style: textTheme.bodyMedium,
+      //             textAlign: TextAlign.center,
+      //           ),
+      //         ),
+      //       ),
+      //       const SizedBox(height: 8),
+      //       Row(
+      //         children: [
+      //           Expanded(
+      //             child: ElevatedButton(
+      //               onPressed: _getCurrentLocation,
+      //               child: SizedBox(
+      //                 height: _buttonHeight,
+      //                 child: Center(
+      //                   child: Obx(
+      //                     () => controller.isLoading.value
+      //                         ? const Row(
+      //                             mainAxisAlignment: MainAxisAlignment.center,
+      //                             children: [
+      //                               SizedBox(
+      //                                 width: 20,
+      //                                 height: 20,
+      //                                 child: CircularProgressIndicator(
+      //                                   strokeWidth: 2,
+      //                                 ),
+      //                               ),
+      //                               SizedBox(width: 8),
+      //                               Text('Loading...'),
+      //                             ],
+      //                           )
+      //                         : const Row(
+      //                             mainAxisAlignment: MainAxisAlignment.center,
+      //                             children: [
+      //                               Icon(Icons.my_location, size: 20),
+      //                               SizedBox(width: 8),
+      //                               Text('Current Location'),
+      //                             ],
+      //                           ),
+      //                   ),
+      //                 ),
+      //               ),
+      //             ),
+      //           ),
+      //           const SizedBox(width: 8),
+      //           Expanded(
+      //             child: Obx(
+      //               () => ElevatedButton(
+      //                 onPressed: controller.selectedLocation.value != null
+      //                     ? () {
+      //                         Navigator.of(
+      //                           modalSheetContext,
+      //                         ).pop(controller.selectedLocation.value);
+      //                       }
+      //                     : null,
+      //                 child: const SizedBox(
+      //                   height: _buttonHeight,
+      //                   child: Center(
+      //                     child: Row(
+      //                       mainAxisAlignment: MainAxisAlignment.center,
+      //                       children: [
+      //                         Icon(Icons.check, size: 20),
+      //                         SizedBox(width: 8),
+      //                         Text('Confirm'),
+      //                       ],
+      //                     ),
+      //                   ),
+      //                 ),
+      //               ),
+      //             ),
+      //           ),
+      //         ],
+      //       ),
+      //     ],
+      //   ),
+      // ),
+      mainContentSliversBuilder: (context) => [
+        // Map section
+        SliverToBoxAdapter(
+          child: Stack(
+            children: [
+              Container(
+                height: MediaQuery.of(context).size.height * 0.75,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.black),
                 ),
-                child: Text(
-                  controller.locationStatus.value,
-                  style: textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Obx(
+                    () => controller.isLoading.value
+                        ? const Center(child: CircularProgressIndicator())
+                        : GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target:
+                                  controller.selectedLocation.value ??
+                                  controller.currentLocation.value,
+                              zoom: 15.0,
+                            ),
+                            onMapCreated: (GoogleMapController mapController) {
+                              controller.mapController = mapController;
+                            },
+                            onTap: _onMapTapped,
+                            markers: controller.markers,
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: false,
+                            zoomControlsEnabled: false,
+                            mapToolbarEnabled: false,
+                          ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _getCurrentLocation,
-                    child: SizedBox(
-                      height: _buttonHeight,
-                      child: Center(
-                        child: Obx(
-                          () => controller.isLoading.value
-                              ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text('Loading...'),
-                                  ],
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.my_location, size: 20),
-                                    SizedBox(width: 8),
-                                    Text('Current Location'),
-                                  ],
-                                ),
-                        ),
-                      ),
+              Padding(
+                padding: const EdgeInsets.all(_pagePadding),
+                child: Row(
+                  children: [
+                    ButtonActions(
+                      variant: ButtonVariant.danger,
+                      icon: Icons.arrow_back,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Obx(
-                    () => ElevatedButton(
-                      onPressed: controller.selectedLocation.value != null
-                          ? () {
-                              Navigator.of(
-                                modalSheetContext,
-                              ).pop(controller.selectedLocation.value);
-                            }
-                          : null,
-                      child: const SizedBox(
-                        height: _buttonHeight,
-                        child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check, size: 20),
-                              SizedBox(width: 8),
-                              Text('Confirm'),
-                            ],
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: GooglePlaceAutoCompleteTextField(
+                        textEditingController: _searchController,
+                        googleAPIKey: googleApiKey,
+                        inputDecoration: InputDecoration(
+                          hintText: 'ค้นหาที่อยู่',
+                          prefixIcon: Icon(Icons.search_sharp),
+                          filled: true,
+                          // fillColor: Theme.of(
+                          //   context,
+                          // ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                          fillColor: AppColors.primary2,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      mainContentSliversBuilder: (context) => [
-        // Search section with Google Places Autocomplete
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(_pagePadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Search Location', style: textTheme.titleMedium),
-                const SizedBox(height: 8),
-                GooglePlaceAutoCompleteTextField(
-                  textEditingController: _searchController,
-                  googleAPIKey: googleApiKey,
-                  inputDecoration: const InputDecoration(
-                    hintText: 'Search for places...',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  debounceTime: 800,
-                  countries: const ["th", "us"], // Thailand and US
-                  isLatLngRequired: true,
-                  getPlaceDetailWithLatLng: (Prediction prediction) {
-                    log('Place selected: ${prediction.description}');
-                    _onPlaceSelected(prediction);
-                  },
-                  itemClick: (Prediction prediction) {
-                    _searchController.text = prediction.description ?? '';
-                    _searchController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: prediction.description?.length ?? 0),
-                    );
-                  },
-                  seperatedBuilder: const Divider(),
-                  containerHorizontalPadding: 0,
-                  itemBuilder: (context, index, Prediction prediction) {
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  prediction.structuredFormatting?.mainText ??
-                                      '',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                if (prediction
-                                        .structuredFormatting
-                                        ?.secondaryText !=
-                                    null) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    prediction
-                                        .structuredFormatting!
-                                        .secondaryText!,
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AppColors.lightDanger,
+                              width: 2,
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Manual coordinates section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(_pagePadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Manual Coordinates', style: textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _latController,
-                        decoration: const InputDecoration(
-                          labelText: 'Latitude',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 12,
+                            vertical: 16,
                           ),
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        debounceTime: 1000,
+                        countries: const ["th"],
+                        isLatLngRequired: true,
+                        getPlaceDetailWithLatLng: (Prediction prediction) {
+                          log('Place selected: ${prediction.description}');
+                          _onPlaceSelected(prediction);
+                        },
+                        itemClick: (Prediction prediction) {
+                          _searchController.text = prediction.description ?? '';
+                          _searchController.selection =
+                              TextSelection.fromPosition(
+                                TextPosition(
+                                  offset: prediction.description?.length ?? 0,
+                                ),
+                              );
+                        },
+                        seperatedBuilder: const Divider(),
+                        containerHorizontalPadding: 0,
+                        itemBuilder: (context, index, Prediction prediction) {
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: AppColors.primary5,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        prediction
+                                                .structuredFormatting
+                                                ?.mainText ??
+                                            '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      if (prediction
+                                              .structuredFormatting
+                                              ?.secondaryText !=
+                                          null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          prediction
+                                              .structuredFormatting!
+                                              .secondaryText!,
+                                          style: TextStyle(
+                                            color: AppColors.grayLight,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _lonController,
-                        decoration: const InputDecoration(
-                          labelText: 'Longitude',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                    SizedBox(width: 16),
+                    Obx(
+                      () => Opacity(
+                        opacity: controller.selectedLocation.value != null ? 1.0 : 0.5,
+                        child: ButtonActions(
+                          variant: ButtonVariant.primary,
+                          icon: Icons.arrow_forward,
+                          onPressed: controller.selectedLocation.value != null
+                              ? () {
+                                  final selectedLocation = controller.selectedLocation.value;
+                                  if (selectedLocation != null) {
+                                    widget.onLocationSelected?.call(selectedLocation);
+                                    Navigator.of(context).pop(selectedLocation);
+                                  }
+                                }
+                              : null,
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _onLatLonSubmitted,
-                      icon: const Icon(Icons.place),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onSecondary,
-                        padding: const EdgeInsets.all(12),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-
-        // Map section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(_pagePadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Map View', style: textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Container(
-                  height: 300,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Obx(
-                      () => controller.isLoading.value
-                          ? const Center(child: CircularProgressIndicator())
-                          : GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target:
-                                    controller.selectedLocation.value ??
-                                    controller.currentLocation.value,
-                                zoom: 15.0,
-                              ),
-                              onMapCreated:
-                                  (GoogleMapController mapController) {
-                                    controller.mapController = mapController;
-                                  },
-                              onTap: _onMapTapped,
-                              markers: controller.markers,
-                              myLocationEnabled: true,
-                              myLocationButtonEnabled: false,
-                              zoomControlsEnabled: false,
-                              mapToolbarEnabled: false,
-                            ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Instructions section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(_pagePadding),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Instructions:',
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('• Tap on the map to select a location'),
-                  const Text('• Search for places using the search box'),
-                  const Text('• Enter coordinates manually if needed'),
-                  const Text('• Use current location button for GPS location'),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
 
-        // Bottom padding
-        const SliverPadding(
-          padding: EdgeInsets.only(bottom: _bottomPaddingForButton),
-        ),
+        // const SliverPadding(
+        //   padding: EdgeInsets.only(bottom: _bottomPaddingForButton),
+        // ),
       ],
     );
   }
@@ -538,52 +622,8 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (widget.isShowingAction) ...[
-          ElevatedButton(
-            onPressed: widget.onOpenModal,
-            child: const SizedBox(
-              height: _buttonHeight,
-              width: _buttonWidth,
-              child: Center(child: Text('Open Modal')),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
         ElevatedButton(
-          onPressed: () {
-            WoltModalSheet.show<LatLng?>(
-              context: context,
-              pageListBuilder: (modalSheetContext) {
-                final textTheme = Theme.of(context).textTheme;
-                return [
-                  _buildLocationSelectorPage(modalSheetContext, textTheme),
-                ];
-              },
-              modalTypeBuilder: (context) {
-                final size = MediaQuery.sizeOf(context).width;
-                if (size < _pageBreakpoint) {
-                  return const WoltBottomSheetType();
-                } else {
-                  return const WoltDialogType();
-                }
-              },
-              onModalDismissedWithBarrierTap: () {
-                log('Closed modal sheet with barrier tap');
-                Navigator.of(context).pop();
-              },
-            ).then((selectedLocation) {
-              if (selectedLocation != null) {
-                log('Location selected: $selectedLocation');
-                Get.snackbar(
-                  'Location Selected',
-                  'Lat: ${selectedLocation.latitude.toStringAsFixed(6)}, Lng: ${selectedLocation.longitude.toStringAsFixed(6)}',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green.withOpacity(0.8),
-                  colorText: Colors.white,
-                );
-              }
-            });
-          },
+          onPressed: _openLocationModal,
           child: const SizedBox(
             height: _buttonHeight,
             width: _buttonWidth,
