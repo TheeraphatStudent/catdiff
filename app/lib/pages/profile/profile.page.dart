@@ -113,7 +113,7 @@ class ProfilePage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: InputField(
-                          label: 'คีย์ (สำหรับรับส่วนลด):',
+                          label: 'ทือยู่(สำหรับรับสินค้า):',
                           type: InputType.line,
                           hintText: 'Hint text',
                           validate: false,
