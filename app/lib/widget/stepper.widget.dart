@@ -1,3 +1,4 @@
+import 'package:app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_stepper/easy_stepper.dart';
 
@@ -23,9 +24,9 @@ class StepperWidget extends StatelessWidget {
   const StepperWidget({
     Key? key,
     required this.steps,
-    this.activeColor = const Color(0xFF819067),
-    this.inactiveColor = const Color(0xFFC1C6BA),
-    this.completedColor = const Color(0xFF819067),
+    this.activeColor = AppColors.primary2,
+    this.inactiveColor = AppColors.grayMedium,
+    this.completedColor = AppColors.primary1,
     this.activeTextStyle,
     this.inactiveTextStyle,
     this.stepRadius = 16,
@@ -58,14 +59,14 @@ class StepperWidget extends StatelessWidget {
         stepRadius: stepRadius,
         showStepBorder: true,
         borderThickness: 2,
-        padding: const EdgeInsets.all(0),
+        padding: const EdgeInsets.all(2),
         stepAnimationDuration: const Duration(milliseconds: 300),
-        activeStepBackgroundColor: const Color(0xFFECFFCC),
+        activeStepBackgroundColor: AppColors.primary5,
         activeStepBorderColor: activeColor,
         activeStepIconColor: activeColor,
         finishedStepBackgroundColor: completedColor,
         finishedStepBorderColor: completedColor,
-        finishedStepIconColor: Colors.white,
+        finishedStepIconColor: AppColors.white,
         lineStyle: LineStyle(
           lineLength: lineLength,
           lineSpace: 4,
@@ -92,8 +93,8 @@ class StepperWidget extends StatelessWidget {
                 color: isCompleted
                     ? completedColor
                     : isActive
-                    ? const Color(0xFFECFFCC)
-                    : Colors.white,
+                    ? AppColors.primary5
+                    : AppColors.white,
                 border: Border.all(
                   color: isCompleted || isActive ? activeColor : inactiveColor,
                   width: 2,
@@ -103,7 +104,7 @@ class StepperWidget extends StatelessWidget {
                   ? Center(child: stepData.icon)
                   : Center(
                       child: isCompleted
-                          ? Icon(Icons.check, size: 16, color: Colors.white)
+                          ? Icon(Icons.check, size: 16, color: AppColors.white)
                           : Container(
                               width: 8,
                               height: 8,
@@ -119,7 +120,7 @@ class StepperWidget extends StatelessWidget {
               style: isActive
                   ? (activeTextStyle ??
                         const TextStyle(
-                          color: Colors.black,
+                          color: AppColors.black,
                           fontSize: 16,
                           fontFamily: 'Mali',
                           fontWeight: FontWeight.w400,

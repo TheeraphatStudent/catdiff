@@ -109,7 +109,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             SizedBox(height: 32),
 
             _isLoginTab
-                ? Padding(padding: EdgeInsets.all(36), child: _buildLoginForm())
+                ? Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 36),
+                    child: _buildLoginForm(),
+                  )
                 : Padding(
                     padding: EdgeInsets.symmetric(horizontal: 36),
                     child: _buildRegisterUI(),

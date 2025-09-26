@@ -1,6 +1,8 @@
 import 'dart:developer';
 
+import 'package:app/config/theme/app_theme.dart';
 import 'package:app/widget/button.widget.dart';
+import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
 
 enum Actions { login, register }
@@ -22,7 +24,7 @@ class HeaderCard extends StatelessWidget {
       width: double.infinity,
       height: 256,
       decoration: ShapeDecoration(
-        color: const Color(0xFFFAFFF1) /* General-White */,
+        color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(24),
@@ -88,6 +90,67 @@ class HeaderCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class HeaderStepperCard extends StatelessWidget {
+  final List<StepData> steps;
+
+  const HeaderStepperCard({super.key, required this.steps});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 196),
+      decoration: ShapeDecoration(
+        color: AppColors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+          ),
+        ),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x7F819067),
+            blurRadius: 24,
+            offset: Offset(0, 6),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: ShapeDecoration(
+                color: AppColors.grayInsight,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(48),
+                ),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Image.asset(
+                'lib/assets/icons/logo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: StepperWidget(steps: steps),
+            ),
+          ],
+        ),
       ),
     );
   }
