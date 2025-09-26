@@ -15,6 +15,9 @@ class User {
   double latitude;
   double longitude;
   String detail;
+  String driveImageUrl;
+  String licencePlate;
+  String type;
 
   User({
     required this.imagesUrl,
@@ -23,6 +26,9 @@ class User {
     required this.latitude,
     required this.longitude,
     required this.detail,
+    required this.driveImageUrl,
+    required this.licencePlate,
+    required this.type,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -32,6 +38,9 @@ class User {
     latitude: json["latitude"]?.toDouble(),
     longitude: json["longitude"]?.toDouble(),
     detail: json["detail"],
+    driveImageUrl: json["drive_image_url"],
+    licencePlate: json["licence_plate"],
+    type: json["type"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -41,5 +50,8 @@ class User {
     "latitude": latitude,
     "longitude": longitude,
     "detail": detail,
+    "drive_image_url": driveImageUrl,
+    "licence_plate": licencePlate,
+    "type": type,
   };
 }
