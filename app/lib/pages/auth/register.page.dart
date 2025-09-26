@@ -33,7 +33,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               children: [
                 // Header section
-                const HeaderCard(),
+                // const HeaderCard(),
                 Expanded(
                   child: Form(
                     key: _formKey,
