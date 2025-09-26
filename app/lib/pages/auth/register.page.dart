@@ -80,8 +80,8 @@ class _RegisterPageState extends State<RegisterPage>
             HeaderStepperCard(
               steps: [
                 StepData(label: 'ข้อมูลส่วนตัว', active: _currentStep == 0),
-                StepData(label: 'ยานพาหนะ', active: _currentStep == 1),
-                StepData(label: 'รูปโปรไฟล์', active: _currentStep == 2),
+                StepData(label: 'รูปโปรไฟล์', active: _currentStep == 1),
+                StepData(label: 'ยานภาหนะ', active: _currentStep == 2),
                 StepData(label: 'ไรเดอร์', active: _currentStep == 3),
               ],
             ),
