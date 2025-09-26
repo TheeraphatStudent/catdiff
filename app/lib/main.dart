@@ -4,6 +4,7 @@ import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/auth/trust.page.dart';
 import 'package:app/pages/auth/upload.profile.dart';
 import 'package:app/pages/debug.dart';
+import 'package:app/pages/profile/profile.page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';

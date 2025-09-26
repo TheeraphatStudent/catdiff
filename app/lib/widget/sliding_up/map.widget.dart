@@ -83,7 +83,8 @@ class _LocationSelectorPageState extends State<LocationSelectorPage> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        controller.locationStatus.value = 'ขออภัย ไม่สามารถหาตำแหน่งปัจจุบันได้';
+        controller.locationStatus.value =
+            'ขออภัย ไม่สามารถหาตำแหน่งปัจจุบันได้';
         controller.isLoading.value = false;
         log('Location permissions are permanently denied');
         return;
@@ -107,7 +108,8 @@ class _LocationSelectorPageState extends State<LocationSelectorPage> {
       log('Error getting location: $e');
       setState(() {
         _selectedLocation = _currentLocation;
-        controller.locationStatus.value = 'ใช้ตำแหน่งเริ่มต้น (ไม่สามารถเข้าถึง GPS)';
+        controller.locationStatus.value =
+            'ใช้ตำแหน่งเริ่มต้น (ไม่สามารถเข้าถึง GPS)';
         controller.isLoading.value = false;
       });
 
@@ -384,7 +386,8 @@ class _LocationSelectorPageState extends State<LocationSelectorPage> {
                         : FlutterMap(
                             mapController: _mapController,
                             options: MapOptions(
-                              initialCenter: _selectedLocation ?? _currentLocation,
+                              initialCenter:
+                                  _selectedLocation ?? _currentLocation,
                               initialZoom: 15.0,
                               onTap: _onMapTapped,
                             ),
@@ -392,8 +395,8 @@ class _LocationSelectorPageState extends State<LocationSelectorPage> {
                               TileLayer(
                                 urlTemplate:
                                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.app',
-                                maxNativeZoom: 18
+                                userAgentPackageName: 'Catdiff/1.0',
+                                maxNativeZoom: 18,
                               ),
                               if (_selectedLocation != null)
                                 MarkerLayer(
@@ -426,6 +429,13 @@ class _LocationSelectorPageState extends State<LocationSelectorPage> {
                                     ),
                                   ],
                                 ),
+                              RichAttributionWidget(
+                                attributions: [
+                                  TextSourceAttribution(
+                                    '© OpenStreetMap contributors',
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                   ),
