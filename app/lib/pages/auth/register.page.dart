@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
@@ -6,6 +8,7 @@ import 'package:flutter/material.dart' hide Actions;
 import 'package:app/widget/header_card.widget.dart';
 import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,16 +17,31 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
+class AddressLocationsProps {
+  double lat;
+  double lon;
+
+  AddressLocationsProps({required this.lat, required this.lon});
+}
+
 class _RegisterPageState extends State<RegisterPage>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   final _formKey = GlobalKey<FormState>();
+
+  // User
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  // Address
+  final _addressLocations = AddressLocationsProps(lat: 0, lon: 0);
+  final _addressDetailController = TextEditingController();
+
+  // Image
+  var uploadedImage = Rxn<File>();
 
   bool _isPasswordVisible = false;
   int _currentStep = 0;
@@ -85,6 +103,7 @@ class _RegisterPageState extends State<RegisterPage>
             hintText: 'Input',
             validate: true,
             errorText: 'Error',
+            controller: _nameController,
           ),
           InputField(
             label: 'เบอร์โทร',
@@ -92,6 +111,7 @@ class _RegisterPageState extends State<RegisterPage>
             hintText: 'Input',
             validate: true,
             errorText: 'Error',
+            controller: _phoneController,
           ),
           InputField(
             label: 'ที่อยู่เริ่มต้น(สำหรับสินค้า)',
@@ -99,6 +119,15 @@ class _RegisterPageState extends State<RegisterPage>
             hintText: 'Input',
             validate: true,
             errorText: 'Error',
+            // controller: _addressController,
+          ),
+          InputField(
+            label: 'รายละเอียดที่อยู่',
+            type: InputType.line,
+            hintText: 'Input',
+            validate: true,
+            errorText: 'Error',
+            controller: _addressDetailController,
           ),
           InputField(
             label: 'รหัสผ่าน',
@@ -106,6 +135,7 @@ class _RegisterPageState extends State<RegisterPage>
             hintText: 'Input',
             validate: true,
             errorText: 'Error',
+            controller: _passwordController,
           ),
           Spacer(),
           Row(
@@ -252,7 +282,7 @@ class _RegisterPageState extends State<RegisterPage>
     _animationController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
+    _addressDetailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
