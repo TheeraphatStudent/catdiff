@@ -1,17 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../upload/post.dart';
-import '../../types/auth.dart';
+import '../../types/user_auth.dart';
 
 class AuthService {
   static Future<AuthResponse?> login(LoginRequest request) async {
     try {
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: request.email,
-        password: request.password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: request.email,
+            password: request.password,
+          );
 
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
 
       if (userDoc.exists) {
         final data = userDoc.data()!;
@@ -29,14 +33,18 @@ class AuthService {
 
   static Future<AuthResponse?> register(RegisterRequest request) async {
     try {
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: request.email,
-        password: request.password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: request.email,
+            password: request.password,
+          );
 
       String? imageUrl;
       if (request.profileImage != null) {
-        imageUrl = await UploadService.uploadProfileImage(request.profileImage!, userCredential.user!.uid);
+        imageUrl = await UploadService.uploadProfileImage(
+          request.profileImage!,
+          userCredential.user!.uid,
+        );
       }
 
       final userData = {
@@ -48,7 +56,10 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set(userData);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set(userData);
 
       return AuthResponse(
         userId: userCredential.user!.uid,

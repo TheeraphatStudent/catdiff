@@ -1,4 +1,5 @@
 import 'package:app/config/share/app_data.dart';
+import 'package:app/pages/%E0%B8%B5user/home.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/auth/trust.page.dart';
@@ -36,12 +37,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialRoute: '/',
+      initialRoute: 'dome',
       home: UploadProfilePage(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
         GetPage(name: '/login', page: () => LoginPage()),
+        GetPage(name: '/dome', page: () => HomeScreen()),
       ],
     );
   }
