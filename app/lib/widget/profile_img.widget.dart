@@ -1,11 +1,10 @@
 import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
-import 'package:app/service/upload/post.dart';
+import 'package:app/service/upload/api_upload.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 
 enum ProfileSize { xxs, xs, sm, md, xl }
 
@@ -71,19 +70,18 @@ class ProfileController extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      // First check if storage is accessible
-      log("Checking storage access...");
-      final storageAccessible = await UploadService.checkStorageAccess();
-      if (!storageAccessible) {
-        log("Storage access check failed - proceeding anyway");
+      // Check API access before uploading
+      log("Checking API access...");
+      final apiAccessible = await ApiUploadService.checkApiAccess();
+      if (!apiAccessible) {
+        log("API access check failed - proceeding anyway");
         // Don't fail here, let the upload attempt proceed
       }
 
-      // Try upload with retry logic for better reliability
-      final uploadedUrl = await UploadService.uploadProfileImageWithRetry(
+      // Upload using API service
+      final uploadedUrl = await ApiUploadService.uploadProfileImage(
         _selectedFile!,
         userId,
-        maxRetries: 3,
       );
 
       if (uploadedUrl != null) {
@@ -101,14 +99,14 @@ class ProfileController extends ChangeNotifier {
       _error = 'Upload failed: ${e.toString()}';
 
       // Provide user-friendly error messages
-      if (e.toString().contains('permission-denied')) {
-        _error = 'Permission denied - please check app permissions';
-      } else if (e.toString().contains('network-request-failed')) {
+      if (e.toString().contains('network') || e.toString().contains('connection')) {
         _error = 'Network error - please check your internet connection';
-      } else if (e.toString().contains('object-not-found')) {
-        _error = 'Storage configuration error - please contact support';
-      } else if (e.toString().contains('quota-exceeded')) {
-        _error = 'Storage quota exceeded - please contact support';
+      } else if (e.toString().contains('timeout')) {
+        _error = 'Upload timeout - please try again';
+      } else if (e.toString().contains('403') || e.toString().contains('401')) {
+        _error = 'Authentication error - please contact support';
+      } else {
+        _error = 'Upload failed - please try again';
       }
 
       return null;

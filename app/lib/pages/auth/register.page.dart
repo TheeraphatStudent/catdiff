@@ -15,6 +15,8 @@ import 'package:app/service/auth/user.dart' as UserService;
 import 'package:app/types/role.dart';
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:app/service/upload/api_upload.dart';
 
 
 class RegisterPage extends StatefulWidget {
@@ -58,6 +60,10 @@ class _RegisterPageState extends State<RegisterPage>
   final _vehicleTypeController = TextEditingController();
   final _licensePlateController = TextEditingController();
   var vehicleImage = Rxn<File>();
+  final ProfileController _vehicleController = ProfileController();
+
+  // Image picker
+  final ImagePicker _picker = ImagePicker();
 
   int _currentStep = 0;
 
@@ -284,8 +290,64 @@ class _RegisterPageState extends State<RegisterPage>
             SizedBox(height: 10),
             GestureDetector(
               onTap: () {
-                // TODO: Implement vehicle image picker
-                log('Pick vehicle image');
+                // Show image picker options
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (BuildContext context) {
+                    return SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            ListTile(
+                              leading: const Icon(Icons.photo_library),
+                              title: const Text('Gallery'),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickVehicleImage(ImageSource.gallery);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.photo_camera),
+                              title: const Text('Camera'),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickVehicleImage(ImageSource.camera);
+                              },
+                            ),
+                            if (vehicleImage.value != null) ...[
+                              const Divider(),
+                              ListTile(
+                                leading: Icon(Icons.delete, color: Colors.red[600]),
+                                title: Text('Remove Image', style: TextStyle(color: Colors.red[600])),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    vehicleImage.value = null;
+                                    _vehicleController.clearImage();
+                                  });
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
               child: Container(
                 width: double.infinity,
@@ -484,6 +546,30 @@ class _RegisterPageState extends State<RegisterPage>
     }
   }
 
+  Future<void> _pickVehicleImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        setState(() {
+          vehicleImage.value = imageFile;
+        });
+        _vehicleController.setSelectedFile(imageFile);
+      }
+    } catch (e) {
+      log('Error picking vehicle image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
+    }
+  }
+
   void _handleRegistration() async {
     try {
       log('Starting registration for ${_selectedRole.name}...');
@@ -502,6 +588,33 @@ class _RegisterPageState extends State<RegisterPage>
         ),
       );
 
+      // Upload profile image if selected
+      String? profileImageUrl;
+      if (_profileController.hasImage) {
+        log('Uploading profile image...');
+        profileImageUrl = await _profileController.uploadProfile('temp_user_id');
+        if (profileImageUrl != null) {
+          log('Profile image uploaded successfully: $profileImageUrl');
+        } else {
+          log('Failed to upload profile image');
+        }
+      }
+
+      // Upload vehicle image if selected (for riders)
+      String? vehicleImageUrl;
+      if (_selectedRole == UserRole.rider && _vehicleController.hasImage) {
+        log('Uploading vehicle image...');
+        vehicleImageUrl = await ApiUploadService.uploadVehicleImage(
+          _vehicleController.selectedFile!,
+          'temp_user_id',
+        );
+        if (vehicleImageUrl != null) {
+          log('Vehicle image uploaded successfully: $vehicleImageUrl');
+        } else {
+          log('Failed to upload vehicle image');
+        }
+      }
+
       // Create user account first
       final result = await UserService.AuthService.createUser(
         user_id: _nameController.text,
@@ -509,23 +622,13 @@ class _RegisterPageState extends State<RegisterPage>
         address: _addressDetailController.text,
         password: _passwordController.text,
         role: _selectedRole,
+        profileImageUrl: profileImageUrl,
+        vehicleImageUrl: vehicleImageUrl,
       );
 
       if (result['success']) {
         final userId = result['userId'] as String;
         log('User created successfully with ID: $userId');
-
-        // Upload profile image if selected
-        String? profileImageUrl;
-        if (_profileController.hasImage) {
-          log('Uploading profile image...');
-          profileImageUrl = await _profileController.uploadProfile(userId);
-          if (profileImageUrl != null) {
-            log('Profile image uploaded successfully: $profileImageUrl');
-          } else {
-            log('Failed to upload profile image');
-          }
-        }
 
         // Close loading dialog
         Navigator.of(context).pop();
@@ -550,6 +653,12 @@ class _RegisterPageState extends State<RegisterPage>
                   Text('✓ อัปโหลดรูปโปรไฟล์สำเร็จ')
                 else if (_profileController.hasImage)
                   Text('⚠ อัปโหลดรูปโปรไฟล์ไม่สำเร็จ'),
+                if (_selectedRole == UserRole.rider) ...[
+                  if (vehicleImageUrl != null)
+                    Text('✓ อัปโหลดรูปยานพาหนะสำเร็จ')
+                  else if (_vehicleController.hasImage)
+                    Text('⚠ อัปโหลดรูปยานพาหนะไม่สำเร็จ'),
+                ],
               ],
             ),
             actions: [
@@ -681,6 +790,7 @@ class _RegisterPageState extends State<RegisterPage>
     _vehicleTypeController.dispose();
     _licensePlateController.dispose();
     _profileController.dispose();
+    _vehicleController.dispose();
     super.dispose();
   }
 }

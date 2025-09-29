@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:app/service/helper/firebase_connection.dart';
@@ -18,6 +20,8 @@ class AuthService {
     required String address,
     required String password,
     required UserRole role, // Use UserRole enum instead of string
+    String? profileImageUrl,
+    String? vehicleImageUrl,
   }) async {
     try {
       // Format phone number as email for Firebase Auth compatibility
@@ -25,14 +29,17 @@ class AuthService {
           "${phone.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
 
       // สร้าง Firebase Auth user
-      final userCredential = await FirebaseHelper().createUserWithEmailAndPassword(
-        email: phoneEmail,
-        password: password,
-      );
+      final userCredential = await FirebaseHelper()
+          .createUserWithEmailAndPassword(
+            email: phoneEmail,
+            password: password,
+          );
+
+      log("User credentiaL: $userCredential");
 
       // ข้อมูลพื้นฐาน - different structure for User vs Raider
       final Map<String, dynamic> userData;
-      
+
       if (role == UserRole.rider) {
         // Raider structure: no password, no user_id
         userData = {
@@ -40,12 +47,8 @@ class AuthService {
           'phone': phone,
           'address_id': address,
           'role': role.name,
-          'images_url': '',
-          'verhicle': {
-            'drive_image_url': '',
-            'licence_plate': '',
-            'type': '',
-          },
+          'images_url': profileImageUrl ?? '',
+          'verhicle': {'drive_image_url': vehicleImageUrl ?? '', 'licence_plate': '', 'type': ''},
           'createdAt': FieldValue.serverTimestamp(),
         };
       } else {
@@ -56,12 +59,8 @@ class AuthService {
           'password': password,
           'address_id': address,
           'role': role.name,
-          'images_url': '',
-          'verhicle': {
-            'drive_image_url': '',
-            'licence_plate': '',
-            'type': '',
-          },
+          'images_url': profileImageUrl ?? '',
+          'verhicle': {'drive_image_url': vehicleImageUrl ?? '', 'licence_plate': '', 'type': ''},
           'createdAt': FieldValue.serverTimestamp(),
         };
       }
