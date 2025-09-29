@@ -1,21 +1,31 @@
+import 'dart:convert';
 import 'dart:developer';
-
+import 'package:crypto/crypto.dart';
+import 'package:app/types/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide User;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/role.dart';
-import 'package:app/types/user_auth.dart'; // import User และ Verhicle
-import 'package:app/types/raider_auth.dart' hide User; // import Raider
+import 'package:app/types/user_auth.dart' as UserAuth;
 
 class AuthService {
+  static String _hashPassword(String password) {
+    const salt = 'catdiff_salt';
+    final saltedPassword = password + salt;
+    
+    final bytes = utf8.encode(saltedPassword);
+    final digest = sha256.convert(bytes);
+    
+    return digest.toString();
+  }
+
   // Logout
   static Future<void> logout() async {
     await FirebaseHelper().signOut();
   }
 
-  /// สมัครสมาชิก (User / Raider)
   static Future<Map<String, dynamic>> createUser({
-    required String user_id, // ใช้เป็น username
+    required String userId, // ใช้เป็น username
     required String phone,
     required String address,
     required String password,
@@ -41,26 +51,36 @@ class AuthService {
       final Map<String, dynamic> userData;
 
       if (role == UserRole.rider) {
-        // Raider structure: no password, no user_id
         userData = {
-          'name': user_id,
+          'user_id': userCredential.user!.uid,
+          'name': userId,
           'phone': phone,
           'address_id': address,
           'role': role.name,
           'images_url': profileImageUrl ?? '',
-          'verhicle': {'drive_image_url': vehicleImageUrl ?? '', 'licence_plate': '', 'type': ''},
+          'verhicle': {
+            'drive_image_url': vehicleImageUrl ?? '',
+            'licence_plate': '',
+            'type': '',
+          },
           'createdAt': FieldValue.serverTimestamp(),
         };
       } else {
-        // User structure: includes password and user_id
+        final hashedPassword = _hashPassword(password);
+        
         userData = {
-          'name': user_id,
+          'user_id': userCredential.user!.uid,
+          'name': userId,
           'phone': phone,
-          'password': password,
+          'password': hashedPassword,
           'address_id': address,
           'role': role.name,
           'images_url': profileImageUrl ?? '',
-          'verhicle': {'drive_image_url': vehicleImageUrl ?? '', 'licence_plate': '', 'type': ''},
+          'verhicle': {
+            'drive_image_url': vehicleImageUrl ?? '',
+            'licence_plate': '',
+            'type': '',
+          },
           'createdAt': FieldValue.serverTimestamp(),
         };
       }
@@ -75,11 +95,8 @@ class AuthService {
 
       // แปลงเป็น object
       final userObject = role == UserRole.rider
-          ? Raider.fromJson(userData) // Raider doesn't need user_id
-          : User.fromJson({
-              ...userData,
-              'user_id': userCredential.user!.uid, // User needs user_id
-            });
+          ? Raider.fromJson(userData)
+          : UserAuth.User.fromJson(userData);
 
       return {
         'success': true,
@@ -143,11 +160,8 @@ class AuthService {
 
       final userData = doc.data()!;
       final userObject = role == UserRole.rider
-          ? Raider.fromJson(userData) // Raider doesn't need user_id
-          : User.fromJson({
-              ...userData,
-              'user_id': userCredential.user!.uid, // User needs user_id
-            });
+          ? Raider.fromJson(userData) // Raider now includes user_id from userData
+          : UserAuth.User.fromJson(userData); // User already has user_id in userData
 
       return {'success': true, 'message': 'ล็อคอินสำเร็จ', 'user': userObject};
     } on FirebaseAuthException catch (e) {

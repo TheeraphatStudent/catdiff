@@ -617,7 +617,7 @@ class _RegisterPageState extends State<RegisterPage>
 
       // Create user account first
       final result = await UserService.AuthService.createUser(
-        user_id: _nameController.text,
+        userId: _nameController.text,
         phone: _phoneController.text,
         address: _addressDetailController.text,
         password: _passwordController.text,

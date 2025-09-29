@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:app/config/secret/api_data.dart';
 import 'package:app/types/upload.dart';
+import 'package:app/service/helper/jwt.dart';
 
 class ApiUploadService {
   static final String _baseUrl = ApiData().apiUpload;
@@ -13,7 +14,7 @@ class ApiUploadService {
     File imageFile,
     String userId,
   ) async {
-    return _uploadImage(imageFile, userId, 'profile', 'profile_image');
+    return _uploadImage(imageFile, userId, 'profile');
   }
 
   /// Upload vehicle image to API
@@ -21,7 +22,7 @@ class ApiUploadService {
     File imageFile,
     String userId,
   ) async {
-    return _uploadImage(imageFile, userId, 'vehicle', 'vehicle_image');
+    return _uploadImage(imageFile, userId, 'vehicle');
   }
 
   /// Generic image upload method
@@ -29,7 +30,6 @@ class ApiUploadService {
     File imageFile,
     String userId,
     String imageType,
-    String fieldName,
   ) async {
     try {
       log('Starting $imageType image upload for user: $userId');
@@ -45,25 +45,47 @@ class ApiUploadService {
       // Add image file
       final fileName =
           '${userId}_${imageType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
       final multipartFile = await http.MultipartFile.fromPath(
-        fieldName,
+        'file',
         imageFile.path,
         filename: fileName,
       );
+
+      log("Multipart file: $multipartFile");
+
       request.files.add(multipartFile);
 
-      log('Sending request to: $_baseUrl');
+      log('Sending request to: $_baseUrl/upload');
+      log('Request headers: ${request.headers}');
+      log('Request fields: ${request.fields}');
       log('File: $fileName, Size: ${await imageFile.length()} bytes');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
       log('Response status: ${response.statusCode}');
+      log('Response headers: ${response.headers}');
       log('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
-          final uploadResponse = uploadResponeFromJson(response.body);
+          final initialResponse = json.decode(response.body);
+          final jwtToken = initialResponse['data'] as String;
+
+          if (jwtToken.isEmpty) {
+            log('JWT token is empty in response');
+            return null;
+          }
+
+          final payload = JwtHelper.decodeTokenWithLogging(jwtToken, context: 'Upload API');
+
+          if (payload == null) {
+            log('Failed to decode JWT token');
+            return null;
+          }
+
+          final uploadResponse = UploadRespone.fromJson(payload);
 
           if (uploadResponse.message.contains('successfully')) {
             final imageUrl = uploadResponse.data.url;
@@ -76,15 +98,15 @@ class ApiUploadService {
             return null;
           }
         } catch (parseError) {
-          log('Failed to parse response as UploadRespone: $parseError');
+          log('Failed to parse JWT response: $parseError');
           log('Raw response: ${response.body}');
 
           try {
             final responseData = json.decode(response.body);
-            if (responseData['message'] != null &&
-                responseData['message'].toString().contains('successfully')) {
-              final imageUrl = responseData['data']?['url'];
-              if (imageUrl != null) {
+            if (responseData['data'] is Map) {
+              final uploadResponse = UploadRespone.fromJson(responseData['data']);
+              if (uploadResponse.message.contains('successfully')) {
+                final imageUrl = uploadResponse.data.url;
                 log('Upload successful (fallback)! Image URL: $imageUrl');
                 return imageUrl;
               }

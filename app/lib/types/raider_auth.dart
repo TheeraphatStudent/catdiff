@@ -9,6 +9,7 @@ Raider RaiderFromJson(String str) => Raider.fromJson(json.decode(str));
 String RaiderToJson(Raider data) => json.encode(data.toJson());
 
 class Raider {
+  String userId;
   String imagesUrl;
   String name;
   String phone;
@@ -17,6 +18,7 @@ class Raider {
   Verhicle verhicle;
 
   Raider({
+    required this.userId,
     required this.imagesUrl,
     required this.name,
     required this.phone,
@@ -26,6 +28,7 @@ class Raider {
   });
 
   factory Raider.fromJson(Map<String, dynamic> json) => Raider(
+    userId: json["user_id"],
     imagesUrl: json["images_url"],
     name: json["name"],
     phone: json["phone"],
@@ -35,6 +38,7 @@ class Raider {
   );
 
   Map<String, dynamic> toJson() => {
+    "user_id": userId,
     "images_url": imagesUrl,
     "name": name,
     "phone": phone,
