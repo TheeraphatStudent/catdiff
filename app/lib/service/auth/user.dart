@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_auth/firebase_auth.dart' hide User;
+import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/role.dart';
 import 'package:app/types/user_auth.dart'; // import User และ Verhicle
 import 'package:app/types/raider_auth.dart' hide User; // import Raider
@@ -7,7 +8,7 @@ import 'package:app/types/raider_auth.dart' hide User; // import Raider
 class AuthService {
   // Logout
   static Future<void> logout() async {
-    await fb.FirebaseAuth.instance.signOut();
+    await FirebaseHelper().signOut();
   }
 
   /// สมัครสมาชิก (User / Raider)
@@ -24,11 +25,10 @@ class AuthService {
           "${phone.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
 
       // สร้าง Firebase Auth user
-      final userCredential = await fb.FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: phoneEmail,
-            password: password,
-          );
+      final userCredential = await FirebaseHelper().createUserWithEmailAndPassword(
+        email: phoneEmail,
+        password: password,
+      );
 
       // ข้อมูลพื้นฐาน - different structure for User vs Raider
       final Map<String, dynamic> userData;
@@ -68,10 +68,11 @@ class AuthService {
 
       // บันทึกลง Firestore
       final String collectionName = role == UserRole.rider ? 'rider' : 'user';
-      await FirebaseFirestore.instance
-          .collection(collectionName)
-          .doc(userCredential.user!.uid)
-          .set(userData);
+      await FirebaseHelper().setDocument(
+        collection: collectionName,
+        documentId: userCredential.user!.uid,
+        data: userData,
+      );
 
       // แปลงเป็น object
       final userObject = role == UserRole.rider
@@ -87,7 +88,7 @@ class AuthService {
         'userId': userCredential.user!.uid,
         'user': userObject,
       };
-    } on fb.FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e) {
       String message = '';
       switch (e.code) {
         case 'weak-password':
@@ -125,15 +126,17 @@ class AuthService {
           "${user_id.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
 
       // ล็อคอิน Firebase Auth using email/password format
-      final userCredential = await fb.FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: phoneEmail, password: password);
+      final userCredential = await FirebaseHelper().signInWithEmailAndPassword(
+        email: phoneEmail,
+        password: password,
+      );
 
       // ดึงข้อมูลจาก Firestore
       final String collectionName = role == UserRole.rider ? 'rider' : 'user';
-      final doc = await FirebaseFirestore.instance
-          .collection(collectionName)
-          .doc(userCredential.user!.uid)
-          .get();
+      final doc = await FirebaseHelper().getDocument(
+        collection: collectionName,
+        documentId: userCredential.user!.uid,
+      );
 
       if (!doc.exists) {
         return {'success': false, 'message': 'ไม่พบข้อมูลผู้ใช้งาน'};
@@ -148,7 +151,7 @@ class AuthService {
             });
 
       return {'success': true, 'message': 'ล็อคอินสำเร็จ', 'user': userObject};
-    } on fb.FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e) {
       String message = '';
       switch (e.code) {
         case 'user-not-found':

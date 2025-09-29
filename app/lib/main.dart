@@ -38,8 +38,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       initialRoute: '/',
-      // home: OnBoardingPage(),
-      home: DebugPage(),
+      home: OnBoardingPage(),
+      // home: DebugPage(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
