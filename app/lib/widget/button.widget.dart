@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 
 enum ButtonVariant { primary, secondary, light, outline, warning, danger }
 
+enum ButtonWidth { full, fit }
+
 class ButtonActions extends StatefulWidget {
   const ButtonActions({
     super.key,
-    required this.text,
+    this.text,
     this.label,
     this.hasShadow = true,
     required this.variant,
@@ -18,9 +20,10 @@ class ButtonActions extends StatefulWidget {
     this.onLabelPressed,
     this.iconPosition = IconPosition.right,
     this.height = 48,
+    this.width = ButtonWidth.fit,
   });
 
-  final String text;
+  final String? text;
   final String? label;
   final bool hasShadow;
   final ButtonVariant variant;
@@ -29,6 +32,7 @@ class ButtonActions extends StatefulWidget {
   final VoidCallback? onPressed;
   final VoidCallback? onLabelPressed;
   final double? height;
+  final ButtonWidth width;
 
   final IconPosition iconPosition;
 
@@ -208,7 +212,9 @@ class _ButtonActionsState extends State<ButtonActions>
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                   child: Container(
-                    width: double.infinity,
+                    width: widget.width == ButtonWidth.full
+                        ? double.infinity
+                        : null,
                     height: widget.height,
                     decoration: ShapeDecoration(
                       color: backgroundColor,
@@ -227,12 +233,15 @@ class _ButtonActionsState extends State<ButtonActions>
                         mainAxisAlignment: widget.icon != null
                             ? (widget.iconPosition == IconPosition.left
                                   ? MainAxisAlignment.start
-                                  : MainAxisAlignment.end)
+                                  : (widget.text?.isNotEmpty ?? false)
+                                  ? MainAxisAlignment.end
+                                  : MainAxisAlignment.center)
                             : MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           if (widget.icon != null &&
-                              widget.iconPosition == IconPosition.left)
+                              widget.iconPosition == IconPosition.left &&
+                              (widget.text?.isNotEmpty ?? false))
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               transform: Matrix4.translationValues(
@@ -247,7 +256,20 @@ class _ButtonActionsState extends State<ButtonActions>
                               ),
                             ),
 
-                          if (widget.icon == null)
+                          if (widget.icon != null &&
+                              !(widget.text?.isNotEmpty ?? false))
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              transform: Matrix4.translationValues(0, 0, 0),
+                              child: Icon(
+                                widget.icon,
+                                size: 24,
+                                color: foregroundColor,
+                              ),
+                            ),
+
+                          if (widget.icon == null &&
+                              (widget.text?.isNotEmpty ?? false))
                             AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
@@ -256,10 +278,11 @@ class _ButtonActionsState extends State<ButtonActions>
                                 fontFamily: 'Mali',
                                 fontWeight: FontWeight.w700,
                               ),
-                              child: Text(widget.text),
+                              child: Text(widget.text ?? ''),
                             ),
 
-                          if (widget.icon != null)
+                          if (widget.icon != null &&
+                              (widget.text?.isNotEmpty ?? false))
                             Expanded(
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
@@ -270,7 +293,7 @@ class _ButtonActionsState extends State<ButtonActions>
                                   fontWeight: FontWeight.w700,
                                 ),
                                 child: Text(
-                                  widget.text,
+                                  widget.text ?? '',
                                   textAlign:
                                       widget.iconPosition == IconPosition.left
                                       ? TextAlign.right
@@ -280,7 +303,8 @@ class _ButtonActionsState extends State<ButtonActions>
                             ),
 
                           if (widget.icon != null &&
-                              widget.iconPosition == IconPosition.right)
+                              widget.iconPosition == IconPosition.right &&
+                              (widget.text?.isNotEmpty ?? false))
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               transform: Matrix4.translationValues(
