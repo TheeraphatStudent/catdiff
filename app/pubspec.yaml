@@ -48,6 +48,11 @@ dependencies:
   latlong2: ^0.9.1
   flutter_map: ^8.2.2
   wolt_modal_sheet: ^0.11.0
+  google_maps_flutter: ^2.13.1
+  google_places_flutter: ^2.1.1
+  http: ^1.5.0
+  firebase_app_check: ^0.3.2+10
+  dart_jsonwebtoken: ^3.2.0
 
 dev_dependencies:
   flutter_test:

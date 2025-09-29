@@ -11,6 +11,7 @@ class InputField extends StatefulWidget {
   final TextInputType? keyboardType;
   final Widget? suffixIcon;
   final String? errorText;
+  final FocusNode? focusNode;
 
   final bool validate;
   final bool obscureText;
@@ -18,6 +19,7 @@ class InputField extends StatefulWidget {
 
   final Function(String)? onChanged;
   final Function(String)? onSubmitted;
+  final VoidCallback? onFocus;
 
   const InputField({
     super.key,
@@ -28,11 +30,13 @@ class InputField extends StatefulWidget {
     this.controller,
     this.onChanged,
     this.onSubmitted,
+    this.onFocus,
     this.keyboardType,
     this.obscureText = false,
     this.suffixIcon,
     this.enabled = true,
     this.errorText,
+    this.focusNode,
   });
 
   @override
@@ -40,7 +44,8 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _internalFocusNode;
+  late final FocusNode _effectiveFocusNode;
   bool _isFocused = false;
   bool _hasError = false;
   String get _errorText => widget.errorText ?? '';
@@ -48,20 +53,26 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(_onFocusChange);
+    _internalFocusNode = FocusNode();
+    _effectiveFocusNode = widget.focusNode ?? _internalFocusNode;
+    _effectiveFocusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChange);
-    _focusNode.dispose();
+    _effectiveFocusNode.removeListener(_onFocusChange);
+    // Only dispose internal focus node, not external one
+    if (widget.focusNode == null) {
+      _internalFocusNode.dispose();
+    }
     super.dispose();
   }
 
   void _onFocusChange() {
     setState(() {
-      _isFocused = _focusNode.hasFocus;
+      _isFocused = _effectiveFocusNode.hasFocus;
     });
+    widget.onFocus?.call();
   }
 
   void _validateInput(String value) {
@@ -136,7 +147,7 @@ class _InputFieldState extends State<InputField> {
           children: [
             TextFormField(
               controller: widget.controller,
-              focusNode: _focusNode,
+              focusNode: _effectiveFocusNode,
               enabled: widget.enabled,
               obscureText: widget.obscureText,
               keyboardType: widget.keyboardType,

@@ -7,6 +7,11 @@ import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:flutter/material.dart' hide Actions;
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:app/service/auth/user.dart' as UserService;
+import 'package:app/types/role.dart';
+import 'package:app/config/share/app_data.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,7 +24,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoginTab = true;
-  String _selectedRole = "ผู้ใช้ทั่วไป"; // เพิ่มตัวแปรเก็บบทบาทที่เลือก
+  UserRole _selectedRole = UserRole.user; // เพิ่มตัวแปรเก็บบทบาทที่เลือก
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -57,7 +62,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return digitsOnly;
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_phoneController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -68,19 +73,103 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       return;
     }
 
-    print(
-      'Login attempt: ${_phoneController.text}, ${_passwordController.text}',
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('กำลังเข้าสู่ระบบ...'),
+          ],
+        ),
+      ),
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('กำลังเข้าสู่ระบบ...'),
-        backgroundColor: Colors.green,
+
+    try {
+      log('Login attempt: ${_phoneController.text}');
+
+      String cleanPhone = _phoneController.text.replaceAll(
+        RegExp(r'[^\d]'),
+        '',
+      );
+
+      // Try user login
+      final userResult = await UserService.AuthService.loginUser(
+        user_id: cleanPhone,
+        password: _passwordController.text,
+        role: UserRole.user,
+      );
+
+      if (userResult['success']) {
+        Get.offAllNamed('/user');
+        return;
+      }
+
+      // Try rider login if user login failed
+      final riderResult = await UserService.AuthService.loginUser(
+        user_id: cleanPhone,
+        password: _passwordController.text,
+        role: UserRole.rider,
+      );
+
+      if (riderResult['success']) {
+        log('Rider login successful');
+
+        // Navigate to rider home
+        Get.offAllNamed('/rider');
+      } else {
+        // Both login attempts failed
+        _showErrorDialog(
+          'เข้าสู่ระบบไม่สำเร็จ',
+          riderResult['message'] ?? 'เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง',
+        );
+      }
+    } catch (e) {
+      Get.back();
+
+      log('Login error: $e');
+      _showErrorDialog(
+        'เกิดข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
+      );
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('ตกลง'),
+          ),
+        ],
       ),
     );
   }
 
   void _handleRegister() {
-    print("สมัครเป็น$_selectedRole");
+    String roleText = _selectedRole == UserRole.user
+        ? "ผู้ใช้ทั่วไป"
+        : "ไรเดอร์";
+    log("สมัครเป็น$roleText");
+
+    final appData = Provider.of<AppData>(context, listen: false);
+    appData.user.setRole(_selectedRole);
+
+    Get.toNamed('/register');
   }
 
   @override
@@ -150,7 +239,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               hintText: '**********',
               label: 'รหัสผ่าน',
               controller: _passwordController,
-              keyboardType: TextInputType.phone,
+              keyboardType: TextInputType.visiblePassword,
+              obscureText: true,
               onChanged: (value) {
                 _passwordController.text = value;
               },
@@ -170,7 +260,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
             SizedBox(height: 32),
 
-            ButtonActions(text: "เข้าสู่ระบบ", variant: ButtonVariant.primary),
+            ButtonActions(
+              text: "เข้าสู่ระบบ",
+              variant: ButtonVariant.primary,
+              onPressed: _handleLogin,
+            ),
           ],
         ),
       ],
@@ -183,7 +277,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ButtonActions(
-          text: "สมัครเป็น\"$_selectedRole\"",
+          text:
+              "สมัครเป็น\"${_selectedRole == UserRole.user ? "ผู้ใช้ทั่วไป" : "ไรเดอร์"}\"",
           variant: ButtonVariant.secondary,
           onPressed: () => {_handleRegister()},
         ),
@@ -248,16 +343,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _roleCard("ผู้ใช้ทั่วไป", "lib/assets/images/user.png"),
-            _roleCard("คนส่งของ", "lib/assets/images/rider.png"),
+            _roleCard(
+              UserRole.user,
+              "ผู้ใช้ทั่วไป",
+              "lib/assets/images/user.png",
+            ),
+            _roleCard(
+              UserRole.rider,
+              "คนส่งของ",
+              "lib/assets/images/rider.png",
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _roleCard(String title, String assetPath) {
-    bool isSelected = _selectedRole == title;
+  Widget _roleCard(UserRole role, String title, String assetPath) {
+    bool isSelected = _selectedRole == role;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -265,7 +368,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       child: GestureDetector(
         onTap: () {
           setState(() {
-            _selectedRole = title;
+            _selectedRole = role;
           });
           // Optional: Add haptic feedback
           // HapticFeedback.lightImpact();
@@ -325,7 +428,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
-                        title == "ผู้ใช้ทั่วไป"
+                        role == UserRole.user
                             ? Icons.person_rounded
                             : Icons.delivery_dining_rounded,
                         size: 64,

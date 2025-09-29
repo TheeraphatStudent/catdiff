@@ -1,11 +1,10 @@
 import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
-import 'package:app/service/upload/post.dart';
+import 'package:app/service/upload/api_upload.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 
 enum ProfileSize { xxs, xs, sm, md, xl }
 
@@ -71,7 +70,16 @@ class ProfileController extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final uploadedUrl = await UploadService.uploadProfileImage(
+      // Check API access before uploading
+      log("Checking API access...");
+      final apiAccessible = await ApiUploadService.checkApiAccess();
+      if (!apiAccessible) {
+        log("API access check failed - proceeding anyway");
+        // Don't fail here, let the upload attempt proceed
+      }
+
+      // Upload using API service
+      final uploadedUrl = await ApiUploadService.uploadProfileImage(
         _selectedFile!,
         userId,
       );
@@ -79,13 +87,28 @@ class ProfileController extends ChangeNotifier {
       if (uploadedUrl != null) {
         _uploadedUrl = uploadedUrl;
         _selectedFile = null;
+        log("Upload successful: $uploadedUrl");
       } else {
-        _error = 'Failed to upload image';
+        _error = 'Failed to upload image - please check your internet connection and try again';
+        log("Upload failed: no URL returned");
       }
 
       return uploadedUrl;
     } catch (e) {
+      log('Upload failed with exception: $e');
       _error = 'Upload failed: ${e.toString()}';
+
+      // Provide user-friendly error messages
+      if (e.toString().contains('network') || e.toString().contains('connection')) {
+        _error = 'Network error - please check your internet connection';
+      } else if (e.toString().contains('timeout')) {
+        _error = 'Upload timeout - please try again';
+      } else if (e.toString().contains('403') || e.toString().contains('401')) {
+        _error = 'Authentication error - please contact support';
+      } else {
+        _error = 'Upload failed - please try again';
+      }
+
       return null;
     } finally {
       _isUploading = false;
