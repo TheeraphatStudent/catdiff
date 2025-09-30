@@ -1,5 +1,4 @@
 import 'package:app/config/share/app_data.dart';
-import 'package:app/pages/%E0%B8%B5user/home.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/debug.dart';
@@ -13,6 +12,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:provider/provider.dart';
 import 'pages/onboarding/onboarding.page.dart';
 import 'firebase_options.dart';
+import 'package:app/pages/user/user_home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialRoute: '/',
+      initialRoute: '/user',
       home: OnBoardingPage(),
       // home: DebugPage(),
       getPages: [
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/', page: () => const OnBoardingPage()),
         GetPage(name: '/login', page: () => LoginPage()),
         GetPage(name: '/register', page: () => RegisterPage()),
-        GetPage(name: '/user', page: () => UserHomepage()),
+        GetPage(name: '/user', page: () => HomeScreen()),
         GetPage(name: '/rider', page: () => RiderHome()),
       ],
     );
