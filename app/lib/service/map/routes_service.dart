@@ -165,62 +165,76 @@ class _CachedRoute {
   _CachedRoute(this.result, this.timestamp);
 }
 
+class _ThrottleEntry {
+  _ThrottleEntry({
+    required this.request,
+    required this.completer,
+  });
+
+  Future<MapRouteResult> Function() request;
+  final Completer<MapRouteResult> completer;
+  late Timer timer;
+}
+
 class _RequestThrottler {
   static const Duration _throttleDelay = Duration(milliseconds: 500);
 
-  Timer? _throttleTimer;
-  Completer<MapRouteResult>? _pendingCompleter;
-  String? _pendingKey;
+  final Map<String, _ThrottleEntry> _pending = <String, _ThrottleEntry>{};
 
   Future<MapRouteResult> throttle(
     String key,
     Future<MapRouteResult> Function() request,
-  ) async {
-    // If there's already a pending request for the same key, return that
-    if (_pendingCompleter != null && _pendingKey == key) {
-      return _pendingCompleter!.future;
+  ) {
+    final _ThrottleEntry? existing = _pending[key];
+    if (existing != null) {
+      existing.timer.cancel();
+      existing.request = request;
+      existing.timer = _createTimer(key, existing);
+      return existing.completer.future;
     }
 
-    // Cancel any existing timer
-    _throttleTimer?.cancel();
+    final Completer<MapRouteResult> completer = Completer<MapRouteResult>();
+    final _ThrottleEntry entry = _ThrottleEntry(
+      request: request,
+      completer: completer,
+    );
+    entry.timer = _createTimer(key, entry);
+    _pending[key] = entry;
+    return completer.future;
+  }
 
-    // Complete any existing request with a cancelled error
-    if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
-      _pendingCompleter!.completeError(
-        Exception('Request cancelled by newer request'),
-      );
-    }
-
-    // Create new completer
-    _pendingCompleter = Completer<MapRouteResult>();
-    _pendingKey = key;
-
-    // Set up throttle timer
-    _throttleTimer = Timer(_throttleDelay, () async {
-      if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
-        try {
-          final result = await request();
-          _pendingCompleter!.complete(result);
-        } catch (e) {
-          _pendingCompleter!.completeError(e);
-        } finally {
-          _pendingCompleter = null;
-          _pendingKey = null;
+  Timer _createTimer(String key, _ThrottleEntry entry) {
+    return Timer(_throttleDelay, () async {
+      try {
+        final MapRouteResult result = await entry.request();
+        if (!entry.completer.isCompleted) {
+          entry.completer.complete(result);
+        }
+      } catch (error, stackTrace) {
+        if (!entry.completer.isCompleted) {
+          entry.completer.completeError(error, stackTrace);
+        }
+      } finally {
+        // Only clear the entry if it still maps to this key.
+        if (_pending[key] == entry) {
+          _pending.remove(key);
         }
       }
     });
-
-    return _pendingCompleter!.future;
   }
 
   void cancel() {
-    _throttleTimer?.cancel();
-    if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
-      _pendingCompleter!.completeError(Exception('Request cancelled'));
+    final List<_ThrottleEntry> entries = _pending.values.toList();
+    _pending.clear();
+    for (final _ThrottleEntry entry in entries) {
+      entry.timer.cancel();
+      if (!entry.completer.isCompleted) {
+        entry.completer.completeError(Exception('Request cancelled'));
+      }
     }
-    _pendingCompleter = null;
-    _pendingKey = null;
   }
+
+  bool get hasPending => _pending.isNotEmpty;
 }
 
 class MapRoutesService {
@@ -240,6 +254,7 @@ class MapRoutesService {
       'https://routes.googleapis.com/directions/v2:computeRoutes';
   static const String _distanceMatrixHost = 'maps.googleapis.com';
   static const String _distanceMatrixPath = '/maps/api/distancematrix/json';
+  static const String _directionsPath = '/maps/api/directions/json';
 
   Future<MapRouteResult> computeRoute({
     required LatLng origin,
@@ -310,22 +325,21 @@ class MapRoutesService {
         cacheKey: cacheKey,
       );
     } on RouteComputationException catch (e) {
-      // If Routes API fails due to client blocking, try fallback approach
-      if (e.body?.contains('blocked') == true ||
-          e.body?.contains('BLOCKED') == true) {
-        if (_debugLogging) {
-          _logDebug('Routes API blocked, using fallback approach');
-        }
-        return await _performFallbackRoute(
-          origin: origin,
-          destination: destination,
-          apiKey: apiKey,
-          travelMode: travelMode,
-          intermediates: intermediates,
-          distanceStrategy: distanceStrategy,
+      if (_debugLogging) {
+        _logDebug(
+          'Routes API request failed (status: ${e.statusCode ?? 'unknown'}): ${e.message}',
         );
       }
-      rethrow;
+      return await _performFallbackRoute(
+        origin: origin,
+        destination: destination,
+        apiKey: apiKey,
+        travelMode: travelMode,
+        intermediates: intermediates,
+        distanceStrategy: distanceStrategy,
+        cacheKey: cacheKey,
+        cause: e,
+      );
     }
   }
 
@@ -539,52 +553,190 @@ class MapRoutesService {
     required MapRouteTravelMode travelMode,
     required List<LatLng> intermediates,
     required MapRouteDistanceStrategy distanceStrategy,
+    required String cacheKey,
+    RouteComputationException? cause,
   }) async {
     if (_debugLogging) {
-      _logDebug('Using fallback route calculation');
+      final String reason =
+          cause != null && cause.message.isNotEmpty ? ' (reason: ${cause.message})' : '';
+      _logDebug('Using fallback route calculation$reason');
     }
 
-    // Create a more detailed polyline by interpolating between waypoints
-    final List<LatLng> polyline = _createInterpolatedPolyline([
+    _DirectionsRouteInfo? directions;
+    try {
+      directions = await _fetchDirectionsRoute(
+        origin: origin,
+        destination: destination,
+        intermediates: intermediates,
+        apiKey: apiKey,
+        travelMode: travelMode,
+      );
+      if (_debugLogging && directions != null) {
+        _logDebug(
+          'Directions API fallback succeeded with ${directions.polyline.length} points',
+        );
+      }
+    } catch (e) {
+      if (_debugLogging) {
+        _logDebug('Directions API fallback failed: $e');
+      }
+    }
+
+    final List<LatLng> interpolated = _createInterpolatedPolyline([
       origin,
       ...intermediates,
       destination,
     ]);
 
-    // Try to get distance from Distance Matrix API
-    double? distanceMeters;
-    Duration? duration;
-    RouteDistanceSource distanceSource = RouteDistanceSource.geometry;
+    List<LatLng> polyline =
+        directions != null && directions.polyline.isNotEmpty
+            ? directions.polyline
+            : interpolated;
+    double? distanceMeters = directions?.distanceMeters;
+    Duration? duration = directions?.duration;
+    RouteDistanceSource distanceSource =
+        directions != null ? RouteDistanceSource.routesApi : RouteDistanceSource.geometry;
 
-    try {
-      final _DistanceMatrixInfo? matrix = await _fetchDistanceMatrix(
-        origin: origin,
-        destination: destination,
-        apiKey: apiKey,
-        travelMode: travelMode,
-      );
-      if (matrix != null) {
-        distanceMeters = matrix.distanceMeters;
-        duration = matrix.duration;
-        distanceSource = RouteDistanceSource.distanceMatrix;
-      }
-    } catch (e) {
-      if (_debugLogging) {
-        _logDebug('Distance Matrix API also failed: $e');
-      }
-    }
-
-    // Fallback to geometry-based distance
-    if (distanceMeters == null) {
+    if (distanceStrategy == MapRouteDistanceStrategy.localGeometry) {
       distanceMeters = _distanceFromPolyline(polyline);
       distanceSource = RouteDistanceSource.geometry;
+      duration = null;
+    } else if (distanceStrategy == MapRouteDistanceStrategy.distanceMatrixPreferred) {
+      try {
+        final _DistanceMatrixInfo? matrix = await _fetchDistanceMatrix(
+          origin: origin,
+          destination: destination,
+          apiKey: apiKey,
+          travelMode: travelMode,
+        );
+        if (matrix != null) {
+          if (matrix.distanceMeters != null) {
+            distanceMeters = matrix.distanceMeters;
+            distanceSource = RouteDistanceSource.distanceMatrix;
+          }
+          duration ??= matrix.duration;
+        }
+      } catch (e) {
+        if (_debugLogging) {
+          _logDebug('Distance Matrix API also failed: $e');
+        }
+      }
     }
 
-    return MapRouteResult(
+    if (distanceMeters == null) {
+      distanceMeters = _distanceFromPolyline(polyline);
+      if (distanceSource != RouteDistanceSource.distanceMatrix) {
+        distanceSource = RouteDistanceSource.geometry;
+      }
+    }
+
+    final result = MapRouteResult(
       polyline: polyline,
       distanceMeters: distanceMeters,
       duration: duration,
       distanceSource: distanceSource,
+    );
+
+    _cache.put(cacheKey, result);
+
+    return result;
+  }
+
+  Future<_DirectionsRouteInfo?> _fetchDirectionsRoute({
+    required LatLng origin,
+    required LatLng destination,
+    required List<LatLng> intermediates,
+    required String apiKey,
+    required MapRouteTravelMode travelMode,
+  }) async {
+    final Map<String, String> params = <String, String>{
+      'origin': '${origin.latitude},${origin.longitude}',
+      'destination': '${destination.latitude},${destination.longitude}',
+      'key': apiKey,
+      'mode': _directionsMode(travelMode),
+    };
+
+    if (intermediates.isNotEmpty) {
+      params['waypoints'] = intermediates
+          .map((point) => '${point.latitude},${point.longitude}')
+          .join('|');
+    }
+
+    final Uri uri = Uri.https(_distanceMatrixHost, _directionsPath, params);
+    final http.Response response = await http.get(uri);
+    if (response.statusCode != 200) {
+      return null;
+    }
+
+    final dynamic decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final String? status = decoded['status'] as String?;
+    if (status != 'OK') {
+      if (_debugLogging) {
+        final String? message = decoded['error_message'] as String?;
+        final String suffix = message != null ? ': $message' : '';
+        _logDebug('Directions API status $status$suffix');
+      }
+      return null;
+    }
+
+    final List<dynamic>? routes = decoded['routes'] as List<dynamic>?;
+    if (routes == null || routes.isEmpty) {
+      return null;
+    }
+
+    final Map<String, dynamic>? route =
+        routes.first as Map<String, dynamic>?;
+    if (route == null) {
+      return null;
+    }
+
+    final Map<String, dynamic>? overview =
+        route['overview_polyline'] as Map<String, dynamic>?;
+    final String? encoded = overview?['points'] as String?;
+    final List<LatLng> polyline =
+        encoded != null && encoded.isNotEmpty ? _decodePolyline(encoded) : <LatLng>[];
+
+    double? totalDistance;
+    Duration? totalDuration;
+    final List<dynamic>? legs = route['legs'] as List<dynamic>?;
+    if (legs != null && legs.isNotEmpty) {
+      double distanceAccumulator = 0;
+      double durationAccumulator = 0;
+      for (final dynamic leg in legs) {
+        if (leg is! Map<String, dynamic>) {
+          continue;
+        }
+        final Map<String, dynamic>? distanceData =
+            leg['distance'] as Map<String, dynamic>?;
+        final Map<String, dynamic>? durationData =
+            leg['duration'] as Map<String, dynamic>?;
+        final double? legDistance = _coerceToDouble(distanceData?['value']);
+        final double? legDurationSeconds = _coerceToDouble(durationData?['value']);
+        if (legDistance != null) {
+          distanceAccumulator += legDistance;
+        }
+        if (legDurationSeconds != null) {
+          durationAccumulator += legDurationSeconds;
+        }
+      }
+      if (distanceAccumulator > 0) {
+        totalDistance = distanceAccumulator;
+      }
+      if (durationAccumulator > 0) {
+        totalDuration = Duration(
+          milliseconds: (durationAccumulator * 1000).round(),
+        );
+      }
+    }
+
+    return _DirectionsRouteInfo(
+      polyline: polyline,
+      distanceMeters: totalDistance,
+      duration: totalDuration,
     );
   }
 
@@ -807,6 +959,19 @@ class MapRoutesService {
 
   static double _degToRad(double value) => value * math.pi / 180;
 
+  static String _directionsMode(MapRouteTravelMode mode) {
+    switch (mode) {
+      case MapRouteTravelMode.walking:
+        return 'walking';
+      case MapRouteTravelMode.bicycling:
+        return 'bicycling';
+      case MapRouteTravelMode.twoWheeler:
+        return 'driving';
+      case MapRouteTravelMode.driving:
+        return 'driving';
+    }
+  }
+
   static String _distanceMatrixMode(MapRouteTravelMode mode) {
     switch (mode) {
       case MapRouteTravelMode.walking:
@@ -850,7 +1015,7 @@ class MapRoutesService {
       'cacheSize': _cache._cache.length,
       'maxCacheSize': _RouteCache._maxCacheSize,
       'cacheExpiry': _RouteCache._cacheExpiry.inMinutes,
-      'hasPendingRequest': _throttler._pendingCompleter != null,
+      'hasPendingRequest': _throttler.hasPending,
       'debugLogging': _debugLogging,
     };
   }
@@ -859,6 +1024,18 @@ class MapRoutesService {
   static void setDebugLogging(bool enabled) {
     _debugLogging = enabled;
   }
+}
+
+class _DirectionsRouteInfo {
+  const _DirectionsRouteInfo({
+    required this.polyline,
+    this.distanceMeters,
+    this.duration,
+  });
+
+  final List<LatLng> polyline;
+  final double? distanceMeters;
+  final Duration? duration;
 }
 
 class _DistanceMatrixInfo {

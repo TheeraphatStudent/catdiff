@@ -45,16 +45,16 @@ class _MapDebugPageState extends State<MapDebugPage> {
   ];
 
   static const List<MapDestination> _pathDestinations = <MapDestination>[
-    MapDestination(
-      latitude: 13.7466,
-      longitude: 100.5329,
-      label: 'Siam Square',
-    ),
     // MapDestination(
-    //   latitude: 13.7563,
-    //   longitude: 100.5018,
-    //   label: 'Bangkok Old Town',
+    //   latitude: 13.7466,
+    //   longitude: 100.5329,
+    //   label: 'Siam Square',
     // ),
+    MapDestination(
+      latitude: 16.291610,
+      longitude: 102.615900,
+      label: 'Bangkok Old Town',
+    ),
   ];
 
   static final List<MapPathSegment> _multiPathSegments = <MapPathSegment>[
@@ -82,18 +82,18 @@ class _MapDebugPageState extends State<MapDebugPage> {
         label: 'Bangkok Old Town',
       ),
     ),
-    MapPathSegment(
-      target: MapDestination(
-        latitude: 13.7466,
-        longitude: 100.5329,
-        label: 'Siam Square',
-      ),
-      destination: MapDestination(
-        latitude: 13.7204,
-        longitude: 100.4767,
-        label: 'ICONSIAM',
-      ),
-    ),
+    // MapPathSegment(
+    //   target: MapDestination(
+    //     latitude: 13.7466,
+    //     longitude: 100.5329,
+    //     label: 'Siam Square',
+    //   ),
+    //   destination: MapDestination(
+    //     latitude: 13.7204,
+    //     longitude: 100.4767,
+    //     label: 'ICONSIAM',
+    //   ),
+    // ),
   ];
 
   // ignore: unused_element
@@ -122,52 +122,52 @@ class _MapDebugPageState extends State<MapDebugPage> {
     );
   }
 
-  String _formatRouteSummary(MapRouteInfo? info) {
-    if (info == null) {
-      return 'Route distance: waiting for route...';
-    }
-    final double meters = info.distanceMeters;
-    final String distance = meters < 1000
-        ? '${meters.toStringAsFixed(0)} m'
-        : '${(meters / 1000).toStringAsFixed(2)} km';
-    String source;
-    switch (info.distanceSource) {
-      case MapRouteDistanceSource.distanceMatrix:
-        source = 'Distance Matrix';
-        break;
-      case MapRouteDistanceSource.api:
-        source = 'Routes API';
-        break;
-      case MapRouteDistanceSource.computed:
-        source = 'polyline estimate';
-        break;
-    }
-    final Duration? duration = info.duration;
-    final String eta = duration != null
-        ? ' | ETA ${_formatDuration(duration)}'
-        : '';
-    return 'Route distance: $distance ($source)$eta';
-  }
+  // String _formatRouteSummary(MapRouteInfo? info) {
+  //   if (info == null) {
+  //     return 'Route distance: waiting for route...';
+  //   }
+  //   final double meters = info.distanceMeters;
+  //   final String distance = meters < 1000
+  //       ? '${meters.toStringAsFixed(0)} m'
+  //       : '${(meters / 1000).toStringAsFixed(2)} km';
+  //   String source;
+  //   switch (info.distanceSource) {
+  //     case MapRouteDistanceSource.distanceMatrix:
+  //       source = 'Distance Matrix';
+  //       break;
+  //     case MapRouteDistanceSource.api:
+  //       source = 'Routes API';
+  //       break;
+  //     case MapRouteDistanceSource.computed:
+  //       source = 'polyline estimate';
+  //       break;
+  //   }
+  //   final Duration? duration = info.duration;
+  //   final String eta = duration != null
+  //       ? ' | ETA ${_formatDuration(duration)}'
+  //       : '';
+  //   return 'Route distance: $distance ($source)$eta';
+  // }
 
-  String _formatDuration(Duration duration) {
-    final int hours = duration.inHours;
-    final int minutes = duration.inMinutes.remainder(60);
-    final int seconds = duration.inSeconds.remainder(60);
+  // String _formatDuration(Duration duration) {
+  //   final int hours = duration.inHours;
+  //   final int minutes = duration.inMinutes.remainder(60);
+  //   final int seconds = duration.inSeconds.remainder(60);
 
-    if (hours > 0) {
-      if (minutes > 0) {
-        return '${hours}h ${minutes}m';
-      }
-      return '${hours}h';
-    }
-    if (minutes > 0) {
-      if (seconds > 0) {
-        return '${minutes}m ${seconds}s';
-      }
-      return '${minutes}m';
-    }
-    return '${seconds}s';
-  }
+  //   if (hours > 0) {
+  //     if (minutes > 0) {
+  //       return '${hours}h ${minutes}m';
+  //     }
+  //     return '${hours}h';
+  //   }
+  //   if (minutes > 0) {
+  //     if (seconds > 0) {
+  //       return '${minutes}m ${seconds}s';
+  //     }
+  //     return '${minutes}m';
+  //   }
+  //   return '${seconds}s';
+  // }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -269,8 +269,8 @@ class _MapDebugPageState extends State<MapDebugPage> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(_formatRouteSummary(_pathRouteInfo)),
+          // const SizedBox(height: 8),
+          // Text(_formatRouteSummary(_pathRouteInfo)),
           const SizedBox(height: 24),
           _buildSectionTitle('6. Map viewer - multi path'),
           AspectRatio(
@@ -296,8 +296,8 @@ class _MapDebugPageState extends State<MapDebugPage> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(_formatRouteSummary(_multiRouteInfo)),
+          // const SizedBox(height: 8),
+          // Text(_formatRouteSummary(_multiRouteInfo)),
           // const SizedBox(height: 16),
           // _buildCacheStats(),
         ],

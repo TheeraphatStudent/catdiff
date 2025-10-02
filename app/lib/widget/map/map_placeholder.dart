@@ -897,19 +897,36 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
 
     if (widget.viewerType == MapViewerType.multiPath) {
       final Set<Polyline> polylines = <Polyline>{};
-      _multiRoutePoints.forEach((int index, List<LatLng> points) {
+      for (int i = 0; i < widget.multiPathSegments.length; i++) {
+        final MapPathSegment segment = widget.multiPathSegments[i];
+        final List<LatLng> points = _multiRoutePoints[i] ?? <LatLng>[
+              segment.target.latLng,
+              segment.destination.latLng,
+            ];
         if (points.length < 2) {
-          return;
+          continue;
         }
+
+        final String id = [
+          'multi_path',
+          segment.target.latitude.toStringAsFixed(6),
+          segment.target.longitude.toStringAsFixed(6),
+          segment.destination.latitude.toStringAsFixed(6),
+          segment.destination.longitude.toStringAsFixed(6),
+          i.toString(),
+        ].join('_');
+
+        final bool hasError = _multiRouteErrors.containsKey(i);
+
         polylines.add(
           Polyline(
-            polylineId: PolylineId('multi_path_\$index'),
-            color: Colors.blueAccent,
+            polylineId: PolylineId(id),
+            color: hasError ? Colors.redAccent : Colors.blueAccent,
             width: 5,
             points: points,
           ),
         );
-      });
+      }
       return polylines;
     }
 
