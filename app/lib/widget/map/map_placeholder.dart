@@ -808,7 +808,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     if (widget.viewerType == MapViewerType.multiPath) {
       final Map<String, Marker> multiMarkers = <String, Marker>{};
 
-      void addMarker(MapDestination destination, String suffix) {
+      void addMarker(MapDestination destination, String suffix, bool isTarget) {
         final LatLng latLng = destination.latLng;
         final String key =
             '${latLng.latitude.toStringAsFixed(6)}_'
@@ -819,14 +819,24 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
           infoWindow: destination.label != null
               ? InfoWindow(title: destination.label)
               : const InfoWindow(),
-          icon: destination.icon ?? BitmapDescriptor.defaultMarker,
+          icon:
+              destination.icon ??
+              BitmapDescriptor.defaultMarkerWithHue(
+                isTarget
+                    ? BitmapDescriptor.hueGreen
+                    : BitmapDescriptor.hueOrange,
+              ),
         );
       }
 
       for (int i = 0; i < widget.multiPathSegments.length; i++) {
         final MapPathSegment segment = widget.multiPathSegments[i];
-        addMarker(segment.target, 'target_$i');
-        addMarker(segment.destination, 'destination_$i');
+        addMarker(segment.target, 'target_$i', true); // Green for targets
+        addMarker(
+          segment.destination,
+          'destination_$i',
+          false,
+        ); // Orange for destinations
       }
 
       markers.addAll(multiMarkers.values);
