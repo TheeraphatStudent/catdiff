@@ -2,7 +2,7 @@ class DeliveryHome {
   List<Map> getDeliveryMockDataFormFirebase() {
     return [
       {
-        "profileImageUrl": "https://example.com/images/user1.png",
+        "profileImageUrl": "https://cataas.com/cat",
         "name": "Alice Johnson",
         "status": "pending",
         "delivery_id": "DEL12345",
