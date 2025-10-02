@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
@@ -227,7 +228,13 @@ class MapRoutesService {
 
   static final _RouteCache _cache = _RouteCache();
   static final _RequestThrottler _throttler = _RequestThrottler();
-  static bool _debugLogging = true;
+  static bool _debugLogging = false;
+
+  static void _logDebug(String message) {
+    if (_debugLogging) {
+      debugPrint('[MapRoutesService] $message');
+    }
+  }
 
   static const String _routesEndpoint =
       'https://routes.googleapis.com/directions/v2:computeRoutes';
@@ -304,9 +311,10 @@ class MapRoutesService {
       );
     } on RouteComputationException catch (e) {
       // If Routes API fails due to client blocking, try fallback approach
-      if (e.body?.contains('blocked') == true || e.body?.contains('BLOCKED') == true) {
+      if (e.body?.contains('blocked') == true ||
+          e.body?.contains('BLOCKED') == true) {
         if (_debugLogging) {
-          print('Routes API blocked, using fallback approach');
+          _logDebug('Routes API blocked, using fallback approach');
         }
         return await _performFallbackRoute(
           origin: origin,
@@ -386,9 +394,9 @@ class MapRoutesService {
 
     // Debug logging
     if (_debugLogging) {
-      print('Routes API Request: ${jsonEncode(requestBody)}');
-      print('Routes API Response Status: ${response.statusCode}');
-      print('Routes API Response Body: ${response.body}');
+      _logDebug('Routes API Request: ${jsonEncode(requestBody)}');
+      _logDebug('Routes API Response Status: ${response.statusCode}');
+      _logDebug('Routes API Response Body: ${response.body}');
     }
 
     if (response.statusCode != 200) {
@@ -399,7 +407,9 @@ class MapRoutesService {
       if (response.body.contains('blocked') ||
           response.body.contains('BLOCKED')) {
         if (_debugLogging) {
-          print('WARNING: Android client blocked - API key may need Android app restrictions configured');
+          _logDebug(
+            'WARNING: Android client blocked - API key may need Android app restrictions configured',
+          );
         }
         // For now, we'll throw the error but could implement a fallback here
       }
@@ -430,9 +440,9 @@ class MapRoutesService {
 
     // Debug polyline data
     if (_debugLogging) {
-      print('Polyline data: $polylineData');
-      print('Encoded polyline: $encodedPolyline');
-      print('Encoded polyline length: ${encodedPolyline?.length ?? 0}');
+      _logDebug('Polyline data: $polylineData');
+      _logDebug('Encoded polyline: $encodedPolyline');
+      _logDebug('Encoded polyline length: ${encodedPolyline?.length ?? 0}');
     }
 
     final List<LatLng> polyline =
@@ -441,9 +451,9 @@ class MapRoutesService {
         : <LatLng>[origin, destination];
 
     if (_debugLogging) {
-      print('Decoded polyline points: ${polyline.length}');
+      _logDebug('Decoded polyline points: ${polyline.length}');
       if (polyline.length <= 2) {
-        print('WARNING: Using fallback polyline (straight line)');
+        _logDebug('WARNING: Using fallback polyline (straight line)');
       }
     }
 
@@ -531,17 +541,21 @@ class MapRoutesService {
     required MapRouteDistanceStrategy distanceStrategy,
   }) async {
     if (_debugLogging) {
-      print('Using fallback route calculation');
+      _logDebug('Using fallback route calculation');
     }
-    
+
     // Create a more detailed polyline by interpolating between waypoints
-    final List<LatLng> polyline = _createInterpolatedPolyline([origin, ...intermediates, destination]);
-    
+    final List<LatLng> polyline = _createInterpolatedPolyline([
+      origin,
+      ...intermediates,
+      destination,
+    ]);
+
     // Try to get distance from Distance Matrix API
     double? distanceMeters;
     Duration? duration;
     RouteDistanceSource distanceSource = RouteDistanceSource.geometry;
-    
+
     try {
       final _DistanceMatrixInfo? matrix = await _fetchDistanceMatrix(
         origin: origin,
@@ -556,16 +570,16 @@ class MapRoutesService {
       }
     } catch (e) {
       if (_debugLogging) {
-        print('Distance Matrix API also failed: $e');
+        _logDebug('Distance Matrix API also failed: $e');
       }
     }
-    
+
     // Fallback to geometry-based distance
     if (distanceMeters == null) {
       distanceMeters = _distanceFromPolyline(polyline);
       distanceSource = RouteDistanceSource.geometry;
     }
-    
+
     return MapRouteResult(
       polyline: polyline,
       distanceMeters: distanceMeters,
@@ -711,31 +725,34 @@ class MapRoutesService {
 
   static List<LatLng> _createInterpolatedPolyline(List<LatLng> waypoints) {
     if (waypoints.length < 2) return waypoints;
-    
+
     final List<LatLng> interpolated = [];
-    
+
     for (int i = 0; i < waypoints.length - 1; i++) {
       final LatLng start = waypoints[i];
       final LatLng end = waypoints[i + 1];
-      
+
       interpolated.add(start);
-      
+
       // Add intermediate points for longer segments
       final double distance = _calculateDistance(start, end);
-      if (distance > 1000) { // If segment is longer than 1km, add intermediate points
+      if (distance > 1000) {
+        // If segment is longer than 1km, add intermediate points
         final int segments = (distance / 500).ceil(); // One point every 500m
         for (int j = 1; j < segments; j++) {
           final double ratio = j / segments;
-          final double lat = start.latitude + (end.latitude - start.latitude) * ratio;
-          final double lng = start.longitude + (end.longitude - start.longitude) * ratio;
+          final double lat =
+              start.latitude + (end.latitude - start.latitude) * ratio;
+          final double lng =
+              start.longitude + (end.longitude - start.longitude) * ratio;
           interpolated.add(LatLng(lat, lng));
         }
       }
     }
-    
+
     // Add the final waypoint
     interpolated.add(waypoints.last);
-    
+
     return interpolated;
   }
 
@@ -743,12 +760,17 @@ class MapRoutesService {
     const double earthRadius = 6371000; // Earth's radius in meters
     final double lat1Rad = point1.latitude * (math.pi / 180);
     final double lat2Rad = point2.latitude * (math.pi / 180);
-    final double deltaLatRad = (point2.latitude - point1.latitude) * (math.pi / 180);
-    final double deltaLngRad = (point2.longitude - point1.longitude) * (math.pi / 180);
+    final double deltaLatRad =
+        (point2.latitude - point1.latitude) * (math.pi / 180);
+    final double deltaLngRad =
+        (point2.longitude - point1.longitude) * (math.pi / 180);
 
-    final double a = math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
-        math.cos(lat1Rad) * math.cos(lat2Rad) *
-        math.sin(deltaLngRad / 2) * math.sin(deltaLngRad / 2);
+    final double a =
+        math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
+        math.cos(lat1Rad) *
+            math.cos(lat2Rad) *
+            math.sin(deltaLngRad / 2) *
+            math.sin(deltaLngRad / 2);
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
     return earthRadius * c;
@@ -832,7 +854,7 @@ class MapRoutesService {
       'debugLogging': _debugLogging,
     };
   }
-  
+
   /// Enable or disable debug logging
   static void setDebugLogging(bool enabled) {
     _debugLogging = enabled;

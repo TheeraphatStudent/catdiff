@@ -6,6 +6,7 @@ import 'package:app/service/map/routes_service.dart';
 import 'package:app/widget/map/map_placeholder.dart';
 import 'package:app/widget/map/map_destination.dart';
 import 'package:app/widget/map/map_route_info.dart';
+import 'package:app/widget/map/map_path_segment.dart';
 import 'package:app/widget/map/map_selection_result.dart';
 
 class MapDebugPage extends StatefulWidget {
@@ -18,7 +19,8 @@ class MapDebugPage extends StatefulWidget {
 class _MapDebugPageState extends State<MapDebugPage> {
   // ignore: unused_field
   MapSelectionResult? _selectorResult;
-  MapRouteInfo? _routeInfo;
+  MapRouteInfo? _pathRouteInfo;
+  MapRouteInfo? _multiRouteInfo;
   final ApiData _apiData = ApiData();
 
   // 16.291610, 102.616036
@@ -53,6 +55,45 @@ class _MapDebugPageState extends State<MapDebugPage> {
     //   longitude: 100.5018,
     //   label: 'Bangkok Old Town',
     // ),
+  ];
+
+  static final List<MapPathSegment> _multiPathSegments = <MapPathSegment>[
+    MapPathSegment(
+      target: MapDestination(
+        latitude: 13.7563,
+        longitude: 100.5018,
+        label: 'Bangkok Old Town',
+      ),
+      destination: MapDestination(
+        latitude: 13.7204,
+        longitude: 100.4767,
+        label: 'ICONSIAM',
+      ),
+    ),
+    MapPathSegment(
+      target: MapDestination(
+        latitude: 13.7466,
+        longitude: 100.5329,
+        label: 'Siam Square',
+      ),
+      destination: MapDestination(
+        latitude: 13.7563,
+        longitude: 100.5018,
+        label: 'Bangkok Old Town',
+      ),
+    ),
+    MapPathSegment(
+      target: MapDestination(
+        latitude: 13.7466,
+        longitude: 100.5329,
+        label: 'Siam Square',
+      ),
+      destination: MapDestination(
+        latitude: 13.7204,
+        longitude: 100.4767,
+        label: 'ICONSIAM',
+      ),
+    ),
   ];
 
   // ignore: unused_element
@@ -222,14 +263,41 @@ class _MapDebugPageState extends State<MapDebugPage> {
                     MapRouteDistanceStrategy.distanceMatrixPreferred,
                 onRouteChanged: (info) {
                   setState(() {
-                    _routeInfo = info;
+                    _pathRouteInfo = info;
                   });
                 },
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(_formatRouteSummary(_routeInfo)),
+          Text(_formatRouteSummary(_pathRouteInfo)),
+          const SizedBox(height: 24),
+          _buildSectionTitle('6. Map viewer - multi path'),
+          AspectRatio(
+            aspectRatio: 9 / 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: MapPlaceholder(
+                mode: MapPlaceholderMode.viewer,
+                viewerType: MapViewerType.multiPath,
+                multiPathSegments: _multiPathSegments,
+                showMyLocation: false,
+                showMyLocationButton: false,
+                enableLiveLocation: false,
+                routesApiKey: _apiData.apiKey,
+                routesClientConfig: _routesClientConfig,
+                distanceStrategy:
+                    MapRouteDistanceStrategy.distanceMatrixPreferred,
+                onRouteChanged: (info) {
+                  setState(() {
+                    _multiRouteInfo = info;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(_formatRouteSummary(_multiRouteInfo)),
           // const SizedBox(height: 16),
           // _buildCacheStats(),
         ],

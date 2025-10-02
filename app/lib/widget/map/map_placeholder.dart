@@ -12,6 +12,7 @@ import 'package:app/service/map/geolocator.dart' as map_service;
 import 'package:app/service/map/routes_service.dart';
 import 'package:app/widget/map/map_destination.dart';
 import 'package:app/widget/map/map_route_info.dart';
+import 'package:app/widget/map/map_path_segment.dart';
 import 'package:app/widget/map/map_selection_result.dart';
 
 enum MapPlaceholderMode { view, selector, viewer }
@@ -21,11 +22,12 @@ selector: เลือกจุด
 viewer: ดูได้หลายจุด
 */
 
-enum MapViewerType { single, multiple, path }
+enum MapViewerType { single, multiple, path, multiPath }
 /*
 single: ดูได้จุดเดียว
 multiple: ดูได้หลายจุด
-path: ดูได้เส้นทาง
+path: เส้นทางจากผู้ใช้ไปยังจุดหมายแรก
+multiPath: เส้นทางหลายคู่ (A→B, C→D, ...)
 */
 
 class MapPlaceholder extends StatefulWidget {
@@ -34,6 +36,7 @@ class MapPlaceholder extends StatefulWidget {
     this.mode = MapPlaceholderMode.view,
     this.viewerType,
     this.destinations = const <MapDestination>[],
+    this.multiPathSegments = const <MapPathSegment>[],
     this.initialPosition,
     this.initialUserLocation,
     this.initialSelection,
@@ -56,6 +59,7 @@ class MapPlaceholder extends StatefulWidget {
   final MapPlaceholderMode mode;
   final MapViewerType? viewerType;
   final List<MapDestination> destinations;
+  final List<MapPathSegment> multiPathSegments;
   final LatLng? initialPosition;
   final LatLng? initialUserLocation;
   final LatLng? initialSelection;
@@ -106,6 +110,14 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   int? _queuedRouteParamsHash;
   Timer? _routeUpdateTimer;
 
+  final Map<int, List<LatLng>> _multiRoutePoints = <int, List<LatLng>>{};
+  final Map<int, MapRouteInfo> _multiRouteInfos = <int, MapRouteInfo>{};
+  final Map<int, String> _multiRouteErrors = <int, String>{};
+  bool _isFetchingMultiRoutes = false;
+  bool _multiRouteUpdateQueued = false;
+  int? _activeMultiRouteParamsHash;
+  int? _queuedMultiRouteParamsHash;
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +134,11 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     if (widget.mode == MapPlaceholderMode.viewer &&
         widget.viewerType == MapViewerType.path) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _updateRoute());
+    } else if (widget.mode == MapPlaceholderMode.viewer &&
+        widget.viewerType == MapViewerType.multiPath) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _updateMultiPathRoutes(),
+      );
     }
   }
 
@@ -132,11 +149,15 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       oldWidget.destinations,
       widget.destinations,
     );
+    final bool multiPathChanged = !_multiPathEquals(
+      oldWidget.multiPathSegments,
+      widget.multiPathSegments,
+    );
     final bool viewerTypeChanged =
         oldWidget.viewerType != widget.viewerType ||
         oldWidget.mode != widget.mode;
 
-    if (destinationsChanged) {
+    if (destinationsChanged || multiPathChanged) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitMapToData());
     }
     if (oldWidget.initialSelection != widget.initialSelection &&
@@ -164,17 +185,37 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       if (shouldRefreshRoute) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _updateRoute());
       }
-    } else if (oldWidget.viewerType == MapViewerType.path &&
-        widget.viewerType != MapViewerType.path) {
-      if (_routePoints.isNotEmpty ||
-          _routeInfo != null ||
-          _routeError != null) {
-        setState(() {
-          _routePoints = <LatLng>[];
-          _routeInfo = null;
-          _routeError = null;
-          _isFetchingRoute = false;
-        });
+    } else if (widget.mode == MapPlaceholderMode.viewer &&
+        widget.viewerType == MapViewerType.multiPath) {
+      final bool shouldRefreshMultiRoutes =
+          multiPathChanged ||
+          viewerTypeChanged ||
+          oldWidget.routesApiKey != widget.routesApiKey ||
+          oldWidget.routeTravelMode != widget.routeTravelMode ||
+          oldWidget.distanceStrategy != widget.distanceStrategy ||
+          oldWidget.routesClientConfig != widget.routesClientConfig;
+      if (shouldRefreshMultiRoutes) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _updateMultiPathRoutes(),
+        );
+      }
+    } else {
+      if (oldWidget.viewerType == MapViewerType.path &&
+          widget.viewerType != MapViewerType.path) {
+        if (_routePoints.isNotEmpty ||
+            _routeInfo != null ||
+            _routeError != null) {
+          setState(() {
+            _routePoints = <LatLng>[];
+            _routeInfo = null;
+            _routeError = null;
+            _isFetchingRoute = false;
+          });
+        }
+      }
+      if (oldWidget.viewerType == MapViewerType.multiPath &&
+          widget.viewerType != MapViewerType.multiPath) {
+        _clearMultiPathState();
       }
     }
   }
@@ -371,7 +412,8 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       setState(() {
         _routePoints = resolvedPoints;
         _routeInfo = resolvedInfo;
-        _routeError = 'Somethine went wront on _updateRoute';
+        _routeError =
+            'Provide a Google API key to enable road-following paths.';
         _isFetchingRoute = false;
       });
       widget.onRouteChanged?.call(resolvedInfo);
@@ -466,6 +508,218 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     }
   }
 
+  Future<void> _updateMultiPathRoutes() async {
+    if (!mounted ||
+        widget.mode != MapPlaceholderMode.viewer ||
+        widget.viewerType != MapViewerType.multiPath) {
+      return;
+    }
+
+    final List<MapPathSegment> segments = widget.multiPathSegments;
+    if (segments.isEmpty) {
+      if (_multiRoutePoints.isNotEmpty ||
+          _multiRouteInfos.isNotEmpty ||
+          _multiRouteErrors.isNotEmpty) {
+        setState(() {
+          _multiRoutePoints.clear();
+          _multiRouteInfos.clear();
+          _multiRouteErrors.clear();
+          _isFetchingMultiRoutes = false;
+          _multiRouteUpdateQueued = false;
+        });
+      }
+      return;
+    }
+
+    final int paramsHash = _multiPathParamsHash(segments);
+
+    if (_isFetchingMultiRoutes) {
+      if (_queuedMultiRouteParamsHash != paramsHash) {
+        _multiRouteUpdateQueued = true;
+        _queuedMultiRouteParamsHash = paramsHash;
+      }
+      return;
+    }
+
+    if (_activeMultiRouteParamsHash == paramsHash &&
+        _multiRoutePoints.isNotEmpty &&
+        _multiRouteErrors.isEmpty) {
+      return;
+    }
+
+    _activeMultiRouteParamsHash = paramsHash;
+    _multiRouteUpdateQueued = false;
+    _queuedMultiRouteParamsHash = null;
+
+    setState(() {
+      _isFetchingMultiRoutes = true;
+      _multiRoutePoints.clear();
+      _multiRouteInfos.clear();
+      _multiRouteErrors.clear();
+    });
+
+    final Map<int, List<LatLng>> newPolylines = <int, List<LatLng>>{};
+    final Map<int, MapRouteInfo> newInfos = <int, MapRouteInfo>{};
+    final Map<int, String> newErrors = <int, String>{};
+
+    double totalDistance = 0;
+    Duration totalDuration = Duration.zero;
+    bool anyDistanceMatrix = false;
+    bool anyRoutesApi = false;
+
+    final String? apiKey = widget.routesApiKey;
+    final bool hasApiKey = apiKey != null && apiKey.isNotEmpty;
+
+    for (int i = 0; i < segments.length; i++) {
+      if (!mounted || _activeMultiRouteParamsHash != paramsHash) {
+        return;
+      }
+
+      final MapPathSegment segment = segments[i];
+      final LatLng origin = segment.target.latLng;
+      final LatLng destination = segment.destination.latLng;
+
+      Future<MapRouteResult>? routeFuture;
+      if (apiKey != null && apiKey.isNotEmpty) {
+        final String key = apiKey;
+        routeFuture = _routesService.computeRoute(
+          origin: origin,
+          destination: destination,
+          apiKey: key,
+          travelMode: widget.routeTravelMode,
+          routingPreference: MapRouteRoutingPreference.trafficAware,
+          distanceStrategy: widget.distanceStrategy,
+          clientConfig: widget.routesClientConfig,
+        );
+      }
+
+      try {
+        MapRouteResult? result;
+        if (routeFuture != null) {
+          result = await routeFuture;
+        }
+
+        final List<LatLng> points = result != null && result.polyline.isNotEmpty
+            ? List<LatLng>.from(result.polyline)
+            : <LatLng>[origin, destination];
+
+        final double distanceMeters =
+            result?.distanceMeters ?? _computePolylineDistance(points);
+
+        final MapRouteInfo info = MapRouteInfo(
+          points: points,
+          distanceMeters: distanceMeters,
+          duration: result?.duration,
+          distanceSource: result != null
+              ? _mapDistanceSource(result.distanceSource)
+              : MapRouteDistanceSource.computed,
+        );
+
+        newPolylines[i] = points;
+        newInfos[i] = info;
+        if (!hasApiKey) {
+          newErrors[i] =
+              'Provide a Google API key to enable road-following paths.';
+        }
+        totalDistance += info.distanceMeters;
+        if (info.duration != null) {
+          totalDuration += info.duration!;
+        }
+        switch (info.distanceSource) {
+          case MapRouteDistanceSource.distanceMatrix:
+            anyDistanceMatrix = true;
+            break;
+          case MapRouteDistanceSource.api:
+            anyRoutesApi = true;
+            break;
+          case MapRouteDistanceSource.computed:
+            break;
+        }
+      } on RouteComputationException catch (error) {
+        final List<LatLng> fallback = <LatLng>[origin, destination];
+        final double distanceMeters = _computePolylineDistance(fallback);
+        newPolylines[i] = fallback;
+        newInfos[i] = MapRouteInfo(
+          points: fallback,
+          distanceMeters: distanceMeters,
+          distanceSource: MapRouteDistanceSource.computed,
+        );
+        newErrors[i] = error.message;
+        totalDistance += distanceMeters;
+      } catch (_) {
+        final List<LatLng> fallback = <LatLng>[origin, destination];
+        final double distanceMeters = _computePolylineDistance(fallback);
+        newPolylines[i] = fallback;
+        newInfos[i] = MapRouteInfo(
+          points: fallback,
+          distanceMeters: distanceMeters,
+          distanceSource: MapRouteDistanceSource.computed,
+        );
+        newErrors[i] = 'Unable to compute route';
+        totalDistance += distanceMeters;
+      }
+    }
+
+    if (!mounted || _activeMultiRouteParamsHash != paramsHash) {
+      return;
+    }
+
+    final List<LatLng> aggregatedPoints = newPolylines.values
+        .expand((points) => points)
+        .toList(growable: false);
+
+    final MapRouteDistanceSource aggregateSource = anyDistanceMatrix
+        ? MapRouteDistanceSource.distanceMatrix
+        : anyRoutesApi
+        ? MapRouteDistanceSource.api
+        : MapRouteDistanceSource.computed;
+
+    final MapRouteInfo aggregateInfo = MapRouteInfo(
+      points: aggregatedPoints.isNotEmpty
+          ? aggregatedPoints
+          : segments
+                .expand((seg) => [seg.target.latLng, seg.destination.latLng])
+                .toList(growable: false),
+      distanceMeters: totalDistance,
+      duration: totalDuration == Duration.zero ? null : totalDuration,
+      distanceSource: aggregateSource,
+    );
+
+    setState(() {
+      _multiRoutePoints
+        ..clear()
+        ..addAll(newPolylines);
+      _multiRouteInfos
+        ..clear()
+        ..addAll(newInfos);
+      _multiRouteErrors
+        ..clear()
+        ..addAll(newErrors);
+      _routeInfo = aggregateInfo;
+      _isFetchingMultiRoutes = false;
+    });
+
+    widget.onRouteChanged?.call(aggregateInfo);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fitMapToData());
+
+    if (_multiRouteUpdateQueued && _queuedMultiRouteParamsHash != null) {
+      final int queuedHash = _queuedMultiRouteParamsHash!;
+      _multiRouteUpdateQueued = false;
+      _queuedMultiRouteParamsHash = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        if (_activeMultiRouteParamsHash == queuedHash &&
+            _multiRouteErrors.isEmpty &&
+            _multiRoutePoints.isNotEmpty) {
+          return;
+        }
+        _updateMultiPathRoutes();
+      });
+    }
+  }
+
   Future<void> _handleSelection(LatLng position) async {
     setState(() {
       _selection = position;
@@ -551,18 +805,45 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       return markers;
     }
 
-    for (int i = 0; i < widget.destinations.length; i++) {
-      final MapDestination destination = widget.destinations[i];
-      markers.add(
-        Marker(
-          markerId: MarkerId(destination.markerId ?? 'dest_$i'),
-          position: destination.latLng,
+    if (widget.viewerType == MapViewerType.multiPath) {
+      final Map<String, Marker> multiMarkers = <String, Marker>{};
+
+      void addMarker(MapDestination destination, String suffix) {
+        final LatLng latLng = destination.latLng;
+        final String key =
+            '${latLng.latitude.toStringAsFixed(6)}_'
+            '${latLng.longitude.toStringAsFixed(6)}_$suffix';
+        multiMarkers[key] = Marker(
+          markerId: MarkerId(destination.markerId ?? key),
+          position: latLng,
           infoWindow: destination.label != null
               ? InfoWindow(title: destination.label)
               : const InfoWindow(),
           icon: destination.icon ?? BitmapDescriptor.defaultMarker,
-        ),
-      );
+        );
+      }
+
+      for (int i = 0; i < widget.multiPathSegments.length; i++) {
+        final MapPathSegment segment = widget.multiPathSegments[i];
+        addMarker(segment.target, 'target_$i');
+        addMarker(segment.destination, 'destination_$i');
+      }
+
+      markers.addAll(multiMarkers.values);
+    } else {
+      for (int i = 0; i < widget.destinations.length; i++) {
+        final MapDestination destination = widget.destinations[i];
+        markers.add(
+          Marker(
+            markerId: MarkerId(destination.markerId ?? 'dest_$i'),
+            position: destination.latLng,
+            infoWindow: destination.label != null
+                ? InfoWindow(title: destination.label)
+                : const InfoWindow(),
+            icon: destination.icon ?? BitmapDescriptor.defaultMarker,
+          ),
+        );
+      }
     }
 
     if (widget.mode == MapPlaceholderMode.viewer &&
@@ -586,20 +867,43 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   }
 
   Set<Polyline> _buildPolylines() {
-    if (widget.mode != MapPlaceholderMode.viewer ||
-        widget.viewerType != MapViewerType.path ||
-        _routePoints.length < 2) {
+    if (widget.mode != MapPlaceholderMode.viewer) {
       return <Polyline>{};
     }
 
-    return {
-      Polyline(
-        polylineId: const PolylineId('path_polyline'),
-        color: Colors.blueAccent,
-        width: 5,
-        points: _routePoints,
-      ),
-    };
+    if (widget.viewerType == MapViewerType.path) {
+      if (_routePoints.length < 2) {
+        return <Polyline>{};
+      }
+      return {
+        Polyline(
+          polylineId: const PolylineId('path_polyline'),
+          color: Colors.blueAccent,
+          width: 5,
+          points: _routePoints,
+        ),
+      };
+    }
+
+    if (widget.viewerType == MapViewerType.multiPath) {
+      final Set<Polyline> polylines = <Polyline>{};
+      _multiRoutePoints.forEach((int index, List<LatLng> points) {
+        if (points.length < 2) {
+          return;
+        }
+        polylines.add(
+          Polyline(
+            polylineId: PolylineId('multi_path_\$index'),
+            color: Colors.blueAccent,
+            width: 5,
+            points: points,
+          ),
+        );
+      });
+      return polylines;
+    }
+
+    return <Polyline>{};
   }
 
   LatLng _initialCenter() {
@@ -613,6 +917,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       if (_currentLocation != null) {
         return _currentLocation!;
       }
+    }
+    if (widget.viewerType == MapViewerType.multiPath &&
+        widget.multiPathSegments.isNotEmpty) {
+      return widget.multiPathSegments.first.target.latLng;
     }
     if (widget.destinations.isNotEmpty) {
       return widget.destinations.first.latLng;
@@ -645,6 +953,15 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       }
       if (widget.viewerType == MapViewerType.path && _routePoints.isNotEmpty) {
         points.addAll(_routePoints);
+      }
+      if (widget.viewerType == MapViewerType.multiPath) {
+        for (final MapPathSegment segment in widget.multiPathSegments) {
+          points.add(segment.target.latLng);
+          points.add(segment.destination.latLng);
+        }
+        if (_multiRoutePoints.isNotEmpty) {
+          points.addAll(_multiRoutePoints.values.expand((list) => list));
+        }
       }
     }
 
@@ -765,6 +1082,54 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     }
   }
 
+  int _multiPathParamsHash(List<MapPathSegment> segments) {
+    final List<Object?> values = <Object?>[
+      widget.routeTravelMode,
+      widget.distanceStrategy,
+      widget.routesApiKey,
+      widget.routesClientConfig?.androidPackageName,
+      widget.routesClientConfig?.androidCertificateSha1,
+      widget.routesClientConfig?.iosBundleId,
+    ];
+    for (final MapPathSegment segment in segments) {
+      values.add(segment.target.latitude.toStringAsFixed(6));
+      values.add(segment.target.longitude.toStringAsFixed(6));
+      values.add(segment.destination.latitude.toStringAsFixed(6));
+      values.add(segment.destination.longitude.toStringAsFixed(6));
+    }
+    return Object.hashAll(values);
+  }
+
+  bool _multiPathEquals(List<MapPathSegment> a, List<MapPathSegment> b) {
+    if (identical(a, b)) {
+      return true;
+    }
+    if (a.length != b.length) {
+      return false;
+    }
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].target != b[i].target || a[i].destination != b[i].destination) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _clearMultiPathState() {
+    if (_multiRoutePoints.isEmpty &&
+        _multiRouteInfos.isEmpty &&
+        _multiRouteErrors.isEmpty) {
+      return;
+    }
+    setState(() {
+      _multiRoutePoints.clear();
+      _multiRouteInfos.clear();
+      _multiRouteErrors.clear();
+      _isFetchingMultiRoutes = false;
+      _multiRouteUpdateQueued = false;
+    });
+  }
+
   Widget _buildSelectorOverlay(BuildContext context) {
     final theme = Theme.of(context);
     final LatLng? selection = _selectionResult?.position ?? _selection;
@@ -805,6 +1170,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   }
 
   Widget _buildViewerOverlay(BuildContext context) {
+    if (widget.viewerType == MapViewerType.multiPath) {
+      return _buildMultiPathOverlay(context);
+    }
+
     if (widget.destinations.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -906,6 +1275,161 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
         ),
       ),
     );
+  }
+
+  Widget _buildMultiPathOverlay(BuildContext context) {
+    final theme = Theme.of(context);
+    final List<MapPathSegment> segments = widget.multiPathSegments;
+
+    if (segments.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Widget> segmentRows = <Widget>[];
+    for (int i = 0; i < segments.length; i++) {
+      final MapPathSegment segment = segments[i];
+      final MapRouteInfo? info = _multiRouteInfos[i];
+      final String? error = _multiRouteErrors[i];
+      final bool isPending =
+          _isFetchingMultiRoutes && info == null && error == null;
+
+      segmentRows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.alt_route, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${_formatDestinationLabel(segment.target)} → '
+                      '${_formatDestinationLabel(segment.destination)}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+              if (isPending)
+                Padding(
+                  padding: const EdgeInsets.only(left: 26, top: 4),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Calculating route...',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                )
+              else if (info != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 26, top: 4),
+                  child: Text(
+                    'Distance: ${_formatDistance(info.distanceMeters)}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                if (info.duration != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 26, top: 2),
+                    child: Text(
+                      'ETA: ${_formatDuration(info.duration!)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 26, top: 2),
+                  child: Text(
+                    'Source: ${_distanceSourceLabel(info.distanceSource)}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 26, top: 2),
+                  child: Text(
+                    error,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final List<Widget> footer = <Widget>[];
+    if (_isFetchingMultiRoutes && _multiRouteInfos.length < segments.length) {
+      footer.add(
+        Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Text('Calculating routes...', style: theme.textTheme.bodySmall),
+          ],
+        ),
+      );
+    } else if (_routeInfo != null) {
+      footer.addAll([
+        const Divider(),
+        Text(
+          'Total distance: ${_formatDistance(_routeInfo!.distanceMeters)}',
+          style: theme.textTheme.bodyMedium,
+        ),
+        if (_routeInfo!.duration != null)
+          Text(
+            'Total ETA: ${_formatDuration(_routeInfo!.duration!)}',
+            style: theme.textTheme.bodySmall,
+          ),
+        Text(
+          'Source: ${_distanceSourceLabel(_routeInfo!.distanceSource)}',
+          style: theme.textTheme.bodySmall,
+        ),
+      ]);
+    }
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: 16,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Routes', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...segmentRows,
+              if (footer.isNotEmpty) ...[const SizedBox(height: 8), ...footer],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDestinationLabel(MapDestination destination) {
+    return destination.label ??
+        '${destination.latitude.toStringAsFixed(4)}, '
+            '${destination.longitude.toStringAsFixed(4)}';
   }
 
   String _formatDistance(double meters) {
