@@ -102,6 +102,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   int _routeRequestId = 0;
   Worker? _selectedLocationWorker;
   Worker? _currentLocationWorker;
+  Timer? _routeRefreshTimer;
 
   static const String googleApiKey = "AIzaSyAYb0Bt02JhUMszTSW9vEsiKKIDmkTY04Y";
 
@@ -208,6 +209,20 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   }
 
   Future<void> _refreshRoutePreview() async {
+    if (!mounted) {
+      return;
+    }
+
+    _routeRefreshTimer?.cancel();
+
+    _routeRefreshTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _performRouteRefresh();
+      }
+    });
+  }
+
+  Future<void> _performRouteRefresh() async {
     if (!mounted) {
       return;
     }
@@ -998,6 +1013,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
 
   @override
   void dispose() {
+    _routeRefreshTimer?.cancel();
     _selectedLocationWorker?.dispose();
     _currentLocationWorker?.dispose();
     _searchController.dispose();

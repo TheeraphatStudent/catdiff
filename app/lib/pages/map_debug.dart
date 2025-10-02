@@ -230,8 +230,52 @@ class _MapDebugPageState extends State<MapDebugPage> {
           ),
           const SizedBox(height: 8),
           Text(_formatRouteSummary(_routeInfo)),
+          // const SizedBox(height: 16),
+          // _buildCacheStats(),
         ],
       ),
     );
   }
+
+  // Widget _buildCacheStats() {
+  //   final stats = MapRoutesService.getCacheStats();
+  //   return Card(
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(12),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           const Text('Route Cache Stats', style: TextStyle(fontWeight: FontWeight.bold)),
+  //           const SizedBox(height: 8),
+  //           Text('Cache Size: ${stats['cacheSize']}/${stats['maxCacheSize']}'),
+  //           Text('Cache Expiry: ${stats['cacheExpiry']} minutes'),
+  //           Text('Has Pending Request: ${stats['hasPendingRequest']}'),
+  //           Text('Debug Logging: ${stats['debugLogging']}'),
+  //           const SizedBox(height: 8),
+  //           Row(
+  //             children: [
+  //               ElevatedButton(
+  //                 onPressed: () {
+  //                   MapRoutesService.clearCache();
+  //                   setState(() {});
+  //                 },
+  //                 child: const Text('Clear Cache'),
+  //               ),
+  //               const SizedBox(width: 8),
+  //               ElevatedButton(
+  //                 onPressed: () {
+  //                   final currentStats = MapRoutesService.getCacheStats();
+  //                   final isEnabled = currentStats['debugLogging'] as bool;
+  //                   MapRoutesService.setDebugLogging(!isEnabled);
+  //                   setState(() {});
+  //                 },
+  //                 child: Text(stats['debugLogging'] == true ? 'Disable Debug' : 'Enable Debug'),
+  //               ),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

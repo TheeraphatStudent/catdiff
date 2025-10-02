@@ -101,6 +101,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   bool _isFetchingRoute = false;
   String? _routeError;
   int _routeComputationId = 0;
+  bool _routeUpdateQueued = false;
+  int? _activeRouteParamsHash;
+  int? _queuedRouteParamsHash;
+  Timer? _routeUpdateTimer;
 
   @override
   void initState() {
@@ -177,6 +181,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
 
   @override
   void dispose() {
+    _routeUpdateTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -282,6 +287,22 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       return;
     }
 
+    _routeUpdateTimer?.cancel();
+
+    _routeUpdateTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _performRouteUpdate();
+      }
+    });
+  }
+
+  Future<void> _performRouteUpdate() async {
+    if (!mounted ||
+        widget.mode != MapPlaceholderMode.viewer ||
+        widget.viewerType != MapViewerType.path) {
+      return;
+    }
+
     final List<LatLng> destinationPoints = widget.destinations
         .map((e) => e.latLng)
         .toList(growable: false);
@@ -307,6 +328,26 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     if (origin == null) {
       return;
     }
+
+    final int paramsHash = _routeParamsHash(origin, destinationPoints);
+
+    if (_isFetchingRoute) {
+      if (_queuedRouteParamsHash != paramsHash) {
+        _routeUpdateQueued = true;
+        _queuedRouteParamsHash = paramsHash;
+      }
+      return;
+    }
+
+    if (_activeRouteParamsHash == paramsHash &&
+        _routePoints.isNotEmpty &&
+        _routeError == null) {
+      return;
+    }
+
+    _activeRouteParamsHash = paramsHash;
+    _routeUpdateQueued = false;
+    _queuedRouteParamsHash = null;
 
     final LatLng destination = destinationPoints.last;
     final List<LatLng> intermediates = destinationPoints.length > 1
@@ -406,6 +447,23 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
 
     widget.onRouteChanged?.call(resolvedInfo);
     WidgetsBinding.instance.addPostFrameCallback((_) => _fitMapToData());
+
+    if (_routeUpdateQueued && _queuedRouteParamsHash != null) {
+      final int queuedHash = _queuedRouteParamsHash!;
+      _routeUpdateQueued = false;
+      _queuedRouteParamsHash = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        if (_activeRouteParamsHash == queuedHash &&
+            _routeError == null &&
+            _routePoints.isNotEmpty) {
+          return;
+        }
+        _updateRoute();
+      });
+    }
   }
 
   Future<void> _handleSelection(LatLng position) async {
@@ -669,6 +727,31 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       }
     }
     return output;
+  }
+
+  int _routeParamsHash(LatLng origin, List<LatLng> destinations) {
+    final originHash = Object.hash(
+      origin.latitude.toStringAsFixed(6),
+      origin.longitude.toStringAsFixed(6),
+    );
+    final destinationsHash = Object.hashAll(
+      destinations.map(
+        (point) => Object.hash(
+          point.latitude.toStringAsFixed(6),
+          point.longitude.toStringAsFixed(6),
+        ),
+      ),
+    );
+    return Object.hashAll([
+      originHash,
+      destinationsHash,
+      widget.routeTravelMode,
+      widget.distanceStrategy,
+      widget.routesApiKey,
+      widget.routesClientConfig?.androidPackageName,
+      widget.routesClientConfig?.androidCertificateSha1,
+      widget.routesClientConfig?.iosBundleId,
+    ]);
   }
 
   MapRouteDistanceSource _mapDistanceSource(RouteDistanceSource source) {

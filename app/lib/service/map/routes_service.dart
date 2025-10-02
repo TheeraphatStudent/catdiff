@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -103,8 +104,130 @@ class MapRouteResult {
   final RouteDistanceSource distanceSource;
 }
 
+class _RouteCache {
+  static const int _maxCacheSize = 50;
+  static const Duration _cacheExpiry = Duration(minutes: 10);
+
+  final Map<String, _CachedRoute> _cache = {};
+
+  String _generateKey(
+    LatLng origin,
+    LatLng destination,
+    List<LatLng> intermediates,
+    MapRouteTravelMode travelMode,
+    MapRouteDistanceStrategy strategy,
+  ) {
+    final originStr =
+        '${origin.latitude.toStringAsFixed(6)},${origin.longitude.toStringAsFixed(6)}';
+    final destStr =
+        '${destination.latitude.toStringAsFixed(6)},${destination.longitude.toStringAsFixed(6)}';
+    final intermediatesStr = intermediates
+        .map(
+          (p) =>
+              '${p.latitude.toStringAsFixed(6)},${p.longitude.toStringAsFixed(6)}',
+        )
+        .join('|');
+    return '$originStr->$destStr|$intermediatesStr|${travelMode.name}|${strategy.name}';
+  }
+
+  MapRouteResult? get(String key) {
+    final cached = _cache[key];
+    if (cached == null) return null;
+
+    if (DateTime.now().difference(cached.timestamp) > _cacheExpiry) {
+      _cache.remove(key);
+      return null;
+    }
+
+    return cached.result;
+  }
+
+  void put(String key, MapRouteResult result) {
+    if (_cache.length >= _maxCacheSize) {
+      // Remove oldest entry
+      final oldestKey = _cache.keys.first;
+      _cache.remove(oldestKey);
+    }
+
+    _cache[key] = _CachedRoute(result, DateTime.now());
+  }
+
+  void clear() {
+    _cache.clear();
+  }
+}
+
+class _CachedRoute {
+  final MapRouteResult result;
+  final DateTime timestamp;
+
+  _CachedRoute(this.result, this.timestamp);
+}
+
+class _RequestThrottler {
+  static const Duration _throttleDelay = Duration(milliseconds: 500);
+
+  Timer? _throttleTimer;
+  Completer<MapRouteResult>? _pendingCompleter;
+  String? _pendingKey;
+
+  Future<MapRouteResult> throttle(
+    String key,
+    Future<MapRouteResult> Function() request,
+  ) async {
+    // If there's already a pending request for the same key, return that
+    if (_pendingCompleter != null && _pendingKey == key) {
+      return _pendingCompleter!.future;
+    }
+
+    // Cancel any existing timer
+    _throttleTimer?.cancel();
+
+    // Complete any existing request with a cancelled error
+    if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
+      _pendingCompleter!.completeError(
+        Exception('Request cancelled by newer request'),
+      );
+    }
+
+    // Create new completer
+    _pendingCompleter = Completer<MapRouteResult>();
+    _pendingKey = key;
+
+    // Set up throttle timer
+    _throttleTimer = Timer(_throttleDelay, () async {
+      if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
+        try {
+          final result = await request();
+          _pendingCompleter!.complete(result);
+        } catch (e) {
+          _pendingCompleter!.completeError(e);
+        } finally {
+          _pendingCompleter = null;
+          _pendingKey = null;
+        }
+      }
+    });
+
+    return _pendingCompleter!.future;
+  }
+
+  void cancel() {
+    _throttleTimer?.cancel();
+    if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
+      _pendingCompleter!.completeError(Exception('Request cancelled'));
+    }
+    _pendingCompleter = null;
+    _pendingKey = null;
+  }
+}
+
 class MapRoutesService {
   const MapRoutesService();
+
+  static final _RouteCache _cache = _RouteCache();
+  static final _RequestThrottler _throttler = _RequestThrottler();
+  static bool _debugLogging = true;
 
   static const String _routesEndpoint =
       'https://routes.googleapis.com/directions/v2:computeRoutes';
@@ -123,6 +246,92 @@ class MapRoutesService {
         MapRouteDistanceStrategy.routesApiOnly,
     bool computeAlternativeRoutes = false,
     MapRoutesClientConfig? clientConfig,
+  }) async {
+    final cacheKey = _cache._generateKey(
+      origin,
+      destination,
+      intermediates,
+      travelMode,
+      distanceStrategy,
+    );
+
+    final cachedResult = _cache.get(cacheKey);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+
+    return _throttler.throttle(
+      cacheKey,
+      () => _performRouteRequest(
+        origin: origin,
+        destination: destination,
+        apiKey: apiKey,
+        travelMode: travelMode,
+        intermediates: intermediates,
+        routingPreference: routingPreference,
+        distanceStrategy: distanceStrategy,
+        computeAlternativeRoutes: computeAlternativeRoutes,
+        clientConfig: clientConfig,
+        cacheKey: cacheKey,
+      ),
+    );
+  }
+
+  Future<MapRouteResult> _performRouteRequest({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+    required MapRouteTravelMode travelMode,
+    required List<LatLng> intermediates,
+    required MapRouteRoutingPreference routingPreference,
+    required MapRouteDistanceStrategy distanceStrategy,
+    required bool computeAlternativeRoutes,
+    required MapRoutesClientConfig? clientConfig,
+    required String cacheKey,
+  }) async {
+    try {
+      return await _performRoutesApiRequest(
+        origin: origin,
+        destination: destination,
+        apiKey: apiKey,
+        travelMode: travelMode,
+        intermediates: intermediates,
+        routingPreference: routingPreference,
+        distanceStrategy: distanceStrategy,
+        computeAlternativeRoutes: computeAlternativeRoutes,
+        clientConfig: clientConfig,
+        cacheKey: cacheKey,
+      );
+    } on RouteComputationException catch (e) {
+      // If Routes API fails due to client blocking, try fallback approach
+      if (e.body?.contains('blocked') == true || e.body?.contains('BLOCKED') == true) {
+        if (_debugLogging) {
+          print('Routes API blocked, using fallback approach');
+        }
+        return await _performFallbackRoute(
+          origin: origin,
+          destination: destination,
+          apiKey: apiKey,
+          travelMode: travelMode,
+          intermediates: intermediates,
+          distanceStrategy: distanceStrategy,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<MapRouteResult> _performRoutesApiRequest({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+    required MapRouteTravelMode travelMode,
+    required List<LatLng> intermediates,
+    required MapRouteRoutingPreference routingPreference,
+    required MapRouteDistanceStrategy distanceStrategy,
+    required bool computeAlternativeRoutes,
+    required MapRoutesClientConfig? clientConfig,
+    required String cacheKey,
   }) async {
     final Map<String, dynamic> requestBody = <String, dynamic>{
       'origin': _latLngToWaypoint(origin),
@@ -175,9 +384,28 @@ class MapRoutesService {
       body: jsonEncode(requestBody),
     );
 
+    // Debug logging
+    if (_debugLogging) {
+      print('Routes API Request: ${jsonEncode(requestBody)}');
+      print('Routes API Response Status: ${response.statusCode}');
+      print('Routes API Response Body: ${response.body}');
+    }
+
     if (response.statusCode != 200) {
+      final errorMessage =
+          _extractErrorMessage(response.body) ?? 'Routes API request failed';
+
+      // Check for specific Android client blocking error
+      if (response.body.contains('blocked') ||
+          response.body.contains('BLOCKED')) {
+        if (_debugLogging) {
+          print('WARNING: Android client blocked - API key may need Android app restrictions configured');
+        }
+        // For now, we'll throw the error but could implement a fallback here
+      }
+
       throw RouteComputationException(
-        _extractErrorMessage(response.body) ?? 'Routes API request failed',
+        errorMessage,
         statusCode: response.statusCode,
         body: response.body,
       );
@@ -200,14 +428,27 @@ class MapRoutesService {
         route['polyline'] as Map<String, dynamic>?;
     final String? encodedPolyline = polylineData?['encodedPolyline'] as String?;
 
+    // Debug polyline data
+    if (_debugLogging) {
+      print('Polyline data: $polylineData');
+      print('Encoded polyline: $encodedPolyline');
+      print('Encoded polyline length: ${encodedPolyline?.length ?? 0}');
+    }
+
     final List<LatLng> polyline =
         encodedPolyline != null && encodedPolyline.isNotEmpty
         ? _decodePolyline(encodedPolyline)
         : <LatLng>[origin, destination];
 
+    if (_debugLogging) {
+      print('Decoded polyline points: ${polyline.length}');
+      if (polyline.length <= 2) {
+        print('WARNING: Using fallback polyline (straight line)');
+      }
+    }
+
     double? distanceMeters = _coerceToDouble(route['distanceMeters']);
     Duration? duration = _parseDuration(route['duration'] as String?);
-
     final List<dynamic>? legsRaw = route['legs'] as List<dynamic>?;
     if (legsRaw != null && legsRaw.isNotEmpty) {
       double legsDistance = 0;
@@ -268,6 +509,63 @@ class MapRoutesService {
       distanceSource = RouteDistanceSource.geometry;
     }
 
+    final result = MapRouteResult(
+      polyline: polyline,
+      distanceMeters: distanceMeters,
+      duration: duration,
+      distanceSource: distanceSource,
+    );
+
+    // Cache the result
+    _cache.put(cacheKey, result);
+
+    return result;
+  }
+
+  Future<MapRouteResult> _performFallbackRoute({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+    required MapRouteTravelMode travelMode,
+    required List<LatLng> intermediates,
+    required MapRouteDistanceStrategy distanceStrategy,
+  }) async {
+    if (_debugLogging) {
+      print('Using fallback route calculation');
+    }
+    
+    // Create a more detailed polyline by interpolating between waypoints
+    final List<LatLng> polyline = _createInterpolatedPolyline([origin, ...intermediates, destination]);
+    
+    // Try to get distance from Distance Matrix API
+    double? distanceMeters;
+    Duration? duration;
+    RouteDistanceSource distanceSource = RouteDistanceSource.geometry;
+    
+    try {
+      final _DistanceMatrixInfo? matrix = await _fetchDistanceMatrix(
+        origin: origin,
+        destination: destination,
+        apiKey: apiKey,
+        travelMode: travelMode,
+      );
+      if (matrix != null) {
+        distanceMeters = matrix.distanceMeters;
+        duration = matrix.duration;
+        distanceSource = RouteDistanceSource.distanceMatrix;
+      }
+    } catch (e) {
+      if (_debugLogging) {
+        print('Distance Matrix API also failed: $e');
+      }
+    }
+    
+    // Fallback to geometry-based distance
+    if (distanceMeters == null) {
+      distanceMeters = _distanceFromPolyline(polyline);
+      distanceSource = RouteDistanceSource.geometry;
+    }
+    
     return MapRouteResult(
       polyline: polyline,
       distanceMeters: distanceMeters,
@@ -411,6 +709,51 @@ class MapRoutesService {
     return points;
   }
 
+  static List<LatLng> _createInterpolatedPolyline(List<LatLng> waypoints) {
+    if (waypoints.length < 2) return waypoints;
+    
+    final List<LatLng> interpolated = [];
+    
+    for (int i = 0; i < waypoints.length - 1; i++) {
+      final LatLng start = waypoints[i];
+      final LatLng end = waypoints[i + 1];
+      
+      interpolated.add(start);
+      
+      // Add intermediate points for longer segments
+      final double distance = _calculateDistance(start, end);
+      if (distance > 1000) { // If segment is longer than 1km, add intermediate points
+        final int segments = (distance / 500).ceil(); // One point every 500m
+        for (int j = 1; j < segments; j++) {
+          final double ratio = j / segments;
+          final double lat = start.latitude + (end.latitude - start.latitude) * ratio;
+          final double lng = start.longitude + (end.longitude - start.longitude) * ratio;
+          interpolated.add(LatLng(lat, lng));
+        }
+      }
+    }
+    
+    // Add the final waypoint
+    interpolated.add(waypoints.last);
+    
+    return interpolated;
+  }
+
+  static double _calculateDistance(LatLng point1, LatLng point2) {
+    const double earthRadius = 6371000; // Earth's radius in meters
+    final double lat1Rad = point1.latitude * (math.pi / 180);
+    final double lat2Rad = point2.latitude * (math.pi / 180);
+    final double deltaLatRad = (point2.latitude - point1.latitude) * (math.pi / 180);
+    final double deltaLngRad = (point2.longitude - point1.longitude) * (math.pi / 180);
+
+    final double a = math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
+        math.cos(lat1Rad) * math.cos(lat2Rad) *
+        math.sin(deltaLngRad / 2) * math.sin(deltaLngRad / 2);
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+
+    return earthRadius * c;
+  }
+
   static double _distanceFromPolyline(List<LatLng> points) {
     if (points.length < 2) {
       return 0;
@@ -474,11 +817,30 @@ class MapRoutesService {
     }
     return null;
   }
+
+  static void clearCache() {
+    _cache.clear();
+  }
+
+  /// Get cache statistics for debugging
+  static Map<String, dynamic> getCacheStats() {
+    return {
+      'cacheSize': _cache._cache.length,
+      'maxCacheSize': _RouteCache._maxCacheSize,
+      'cacheExpiry': _RouteCache._cacheExpiry.inMinutes,
+      'hasPendingRequest': _throttler._pendingCompleter != null,
+      'debugLogging': _debugLogging,
+    };
+  }
+  
+  /// Enable or disable debug logging
+  static void setDebugLogging(bool enabled) {
+    _debugLogging = enabled;
+  }
 }
 
 class _DistanceMatrixInfo {
   const _DistanceMatrixInfo({this.distanceMeters, this.duration});
-
   final double? distanceMeters;
   final Duration? duration;
 }
