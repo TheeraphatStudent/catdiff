@@ -1,0 +1,24 @@
+# API Security - Files to Ignore
+# Add these lines to your .gitignore to protect sensitive files
+
+# Keystores (NEVER commit these!)
+*.jks
+*.keystore
+upload-keystore.jks
+release-keystore.jks
+android/app/*.jks
+android/app/*.keystore
+
+# Key properties
+key.properties
+android/key.properties
+android/app/key.properties
+
+# API keys (if stored separately)
+.env.local
+.env.production
+google-services.json.backup
+
+# Release signing configs
+signing.properties
+keystore.properties

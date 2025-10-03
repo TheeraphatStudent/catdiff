@@ -1,0 +1,45 @@
+# API Security - CRITICAL: Never commit these files!
+# Keystores
+*.jks
+*.keystore
+upload-keystore.jks
+release-keystore.jks
+android/app/*.jks
+android/app/*.keystore
+
+# Key properties
+key.properties
+android/key.properties
+android/app/key.properties
+
+# Signing configs
+signing.properties
+keystore.properties
+
+# Environment files with secrets
+.env.local
+.env.production
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+build/
+dist/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

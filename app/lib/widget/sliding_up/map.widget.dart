@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/widget/button.widget.dart';
+import 'package:app/service/map/routes_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -46,6 +48,7 @@ class MapLocationController extends GetxController {
   }
 }
 
+// ignore: unused_element
 const double _bottomPaddingForButton = 150.0;
 const double _buttonHeight = 56.0;
 const double _buttonWidth = 200.0;
@@ -60,6 +63,8 @@ class MapsLocationSelector extends StatefulWidget {
   final bool isOpened;
   final VoidCallback? onConfirmLocation;
   final VoidCallback? onModalClosed;
+  final MapRouteDistanceStrategy distanceStrategy;
+  final MapRoutesClientConfig? routesClientConfig;
 
   const MapsLocationSelector({
     super.key,
@@ -70,6 +75,8 @@ class MapsLocationSelector extends StatefulWidget {
     this.isOpened = false,
     this.onConfirmLocation,
     this.onModalClosed,
+    this.distanceStrategy = MapRouteDistanceStrategy.distanceMatrixPreferred,
+    this.routesClientConfig,
   });
 
   @override
@@ -85,11 +92,34 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   bool _isModalCurrentlyOpen = false;
   bool _hasProcessedOpenRequest = false;
 
-  static const String googleApiKey = "AIzaSyA41Nfgldl3x9OetJGYW71moonj-OkxIv0";
+  final MapRoutesService _routesService = const MapRoutesService();
+  Set<Polyline> _routePolylines = <Polyline>{};
+  double? _routeDistanceMeters;
+  Duration? _routeDuration;
+  RouteDistanceSource? _routeDistanceSource;
+  bool _isRouting = false;
+  String? _routeError;
+  int _routeRequestId = 0;
+  Worker? _selectedLocationWorker;
+  Worker? _currentLocationWorker;
+  Timer? _routeRefreshTimer;
+
+  static const String googleApiKey = "AIzaSyAYb0Bt02JhUMszTSW9vEsiKKIDmkTY04Y";
 
   @override
   void initState() {
     super.initState();
+    _selectedLocationWorker = ever<LatLng?>(
+      controller.selectedLocation,
+      (_) => unawaited(_refreshRoutePreview()),
+    );
+    _currentLocationWorker = ever<LatLng>(
+      controller.currentLocation,
+      (_) => unawaited(_refreshRoutePreview()),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_refreshRoutePreview());
+    });
     _getCurrentLocation();
   }
 
@@ -109,6 +139,12 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
 
     if (!widget.isOpened && oldWidget.isOpened) {
       _hasProcessedOpenRequest = false;
+    }
+
+    if (widget.distanceStrategy != oldWidget.distanceStrategy) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_refreshRoutePreview());
+      });
     }
   }
 
@@ -145,8 +181,10 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
       );
 
       final location = LatLng(position.latitude, position.longitude);
@@ -170,11 +208,287 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     }
   }
 
+  Future<void> _refreshRoutePreview() async {
+    if (!mounted) {
+      return;
+    }
+
+    _routeRefreshTimer?.cancel();
+
+    _routeRefreshTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _performRouteRefresh();
+      }
+    });
+  }
+
+  Future<void> _performRouteRefresh() async {
+    if (!mounted) {
+      return;
+    }
+
+    final LatLng? destination = controller.selectedLocation.value;
+    final LatLng origin = controller.currentLocation.value;
+
+    if (destination == null) {
+      if (_routePolylines.isEmpty &&
+          _routeDistanceMeters == null &&
+          _routeError == null &&
+          !_isRouting) {
+        return;
+      }
+      setState(() {
+        _routePolylines = <Polyline>{};
+        _routeDistanceMeters = null;
+        _routeDuration = null;
+        _routeDistanceSource = null;
+        _routeError = null;
+        _isRouting = false;
+      });
+      return;
+    }
+
+    final int requestId = ++_routeRequestId;
+
+    setState(() {
+      _isRouting = true;
+      _routeError = null;
+    });
+
+    try {
+      final MapRouteResult result = await _routesService.computeRoute(
+        origin: origin,
+        destination: destination,
+        apiKey: googleApiKey,
+        travelMode: MapRouteTravelMode.driving,
+        distanceStrategy: widget.distanceStrategy,
+        clientConfig: widget.routesClientConfig,
+      );
+
+      if (!mounted || requestId != _routeRequestId) {
+        return;
+      }
+
+      final List<LatLng> points = result.polyline.isNotEmpty
+          ? result.polyline
+          : <LatLng>[origin, destination];
+
+      final polyline = Polyline(
+        polylineId: const PolylineId('selected_route'),
+        color: AppColors.primary1,
+        width: 5,
+        points: points,
+      );
+
+      setState(() {
+        _routePolylines = <Polyline>{polyline};
+        _routeDistanceMeters =
+            result.distanceMeters ??
+            Geolocator.distanceBetween(
+              origin.latitude,
+              origin.longitude,
+              destination.latitude,
+              destination.longitude,
+            );
+        _routeDuration = result.duration;
+        _routeDistanceSource = result.distanceSource;
+        _routeError = null;
+        _isRouting = false;
+      });
+    } on RouteComputationException catch (error) {
+      if (!mounted || requestId != _routeRequestId) {
+        return;
+      }
+
+      final polyline = Polyline(
+        polylineId: const PolylineId('selected_route_fallback'),
+        color: AppColors.primary1,
+        width: 5,
+        points: <LatLng>[origin, destination],
+      );
+
+      setState(() {
+        _routePolylines = <Polyline>{polyline};
+        _routeDistanceMeters = Geolocator.distanceBetween(
+          origin.latitude,
+          origin.longitude,
+          destination.latitude,
+          destination.longitude,
+        );
+        _routeDuration = null;
+        _routeDistanceSource = RouteDistanceSource.geometry;
+        _routeError = error.message;
+        _isRouting = false;
+      });
+    } catch (_) {
+      if (!mounted || requestId != _routeRequestId) {
+        return;
+      }
+
+      final polyline = Polyline(
+        polylineId: const PolylineId('selected_route_fallback'),
+        color: AppColors.primary1,
+        width: 5,
+        points: <LatLng>[origin, destination],
+      );
+
+      setState(() {
+        _routePolylines = <Polyline>{polyline};
+        _routeDistanceMeters = Geolocator.distanceBetween(
+          origin.latitude,
+          origin.longitude,
+          destination.latitude,
+          destination.longitude,
+        );
+        _routeDuration = null;
+        _routeDistanceSource = RouteDistanceSource.geometry;
+        _routeError = 'Unable to compute route';
+        _isRouting = false;
+      });
+    }
+  }
+
+  Widget _buildRouteBanner(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isRouting) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Text('Calculating route...', style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      );
+    }
+
+    final List<Widget> details = <Widget>[];
+
+    if (_routeDistanceMeters != null) {
+      details.add(
+        Text(
+          'Distance: ${_formatRouteDistance(_routeDistanceMeters!)}',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+    if (_routeDuration != null) {
+      details.add(
+        Text(
+          'ETA: ${_formatRouteDuration(_routeDuration!)}',
+          style: theme.textTheme.bodySmall,
+        ),
+      );
+    }
+    if (_routeDistanceSource != null) {
+      details.add(
+        Text(
+          'Source: ${_routeSourceLabel(_routeDistanceSource!)}',
+          style: theme.textTheme.bodySmall,
+        ),
+      );
+    }
+    if (_routeError != null) {
+      details.add(
+        Text(
+          _routeError!,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      );
+    }
+
+    if (details.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: details,
+      ),
+    );
+  }
+
+  String _formatRouteDistance(double meters) {
+    if (meters < 1000) {
+      return '${meters.toStringAsFixed(0)} m';
+    }
+    final double kilometers = meters / 1000;
+    return kilometers >= 10
+        ? '${kilometers.toStringAsFixed(1)} km'
+        : '${kilometers.toStringAsFixed(2)} km';
+  }
+
+  String _formatRouteDuration(Duration duration) {
+    final int hours = duration.inHours;
+    final int minutes = duration.inMinutes.remainder(60);
+    final int seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      if (minutes > 0) {
+        return '${hours}h ${minutes}m';
+      }
+      return '${hours}h';
+    }
+    if (minutes > 0) {
+      if (seconds > 0) {
+        return '${minutes}m ${seconds}s';
+      }
+      return '${minutes}m';
+    }
+    return '${seconds}s';
+  }
+
+  String _routeSourceLabel(RouteDistanceSource source) {
+    switch (source) {
+      case RouteDistanceSource.distanceMatrix:
+        return 'Distance Matrix API';
+      case RouteDistanceSource.routesApi:
+        return 'Routes API response';
+      case RouteDistanceSource.geometry:
+        return 'Polyline geometry estimate';
+    }
+  }
+
   void _onMapTapped(LatLng location) {
     controller.updateSelectedLocation(location);
     widget.onLocationSelected?.call(location);
   }
 
+  // ignore: unused_element
   void _onSearchPressed() {
     final query = _searchController.text.trim();
     if (query.isNotEmpty) {
@@ -183,6 +497,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     }
   }
 
+  // ignore: unused_element
   void _onLatLonSubmitted() {
     try {
       final lat = double.parse(_latController.text);
@@ -504,6 +819,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                             },
                             onTap: _onMapTapped,
                             markers: controller.markers,
+                            polylines: _routePolylines,
                             myLocationEnabled: true,
                             myLocationButtonEnabled: false,
                             zoomControlsEnabled: false,
@@ -661,6 +977,12 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                   ],
                 ),
               ),
+              Positioned(
+                left: _pagePadding,
+                right: _pagePadding,
+                bottom: _pagePadding,
+                child: _buildRouteBanner(context),
+              ),
             ],
           ),
         ),
@@ -691,6 +1013,9 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
 
   @override
   void dispose() {
+    _routeRefreshTimer?.cancel();
+    _selectedLocationWorker?.dispose();
+    _currentLocationWorker?.dispose();
     _searchController.dispose();
     _latController.dispose();
     _lonController.dispose();

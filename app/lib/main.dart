@@ -2,6 +2,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/debug.dart';
+import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/rider/rider_home.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -38,9 +39,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialRoute: '/user',
-      home: OnBoardingPage(),
+      initialRoute: '/',
+      // home: OnBoardingPage(),
       // home: DebugPage(),
+      home: MapDebugPage(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
