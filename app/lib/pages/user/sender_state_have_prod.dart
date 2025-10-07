@@ -147,7 +147,7 @@ class DeliveryController extends GetxController {
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-001',
-              title: 'กำลังส่งประชาไปไม่ใส่',
+              title: 'กำลังส่ง',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
               dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
@@ -157,7 +157,7 @@ class DeliveryController extends GetxController {
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-001',
-              title: 'กำลังส่งประชาสำรำไปไม่ใส่',
+              title: 'กำลังส่ง',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
               dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
@@ -167,7 +167,7 @@ class DeliveryController extends GetxController {
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-002',
-              title: 'สะโพกยอดวรราเวศีไม่ใส่',
+              title: 'ไปส่ง',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
               dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
@@ -345,7 +345,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 4),
                     Text(
-                      'กำลังส่งสินค้าทางเรือไปไม่ใส่',
+                      'กำลังส่งสินค้า',
                       style: TextStyle(fontSize: 11, color: Colors.black54),
                     ),
                   ],
