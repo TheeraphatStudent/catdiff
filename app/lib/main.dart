@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       // home: OnBoardingPage(),
       // home: DebugPage(),
-      home: DeliveryTrackingScreen(),
+      home: EmptyStateScreen(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
