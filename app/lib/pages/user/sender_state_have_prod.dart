@@ -1,6 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+// Colors
+class AppColors {
+  AppColors._();
+
+  static const Color white = Colors.white;
+
+  // Gradient color
+  static const LinearGradient gradientStatus1 = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFFFFEE3), white],
+  );
+
+  static const LinearGradient gradientStatus2 = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFE3F9FF), white],
+  );
+
+  static const LinearGradient gradientStatus3 = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFF9E3FF), white],
+  );
+
+  static const LinearGradient gradientStatus4 = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFE9FFE3), white],
+  );
+
+  static const LinearGradient gradientPrimary = LinearGradient(
+    begin: Alignment(0.50, -0.00),
+    end: Alignment(0.50, 0.85),
+    colors: [Color(0x00D3ECA5), Color(0xC6D3ECA5), Color(0xFFD3ECA5)],
+  );
+
+  static const LinearGradient gradientSender = LinearGradient(
+    begin: Alignment(1.00, 0.00),
+    end: Alignment(0.00, 1.00),
+    colors: [
+      Color(0xFF8AD9BD),
+      Color(0x7F8AD9BD),
+      Color(0x00BFE6D2),
+      Color(0x7FEDF2E5),
+      Color(0xFF8AD9BD),
+    ],
+  );
+
+  static const LinearGradient gradientRecever = LinearGradient(
+    begin: Alignment(1.00, 0.00),
+    end: Alignment(0.00, 1.00),
+    colors: [
+      Color(0xFF8A90D9),
+      Color(0x7F8A91D9),
+      Color(0x008A91D9),
+      Color(0x7FEDF2E5),
+      Color(0xFF8A91D9),
+    ],
+  );
+}
+
 // Model
 class HomeGame {
   String id;
@@ -36,9 +98,9 @@ class HomeGame {
 
 class DeliveryItem {
   final HomeGame homeGame;
-  final Color color;
+  final LinearGradient gradient;
 
-  DeliveryItem({required this.homeGame, required this.color});
+  DeliveryItem({required this.homeGame, required this.gradient});
 }
 
 class DeliveryGroup {
@@ -77,44 +139,40 @@ class DeliveryController extends GetxController {
               id: 'CF-001',
               title: 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-11\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
             ),
-            color: const Color(0xFFD4E7C5),
+            gradient: AppColors.gradientStatus4,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-001',
               title: 'กำลังส่งประชาไปไม่ใส่',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-11\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
             ),
-            color: const Color(0xFFB8D4E8),
+            gradient: AppColors.gradientStatus2,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-001',
               title: 'กำลังส่งประชาสำรำไปไม่ใส่',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-11\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
             ),
-            color: const Color(0xFFE8C5E5),
+            gradient: AppColors.gradientStatus3,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-002',
               title: 'สะโพกยอดวรราเวศีไม่ใส่',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-11\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '0000',
             ),
-            color: const Color(0xFFFFE4B5),
+            gradient: AppColors.gradientStatus1,
           ),
         ],
       ),
@@ -126,11 +184,10 @@ class DeliveryController extends GetxController {
               id: 'CF-004',
               title: 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-11\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันอังคาร พฤษภาคม 16 | 08:00-11',
               phone: '',
             ),
-            color: const Color(0xFFD4E7C5),
+            gradient: AppColors.gradientStatus4,
           ),
         ],
       ),
@@ -149,33 +206,30 @@ class DeliveryController extends GetxController {
               id: 'CF-005',
               title: 'รับวัคซีนจากโรงพยาบาลกลาง',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันพฤหัสบดี พฤษภาคม 18 | 09:00-12\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันพฤหัสบดี พฤษภาคม 18 | 09:00-12',
               phone: '1500',
             ),
-            color: const Color(0xFFD4E7C5),
+            gradient: AppColors.gradientStatus4,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-006',
               title: 'รับเวชภัณฑ์ฉุกเฉิน',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันพฤหัสบดี พฤษภาคม 18 | 13:00-15\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันพฤหัสบดี พฤษภาคม 18 | 13:00-15',
               phone: '2000',
             ),
-            color: const Color(0xFFB8D4E8),
+            gradient: AppColors.gradientStatus2,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-007',
               title: 'รับอุปกรณ์การแพทย์',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันพฤหัสบดี พฤษภาคม 18 | 14:00-16\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันพฤหัสบดี พฤษภาคม 18 | 14:00-16',
               phone: '1800',
             ),
-            color: const Color(0xFFE8C5E5),
+            gradient: AppColors.gradientStatus3,
           ),
         ],
       ),
@@ -187,38 +241,20 @@ class DeliveryController extends GetxController {
               id: 'CF-008',
               title: 'รับยาจากคลังกลาง',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันพุธ พฤษภาคม 17 | 10:00-12\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันพุธ พฤษภาคม 17 | 10:00-12',
               phone: '2500',
             ),
-            color: const Color(0xFFFFE4B5),
+            gradient: AppColors.gradientStatus1,
           ),
           DeliveryItem(
             homeGame: HomeGame(
               id: 'CF-009',
               title: 'รับเครื่องมือทันตกรรม',
               location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันพุธ พฤษภาคม 17 | 14:00-16\nรับได้จนถึง: 07-5-066566',
+              dateTime: 'วันพุธ พฤษภาคม 17 | 14:00-16',
               phone: '1200',
             ),
-            color: const Color(0xFFFFD4D4),
-          ),
-        ],
-      ),
-      DeliveryGroup(
-        date: '2025/09/16 | 00:00 น.',
-        items: [
-          DeliveryItem(
-            homeGame: HomeGame(
-              id: 'CF-010',
-              title: 'รับชุด PPE จากกรมควบคุมโรค',
-              location: 'จังหวัดอุบลราชธานี อำเภอเมือง ตำบลในเมือง',
-              dateTime:
-                  'วันอังคาร พฤษภาคม 16 | 08:00-10\nรับได้จนถึง: 07-5-066566',
-              phone: '3000',
-            ),
-            color: const Color(0xFFD4E7C5),
+            gradient: AppColors.gradientStatus2,
           ),
         ],
       ),
@@ -235,25 +271,27 @@ class DeliveryTrackingScreen extends StatelessWidget {
     final DeliveryController controller = Get.put(DeliveryController());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F3F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildTabs(),
-            Expanded(
-              child: Obx(() {
-                final groups = controller.selectedTab.value == 0
-                    ? controller.deliveryGroups.value
-                    : controller.receiveGroups.value;
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.gradientPrimary),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context),
+              _buildTabs(),
+              Expanded(
+                child: Obx(() {
+                  final groups = controller.selectedTab.value == 0
+                      ? controller.deliveryGroups.value
+                      : controller.receiveGroups.value;
 
-                if (groups.isEmpty) {
-                  return _buildEmptyState();
-                }
-                return _buildDeliveryList(groups);
-              }),
-            ),
-          ],
+                  if (groups.isEmpty) {
+                    return _buildEmptyState();
+                  }
+                  return _buildDeliveryList(groups);
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -274,41 +312,41 @@ class DeliveryTrackingScreen extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4D9),
+                  color: const Color(0xFFFFFEE3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   'Theeraphat chueanokkhum',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.only(left: 16),
+                padding: const EdgeInsets.only(left: 4),
                 child: Row(
                   children: const [
                     Icon(
                       Icons.check_box_outline_blank,
-                      size: 16,
+                      size: 14,
                       color: Color(0xFF5CB3CC),
                     ),
                     SizedBox(width: 4),
                     Text(
                       'CF-001',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: Colors.black87,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: 4),
                     Text(
                       'กำลังส่งสินค้าทางเรือไปไม่ใส่',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                      style: TextStyle(fontSize: 11, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -323,7 +361,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF8B3A3A)),
+              icon: const Icon(Icons.close, color: Color(0xFF8B3A3A), size: 20),
               onPressed: () => Get.back(),
             ),
           ),
@@ -346,12 +384,15 @@ class DeliveryTrackingScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
+                    gradient: controller.selectedTab.value == 0
+                        ? AppColors.gradientSender
+                        : null,
                     border: Border(
                       bottom: BorderSide(
                         color: controller.selectedTab.value == 0
-                            ? Colors.black87
-                            : Colors.black26,
-                        width: controller.selectedTab.value == 0 ? 2 : 1,
+                            ? Colors.transparent
+                            : Colors.black12,
+                        width: 1,
                       ),
                     ),
                   ),
@@ -361,7 +402,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       Text(
                         'ส่งออก',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: controller.selectedTab.value == 0
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -373,7 +414,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Icon(
                         Icons.arrow_forward,
-                        size: 20,
+                        size: 18,
                         color: controller.selectedTab.value == 0
                             ? Colors.black87
                             : Colors.black38,
@@ -389,12 +430,15 @@ class DeliveryTrackingScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
+                    gradient: controller.selectedTab.value == 1
+                        ? AppColors.gradientRecever
+                        : null,
                     border: Border(
                       bottom: BorderSide(
                         color: controller.selectedTab.value == 1
-                            ? Colors.black87
-                            : Colors.black26,
-                        width: controller.selectedTab.value == 1 ? 2 : 1,
+                            ? Colors.transparent
+                            : Colors.black12,
+                        width: 1,
                       ),
                     ),
                   ),
@@ -404,7 +448,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       Text(
                         'รับเข้า',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: controller.selectedTab.value == 1
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -416,7 +460,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Icon(
                         Icons.arrow_back,
-                        size: 20,
+                        size: 18,
                         color: controller.selectedTab.value == 1
                             ? Colors.black87
                             : Colors.black38,
@@ -448,8 +492,15 @@ class DeliveryTrackingScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEE),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,25 +510,25 @@ class DeliveryTrackingScreen extends StatelessWidget {
             children: [
               const Text(
                 'เมื่อ:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               Text(
-                'ถึง:\n${group.items.length > 0 ? 'นายไก่แจ้' : ''}',
+                'ถึง:\n${group.items.isNotEmpty ? 'นายไก่แจ้' : ''}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                style: const TextStyle(fontSize: 11, color: Colors.black87),
               ),
             ],
           ),
           Text(
             group.date,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'รายการที่ส่ง:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 11, color: Colors.black54),
           ),
           const SizedBox(height: 12),
+          const Text(
+            'รายการที่ส่ง:',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
           ...group.items.map((item) => _buildDeliveryItem(item)).toList(),
         ],
       ),
@@ -486,21 +537,21 @@ class DeliveryTrackingScreen extends StatelessWidget {
 
   Widget _buildDeliveryItem(DeliveryItem item) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: item.color.withOpacity(0.3),
+        gradient: item.gradient,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: item.color, width: 1),
+        border: Border.all(color: Colors.black12, width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
-              color: item.color,
+              color: _getColorFromGradient(item.gradient),
               shape: BoxShape.circle,
             ),
           ),
@@ -514,15 +565,15 @@ class DeliveryTrackingScreen extends StatelessWidget {
                     Text(
                       item.homeGame.id,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         item.homeGame.title,
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(fontSize: 11),
                       ),
                     ),
                   ],
@@ -530,53 +581,62 @@ class DeliveryTrackingScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   item.homeGame.dateTime,
-                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                  style: const TextStyle(fontSize: 9, color: Colors.black54),
                 ),
                 Text(
                   'รับได้จนถึง: ${item.homeGame.phone}',
-                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                  style: const TextStyle(fontSize: 9, color: Colors.black54),
                 ),
               ],
             ),
           ),
           Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'เรียง',
-                style: TextStyle(fontSize: 10, color: Colors.black54),
-              ),
-              Text(
-                'ตำแหน่งตัวอย่างสาธิต',
                 style: TextStyle(fontSize: 9, color: Colors.black54),
+              ),
+              const Text(
+                'ตำแหน่งตัวอย่างสาธิต',
+                style: TextStyle(fontSize: 8, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
-              Text(
+              const Text(
                 'ตำแหน่งสาธิตครรภ์',
-                style: TextStyle(fontSize: 9, color: Colors.black54),
+                style: TextStyle(fontSize: 8, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
                 item.homeGame.phone,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black26),
+                  border: Border.all(color: Colors.black26, width: 1),
                 ),
-                child: const Icon(Icons.location_on, size: 20),
+                child: const Icon(Icons.location_on, size: 16),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Color _getColorFromGradient(LinearGradient gradient) {
+    // Return the first opaque color from the gradient
+    return gradient.colors.firstWhere(
+      (color) => color.opacity > 0.5,
+      orElse: () => gradient.colors.first,
     );
   }
 
@@ -586,23 +646,23 @@ class DeliveryTrackingScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 120,
-            height: 120,
+            width: 100,
+            height: 100,
             decoration: const BoxDecoration(
               color: Color(0xFFE8DCC4),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.inventory_2_outlined,
-              size: 60,
+              size: 50,
               color: Color(0xFFB8A888),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           const Text(
             'ยังไม่มีฟิลด์ที่กำลังส่ง',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Color(0xFFB8A888),
             ),
