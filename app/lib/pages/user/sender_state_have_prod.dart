@@ -1,67 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-// Colors
-class AppColors {
-  AppColors._();
-
-  static const Color white = Colors.white;
-
-  // Gradient color
-  static const LinearGradient gradientStatus1 = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFFFFFEE3), white],
-  );
-
-  static const LinearGradient gradientStatus2 = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFFE3F9FF), white],
-  );
-
-  static const LinearGradient gradientStatus3 = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFFF9E3FF), white],
-  );
-
-  static const LinearGradient gradientStatus4 = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFFE9FFE3), white],
-  );
-
-  static const LinearGradient gradientPrimary = LinearGradient(
-    begin: Alignment(0.50, -0.00),
-    end: Alignment(0.50, 0.85),
-    colors: [Color(0x00D3ECA5), Color(0xC6D3ECA5), Color(0xFFD3ECA5)],
-  );
-
-  static const LinearGradient gradientSender = LinearGradient(
-    begin: Alignment(1.00, 0.00),
-    end: Alignment(0.00, 1.00),
-    colors: [
-      Color(0xFF8AD9BD),
-      Color(0x7F8AD9BD),
-      Color(0x00BFE6D2),
-      Color(0x7FEDF2E5),
-      Color(0xFF8AD9BD),
-    ],
-  );
-
-  static const LinearGradient gradientRecever = LinearGradient(
-    begin: Alignment(1.00, 0.00),
-    end: Alignment(0.00, 1.00),
-    colors: [
-      Color(0xFF8A90D9),
-      Color(0x7F8A91D9),
-      Color(0x008A91D9),
-      Color(0x7FEDF2E5),
-      Color(0xFF8A91D9),
-    ],
-  );
-}
+import 'package:app/config/theme/app_theme.dart';
 
 // Model
 class HomeGame {
@@ -312,15 +251,15 @@ class DeliveryTrackingScreen extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFEE3),
+                  color: AppColors.lightWarning,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child: Text(
                   'Theeraphat chueanokkhum',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: AppColors.black,
                   ),
                 ),
               ),
@@ -328,25 +267,28 @@ class DeliveryTrackingScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(
                       Icons.check_box_outline_blank,
                       size: 14,
-                      color: Color(0xFF5CB3CC),
+                      color: AppColors.darkOcean,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       'CF-001',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.black87,
+                        color: AppColors.black,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       'กำลังส่งสินค้า',
-                      style: TextStyle(fontSize: 11, color: Colors.black54),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grayMedium,
+                      ),
                     ),
                   ],
                 ),
@@ -357,11 +299,11 @@ class DeliveryTrackingScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8B4B4),
+              color: AppColors.lightDanger,
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF8B3A3A), size: 20),
+              icon: Icon(Icons.close, color: AppColors.darkDanger, size: 20),
               onPressed: () => Get.back(),
             ),
           ),
@@ -391,7 +333,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       bottom: BorderSide(
                         color: controller.selectedTab.value == 0
                             ? Colors.transparent
-                            : Colors.black12,
+                            : AppColors.grayMedium,
                         width: 1,
                       ),
                     ),
@@ -407,8 +349,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
                               ? FontWeight.w600
                               : FontWeight.normal,
                           color: controller.selectedTab.value == 0
-                              ? Colors.black87
-                              : Colors.black38,
+                              ? AppColors.black
+                              : AppColors.grayMedium,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -416,8 +358,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
                         Icons.arrow_forward,
                         size: 18,
                         color: controller.selectedTab.value == 0
-                            ? Colors.black87
-                            : Colors.black38,
+                            ? AppColors.black
+                            : AppColors.grayMedium,
                       ),
                     ],
                   ),
@@ -437,7 +379,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                       bottom: BorderSide(
                         color: controller.selectedTab.value == 1
                             ? Colors.transparent
-                            : Colors.black12,
+                            : AppColors.grayMedium,
                         width: 1,
                       ),
                     ),
@@ -453,8 +395,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
                               ? FontWeight.w600
                               : FontWeight.normal,
                           color: controller.selectedTab.value == 1
-                              ? Colors.black87
-                              : Colors.black38,
+                              ? AppColors.black
+                              : AppColors.grayMedium,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -462,8 +404,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
                         Icons.arrow_back,
                         size: 18,
                         color: controller.selectedTab.value == 1
-                            ? Colors.black87
-                            : Colors.black38,
+                            ? AppColors.black
+                            : AppColors.grayMedium,
                       ),
                     ],
                   ),
@@ -492,11 +434,11 @@ class DeliveryTrackingScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.black.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -508,25 +450,33 @@ class DeliveryTrackingScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'เมื่อ:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
               ),
               Text(
                 'ถึง:\n${group.items.isNotEmpty ? 'นายไก่แจ้' : ''}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                style: TextStyle(fontSize: 11, color: AppColors.black),
               ),
             ],
           ),
           Text(
             group.date,
-            style: const TextStyle(fontSize: 11, color: Colors.black54),
+            style: TextStyle(fontSize: 11, color: AppColors.grayMedium),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'รายการที่ส่ง:',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black,
+            ),
           ),
           const SizedBox(height: 8),
           ...group.items.map((item) => _buildDeliveryItem(item)).toList(),
@@ -542,7 +492,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: item.gradient,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black12, width: 0.5),
+        border: Border.all(color: AppColors.grayMedium, width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,16 +514,17 @@ class DeliveryTrackingScreen extends StatelessWidget {
                   children: [
                     Text(
                       item.homeGame.id,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
+                        color: AppColors.black,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         item.homeGame.title,
-                        style: const TextStyle(fontSize: 11),
+                        style: TextStyle(fontSize: 11, color: AppColors.black),
                       ),
                     ),
                   ],
@@ -581,11 +532,11 @@ class DeliveryTrackingScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   item.homeGame.dateTime,
-                  style: const TextStyle(fontSize: 9, color: Colors.black54),
+                  style: TextStyle(fontSize: 9, color: AppColors.grayMedium),
                 ),
                 Text(
                   'รับได้จนถึง: ${item.homeGame.phone}',
-                  style: const TextStyle(fontSize: 9, color: Colors.black54),
+                  style: TextStyle(fontSize: 9, color: AppColors.grayMedium),
                 ),
               ],
             ),
@@ -593,37 +544,42 @@ class DeliveryTrackingScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'เรียง',
-                style: TextStyle(fontSize: 9, color: Colors.black54),
+                style: TextStyle(fontSize: 9, color: AppColors.grayMedium),
               ),
-              const Text(
+              Text(
                 'ตำแหน่งตัวอย่างสาธิต',
-                style: TextStyle(fontSize: 8, color: Colors.black54),
+                style: TextStyle(fontSize: 8, color: AppColors.grayMedium),
                 textAlign: TextAlign.center,
               ),
-              const Text(
+              Text(
                 'ตำแหน่งสาธิตครรภ์',
-                style: TextStyle(fontSize: 8, color: Colors.black54),
+                style: TextStyle(fontSize: 8, color: AppColors.grayMedium),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
                 item.homeGame.phone,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.black,
                 ),
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black26, width: 1),
+                  border: Border.all(color: AppColors.grayMedium, width: 1),
                 ),
-                child: const Icon(Icons.location_on, size: 16),
+                child: Icon(
+                  Icons.location_on,
+                  size: 16,
+                  color: AppColors.black,
+                ),
               ),
             ],
           ),
@@ -648,23 +604,23 @@ class DeliveryTrackingScreen extends StatelessWidget {
           Container(
             width: 100,
             height: 100,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8DCC4),
+            decoration: BoxDecoration(
+              color: AppColors.grayLight,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.inventory_2_outlined,
               size: 50,
-              color: Color(0xFFB8A888),
+              color: AppColors.grayMedium,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'ยังไม่มีฟิลด์ที่กำลังส่ง',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Color(0xFFB8A888),
+              color: AppColors.grayMedium,
             ),
           ),
         ],
