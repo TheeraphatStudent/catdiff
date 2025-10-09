@@ -4,6 +4,8 @@ import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/debug.dart';
 import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/rider/rider_home.dart';
+import 'package:app/pages/user/sender_state_have_prod.dart';
+import 'package:app/pages/user/sender_state_tracking.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -42,7 +44,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       // home: OnBoardingPage(),
       // home: DebugPage(),
-      home: MapDebugPage(),
+      home: DeliveryTrackingScreen(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
