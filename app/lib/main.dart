@@ -15,7 +15,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:provider/provider.dart';
 import 'pages/onboarding/onboarding.page.dart';
 import 'firebase_options.dart';
-import 'package:app/pages/user/user_home.dart';
+import 'package:app/utils/storage.helper.dart';
+import 'package:app/types/role.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,21 +36,50 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late String _initialRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _determineInitialRoute();
+  }
+
+  void _determineInitialRoute() {
+    if (StorageHelper.getToken() != null) {
+      UserRole? role = StorageHelper.getRole();
+      if (role == UserRole.user) {
+        _initialRoute = '/user';
+      } else if (role == UserRole.rider) {
+        _initialRoute = '/rider';
+      } else {
+        _initialRoute = '/';
+      }
+    } else {
+      _initialRoute = '/login';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialRoute: '/',
+      initialRoute: _initialRoute,
       // home: OnBoardingPage(),
       // home: DebugPage(),
-      home: DeliveryTrackingScreen(),
+      // home: DeliveryTrackingScreen(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
         GetPage(name: '/login', page: () => LoginPage()),
         GetPage(name: '/register', page: () => RegisterPage()),
+
         GetPage(name: '/user', page: () => HomeScreen()),
         GetPage(name: '/rider', page: () => RiderHome()),
       ],

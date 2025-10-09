@@ -2,16 +2,19 @@ import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/role.dart';
 import 'package:app/widget/button.widget.dart';
-import 'package:app/widget/header_card.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:flutter/material.dart' hide Actions;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:app/service/auth/user.dart' as UserService;
-import 'package:app/types/role.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:app/utils/storage.helper.dart';
+
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
+import 'package:app/widget/header_card.widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -104,6 +107,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       );
 
       if (userResult['success']) {
+        Get.back();
+        String token = (await FirebaseAuth.instance.currentUser!.getIdToken())!;
+        StorageHelper.saveToken(token);
+        StorageHelper.saveRole(UserRole.user);
         Get.offAllNamed('/user');
         return;
       }
@@ -117,10 +124,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
       if (riderResult['success']) {
         log('Rider login successful');
-
+        Get.back();
+        String token = (await FirebaseAuth.instance.currentUser!.getIdToken())!;
+        StorageHelper.saveToken(token);
+        StorageHelper.saveRole(UserRole.rider);
         // Navigate to rider home
         Get.offAllNamed('/rider');
       } else {
+        Get.back();
         // Both login attempts failed
         _showErrorDialog(
           'เข้าสู่ระบบไม่สำเร็จ',
@@ -150,12 +161,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ],
         ),
         content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('ตกลง'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Get.back(), child: Text('ตกลง'))],
       ),
     );
   }
