@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -1814,6 +1815,14 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
           myLocationButtonEnabled: widget.showMyLocationButton,
           zoomGesturesEnabled: widget.zoomGesturesEnabled,
           scrollGesturesEnabled: widget.scrollGesturesEnabled,
+          gestureRecognizers:
+              (widget.zoomGesturesEnabled || widget.scrollGesturesEnabled)
+                  ? <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                      ),
+                    }
+                  : <Factory<OneSequenceGestureRecognizer>>{},
           mapToolbarEnabled: false,
           compassEnabled: true,
           onTap: widget.mode == MapPlaceholderMode.selector

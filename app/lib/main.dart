@@ -70,10 +70,13 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      initialRoute: _initialRoute,
+      // initialRoute: _initialRoute,
+      initialRoute: '/',
+
       // home: OnBoardingPage(),
       // home: DebugPage(),
       // home: DeliveryTrackingScreen(),
+      home: MapDebugPage(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),
