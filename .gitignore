@@ -43,3 +43,6 @@ dist/
 *.tmp
 *.temp
 .cache/
+
+# Test
+**.response.json

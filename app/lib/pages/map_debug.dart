@@ -188,22 +188,26 @@ class _MapDebugPageState extends State<MapDebugPage> {
           //   ),
           // ),
           // const SizedBox(height: 16),
-          // _buildSectionTitle('2. Map selector'),
-          // AspectRatio(
-          //   aspectRatio: 1.4,
-          //   child: ClipRRect(
-          //     borderRadius: BorderRadius.circular(12),
-          //     child: MapPlaceholder(
-          //       mode: MapPlaceholderMode.selector,
-          //       onSelectionChanged: (MapSelectionResult result) {
-          //         setState(() {
-          //           _selectorResult = result;
-          //         });
-          //       },
-          //     ),
-          //   ),
-          // ),
-          // const SizedBox(height: 8),
+          _buildSectionTitle('2. Map selector'),
+          AspectRatio(
+            aspectRatio: 1.4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: MapPlaceholder(
+                mode: MapPlaceholderMode.selector,
+                onSelectionChanged: (MapSelectionResult result) {
+                  log("Map selector work");
+                  log(result.address.toString());
+                  log(result.rawGeocode.toString());
+
+                  setState(() {
+                    _selectorResult = result;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           // Text(_formatSelection(_selectorResult)),
           // const SizedBox(height: 16),
           // _buildSectionTitle('3. Map viewer - single point'),

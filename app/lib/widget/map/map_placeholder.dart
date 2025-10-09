@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:math' as math;
 
@@ -12,9 +11,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:app/service/map/geolocator.dart' as map_service;
 import 'package:app/service/map/routes_service.dart';
 import 'package:app/widget/map/map_destination.dart';
-import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/map/map_path_segment.dart';
+import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/map/map_selection_result.dart';
+import 'package:app/types/geolocator.dart';
 
 enum MapPlaceholderMode { view, selector, viewer }
 /*
@@ -766,12 +766,14 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       );
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final dynamic decoded = jsonDecode(response.body);
-        if (decoded is Map<String, dynamic>) {
+        final UploadRespone? geocode = uploadResponeFromJson(response.body);
+
+        if (geocode != null) {
+          final String? displayName = _resolveGeocodeDisplayName(geocode);
           result = MapSelectionResult(
             position: position,
-            address: decoded['display_name'] as String?,
-            rawGeocode: decoded,
+            address: displayName ?? result.address,
+            rawGeocode: geocode.toJson(),
           );
         }
       }
@@ -780,6 +782,54 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     }
 
     return result;
+  }
+
+  String? _resolveGeocodeDisplayName(UploadRespone geocode) {
+    final String? direct = geocode.displayName?.trim();
+    if (direct != null && direct.isNotEmpty) {
+      return direct;
+    }
+
+    final Map<String, dynamic>? address = geocode.address;
+    if (address == null || address.isEmpty) {
+      return null;
+    }
+
+    final List<String> orderedKeys = <String>[
+      'name',
+      'house_number',
+      'road',
+      'neighbourhood',
+      'suburb',
+      'city_district',
+      'district',
+      'city',
+      'town',
+      'village',
+      'county',
+      'state',
+      'postcode',
+      'country',
+    ];
+
+    final List<String> parts = <String>[];
+    for (final String key in orderedKeys) {
+      final dynamic value = address[key];
+      if (value is! String) {
+        continue;
+      }
+      final String trimmed = value.trim();
+      if (trimmed.isEmpty || parts.contains(trimmed)) {
+        continue;
+      }
+      parts.add(trimmed);
+    }
+
+    if (parts.isEmpty) {
+      return null;
+    }
+
+    return parts.join(', ');
   }
 
   Future<void> _handleSelection(LatLng position) async {
@@ -1817,12 +1867,12 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
           scrollGesturesEnabled: widget.scrollGesturesEnabled,
           gestureRecognizers:
               (widget.zoomGesturesEnabled || widget.scrollGesturesEnabled)
-                  ? <Factory<OneSequenceGestureRecognizer>>{
-                      Factory<OneSequenceGestureRecognizer>(
-                        () => EagerGestureRecognizer(),
-                      ),
-                    }
-                  : <Factory<OneSequenceGestureRecognizer>>{},
+              ? <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                }
+              : <Factory<OneSequenceGestureRecognizer>>{},
           mapToolbarEnabled: false,
           compassEnabled: true,
           onTap: widget.mode == MapPlaceholderMode.selector

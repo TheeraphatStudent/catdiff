@@ -5,10 +5,24 @@ import 'package:http/http.dart' as http show get;
 
 class GeolocatorService {
   Future getInfoGeoCode(lat, lon) async {
-    return await http.get(
-      Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json',
-      ),
+    // log("Get info code work");
+
+    final uri = Uri.https(
+      'nominatim.openstreetmap.org',
+      '/reverse',
+      <String, String>{
+        'lat': '$lat',
+        'lon': '$lon',
+        'format': 'json',
+      },
+    );
+
+    return http.get(
+      uri,
+      headers: <String, String>{
+        'User-Agent': 'CatdiffApp/1.0 (contact@catdiff.local)',
+        'Accept': 'application/json',
+      },
     );
   }
 }
