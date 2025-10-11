@@ -1,6 +1,9 @@
+import 'package:app/pages/user/user_home.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:app/config/theme/app_theme.dart';
+import 'package:app/widget/button.widget.dart';
+import 'package:app/pages/user/user_home.dart';
 
 // Model
 class HomeGame {
@@ -65,6 +68,11 @@ class DeliveryController extends GetxController {
 
   void switchTab(int index) {
     selectedTab.value = index;
+  }
+
+  // ฟังก์ชันสำหรับกลับไปหน้า HomeScreen
+  void navigateToHome() {
+    Get.off(() => HomeScreen());
   }
 
   void loadDeliveries() {
@@ -237,6 +245,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final DeliveryController controller = Get.find<DeliveryController>();
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -304,7 +314,8 @@ class DeliveryTrackingScreen extends StatelessWidget {
             ),
             child: IconButton(
               icon: Icon(Icons.close, color: AppColors.darkDanger, size: 20),
-              onPressed: () => Get.back(),
+              onPressed: () => controller
+                  .navigateToHome(), // เปลี่ยนเป็นเรียกฟังก์ชันใน controller
             ),
           ),
         ],
@@ -319,98 +330,17 @@ class DeliveryTrackingScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Obx(
         () => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => controller.switchTab(0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: controller.selectedTab.value == 0
-                        ? AppColors.gradientSender
-                        : null,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: controller.selectedTab.value == 0
-                            ? Colors.transparent
-                            : AppColors.grayMedium,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'ส่งออก',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: controller.selectedTab.value == 0
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: controller.selectedTab.value == 0
-                              ? AppColors.black
-                              : AppColors.grayMedium,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 18,
-                        color: controller.selectedTab.value == 0
-                            ? AppColors.black
-                            : AppColors.grayMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            ButtonUnderline(
+              text: 'ส่งออก',
+              active: controller.selectedTab.value == 0,
+              onPressed: () => controller.switchTab(0),
             ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => controller.switchTab(1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: controller.selectedTab.value == 1
-                        ? AppColors.gradientRecever
-                        : null,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: controller.selectedTab.value == 1
-                            ? Colors.transparent
-                            : AppColors.grayMedium,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'รับเข้า',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: controller.selectedTab.value == 1
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: controller.selectedTab.value == 1
-                              ? AppColors.black
-                              : AppColors.grayMedium,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_back,
-                        size: 18,
-                        color: controller.selectedTab.value == 1
-                            ? AppColors.black
-                            : AppColors.grayMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            ButtonUnderline(
+              text: 'รับเข้า',
+              active: controller.selectedTab.value == 1,
+              onPressed: () => controller.switchTab(1),
             ),
           ],
         ),
