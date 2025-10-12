@@ -74,7 +74,7 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/',
 
       // home: OnBoardingPage(),
-      home: DebugPage(),
+      // home: DebugPage(),
       // home: DeliveryTrackingScreen(),
       // home: MapDebugPage(),
       getPages: [

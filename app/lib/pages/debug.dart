@@ -48,16 +48,15 @@ class _DebugPageState extends State<DebugPage> {
 
     _addressController.text =
         (resolvedAddress != null && resolvedAddress.isNotEmpty)
-            ? resolvedAddress
-            : '${location.latitude.toStringAsFixed(6)}, '
+        ? resolvedAddress
+        : '${location.latitude.toStringAsFixed(6)}, '
               '${location.longitude.toStringAsFixed(6)}';
 
     setState(() {
       _selectedLatLng = location;
-      _selectedAddress =
-          (resolvedAddress != null && resolvedAddress.isNotEmpty)
-              ? resolvedAddress
-              : _addressController.text;
+      _selectedAddress = (resolvedAddress != null && resolvedAddress.isNotEmpty)
+          ? resolvedAddress
+          : _addressController.text;
     });
   }
 
@@ -95,11 +94,12 @@ class _DebugPageState extends State<DebugPage> {
             focusNode: _addressFocusNode,
             onFocus: _handleFocusChange,
           ),
-          const SizedBox(height: 16),
-          ...details,
-          if (details.isNotEmpty) const SizedBox(height: 16),
+          // const SizedBox(height: 16),
+          // ...details,
+          // if (details.isNotEmpty) const SizedBox(height: 16),
           MapsLocationSelector(
             isOpened: _isOpenedLocationSelector,
+            isShowingAction: false,
             onLocationSelected: _handleLocationSelected,
             onModalClosed: _handleModalClosed,
           ),

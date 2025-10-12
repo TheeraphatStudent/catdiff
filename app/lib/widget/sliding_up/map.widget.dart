@@ -993,19 +993,23 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-          onPressed: _openLocationModal,
-          child: const SizedBox(
-            height: _buttonHeight,
-            width: _buttonWidth,
-            child: Center(child: Text('Select Location')),
+    if (widget.isShowingAction) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            onPressed: _openLocationModal,
+            child: const SizedBox(
+              height: _buttonHeight,
+              width: _buttonWidth,
+              child: Center(child: Text('Select Location')),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   @override
