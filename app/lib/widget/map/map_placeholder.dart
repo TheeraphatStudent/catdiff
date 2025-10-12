@@ -766,7 +766,9 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       );
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final UploadRespone? geocode = uploadResponeFromJson(response.body);
+        final GeolocatorResponse? geocode = geolocatorResponseFromJson(
+          response.body,
+        );
 
         if (geocode != null) {
           final String? displayName = _resolveGeocodeDisplayName(geocode);
@@ -784,7 +786,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     return result;
   }
 
-  String? _resolveGeocodeDisplayName(UploadRespone geocode) {
+  String? _resolveGeocodeDisplayName(GeolocatorResponse geocode) {
     final String? direct = geocode.displayName?.trim();
     if (direct != null && direct.isNotEmpty) {
       return direct;
@@ -980,7 +982,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
             position: markerPosition,
             draggable: true,
             onDragEnd: (value) => _handleSelection(value),
-            infoWindow: const InfoWindow(title: 'Selected location'),
+            // infoWindow: const InfoWindow(title: 'Selected location'),
+            infoWindow: InfoWindow(
+              title: _selectionResult?.address ?? "Selected location",
+            ),
             onTap: () => _onMarkerTap(markerPosition),
           ),
         );

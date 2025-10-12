@@ -1,14 +1,14 @@
 // To parse this JSON data, do
 //
-//     final uploadRespone = uploadResponeFromJson(jsonString);
+//     final geolocatorResponse = geolocatorResponseFromJson(jsonString);
 
 import 'dart:convert';
 
-UploadRespone? uploadResponeFromJson(String str) {
+GeolocatorResponse? geolocatorResponseFromJson(String str) {
   try {
     final dynamic decoded = json.decode(str);
     if (decoded is Map<String, dynamic>) {
-      return UploadRespone.fromJson(decoded);
+      return GeolocatorResponse.fromJson(decoded);
     }
   } catch (_) {
     // caller handles null
@@ -16,17 +16,18 @@ UploadRespone? uploadResponeFromJson(String str) {
   return null;
 }
 
-String uploadResponeToJson(UploadRespone data) => json.encode(data.toJson());
+String geolocatorResponseToJson(GeolocatorResponse data) =>
+    json.encode(data.toJson());
 
-class UploadRespone {
-  UploadRespone({
+class GeolocatorResponse {
+  GeolocatorResponse({
     this.placeId,
     this.licence,
     this.osmType,
     this.osmId,
     this.lat,
     this.lon,
-    this.uploadResponeClass,
+    this.geolocatorResponseClass,
     this.type,
     this.placeRank,
     this.importance,
@@ -42,7 +43,7 @@ class UploadRespone {
   final int? osmId;
   final double? lat;
   final double? lon;
-  final String? uploadResponeClass;
+  final String? geolocatorResponseClass;
   final String? type;
   final int? placeRank;
   final double? importance;
@@ -51,7 +52,8 @@ class UploadRespone {
   final String? displayName;
   final Map<String, dynamic>? address;
 
-  factory UploadRespone.fromJson(Map<String, dynamic> json) => UploadRespone(
+  factory GeolocatorResponse.fromJson(Map<String, dynamic> json) =>
+      GeolocatorResponse(
         placeId: json['place_id'] as int?,
         licence: json['licence'] as String?,
         osmType: json['osm_type'] as String?,
@@ -60,7 +62,7 @@ class UploadRespone {
             : int.tryParse(json['osm_id']?.toString() ?? ''),
         lat: _tryParseDouble(json['lat']),
         lon: _tryParseDouble(json['lon']),
-        uploadResponeClass: json['class'] as String?,
+        geolocatorResponseClass: json['class'] as String?,
         type: json['type'] as String?,
         placeRank: json['place_rank'] is int
             ? json['place_rank'] as int
@@ -77,21 +79,21 @@ class UploadRespone {
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'place_id': placeId,
-        'licence': licence,
-        'osm_type': osmType,
-        'osm_id': osmId,
-        'lat': lat,
-        'lon': lon,
-        'class': uploadResponeClass,
-        'type': type,
-        'place_rank': placeRank,
-        'importance': importance,
-        'addresstype': addressType,
-        'name': name,
-        'display_name': displayName,
-        if (address != null) 'address': address,
-      };
+    'place_id': placeId,
+    'licence': licence,
+    'osm_type': osmType,
+    'osm_id': osmId,
+    'lat': lat,
+    'lon': lon,
+    'class': geolocatorResponseClass,
+    'type': type,
+    'place_rank': placeRank,
+    'importance': importance,
+    'addresstype': addressType,
+    'name': name,
+    'display_name': displayName,
+    if (address != null) 'address': address,
+  };
 }
 
 double? _tryParseDouble(dynamic value) {

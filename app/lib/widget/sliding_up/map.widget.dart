@@ -4,6 +4,8 @@ import 'package:app/config/secret/api_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/service/map/routes_service.dart';
+import 'package:app/widget/map/map_placeholder.dart';
+import 'package:app/widget/map/map_selection_result.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -49,7 +51,6 @@ class MapLocationController extends GetxController {
   }
 }
 
-// ignore: unused_element
 const double _bottomPaddingForButton = 150.0;
 const double _buttonHeight = 56.0;
 const double _buttonWidth = 200.0;
@@ -94,7 +95,6 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   bool _hasProcessedOpenRequest = false;
 
   final MapRoutesService _routesService = const MapRoutesService();
-  Set<Polyline> _routePolylines = <Polyline>{};
   double? _routeDistanceMeters;
   Duration? _routeDuration;
   RouteDistanceSource? _routeDistanceSource;
@@ -232,14 +232,13 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     final LatLng origin = controller.currentLocation.value;
 
     if (destination == null) {
-      if (_routePolylines.isEmpty &&
-          _routeDistanceMeters == null &&
+      if (_routeDistanceMeters == null &&
+          _routeDuration == null &&
           _routeError == null &&
           !_isRouting) {
         return;
       }
       setState(() {
-        _routePolylines = <Polyline>{};
         _routeDistanceMeters = null;
         _routeDuration = null;
         _routeDistanceSource = null;
@@ -270,27 +269,17 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
         return;
       }
 
-      final List<LatLng> points = result.polyline.isNotEmpty
-          ? result.polyline
-          : <LatLng>[origin, destination];
-
-      final polyline = Polyline(
-        polylineId: const PolylineId('selected_route'),
-        color: AppColors.primary1,
-        width: 5,
-        points: points,
-      );
+      final double computedDistance =
+          result.distanceMeters ??
+          Geolocator.distanceBetween(
+            origin.latitude,
+            origin.longitude,
+            destination.latitude,
+            destination.longitude,
+          );
 
       setState(() {
-        _routePolylines = <Polyline>{polyline};
-        _routeDistanceMeters =
-            result.distanceMeters ??
-            Geolocator.distanceBetween(
-              origin.latitude,
-              origin.longitude,
-              destination.latitude,
-              destination.longitude,
-            );
+        _routeDistanceMeters = computedDistance;
         _routeDuration = result.duration;
         _routeDistanceSource = result.distanceSource;
         _routeError = null;
@@ -301,15 +290,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
         return;
       }
 
-      final polyline = Polyline(
-        polylineId: const PolylineId('selected_route_fallback'),
-        color: AppColors.primary1,
-        width: 5,
-        points: <LatLng>[origin, destination],
-      );
-
       setState(() {
-        _routePolylines = <Polyline>{polyline};
         _routeDistanceMeters = Geolocator.distanceBetween(
           origin.latitude,
           origin.longitude,
@@ -326,15 +307,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
         return;
       }
 
-      final polyline = Polyline(
-        polylineId: const PolylineId('selected_route_fallback'),
-        color: AppColors.primary1,
-        width: 5,
-        points: <LatLng>[origin, destination],
-      );
-
       setState(() {
-        _routePolylines = <Polyline>{polyline};
         _routeDistanceMeters = Geolocator.distanceBetween(
           origin.latitude,
           origin.longitude,
@@ -349,100 +322,6 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     }
   }
 
-  Widget _buildRouteBanner(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (_isRouting) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Text('Calculating route...', style: theme.textTheme.bodyMedium),
-          ],
-        ),
-      );
-    }
-
-    final List<Widget> details = <Widget>[];
-
-    if (_routeDistanceMeters != null) {
-      details.add(
-        Text(
-          'Distance: ${_formatRouteDistance(_routeDistanceMeters!)}',
-          style: theme.textTheme.bodyMedium,
-        ),
-      );
-    }
-    if (_routeDuration != null) {
-      details.add(
-        Text(
-          'ETA: ${_formatRouteDuration(_routeDuration!)}',
-          style: theme.textTheme.bodySmall,
-        ),
-      );
-    }
-    if (_routeDistanceSource != null) {
-      details.add(
-        Text(
-          'Source: ${_routeSourceLabel(_routeDistanceSource!)}',
-          style: theme.textTheme.bodySmall,
-        ),
-      );
-    }
-    if (_routeError != null) {
-      details.add(
-        Text(
-          _routeError!,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.error,
-          ),
-        ),
-      );
-    }
-
-    if (details.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: details,
-      ),
-    );
-  }
-
   String _formatRouteDistance(double meters) {
     if (meters < 1000) {
       return '${meters.toStringAsFixed(0)} m';
@@ -451,51 +330,6 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     return kilometers >= 10
         ? '${kilometers.toStringAsFixed(1)} km'
         : '${kilometers.toStringAsFixed(2)} km';
-  }
-
-  String _formatRouteDuration(Duration duration) {
-    final int hours = duration.inHours;
-    final int minutes = duration.inMinutes.remainder(60);
-    final int seconds = duration.inSeconds.remainder(60);
-
-    if (hours > 0) {
-      if (minutes > 0) {
-        return '${hours}h ${minutes}m';
-      }
-      return '${hours}h';
-    }
-    if (minutes > 0) {
-      if (seconds > 0) {
-        return '${minutes}m ${seconds}s';
-      }
-      return '${minutes}m';
-    }
-    return '${seconds}s';
-  }
-
-  String _routeSourceLabel(RouteDistanceSource source) {
-    switch (source) {
-      case RouteDistanceSource.distanceMatrix:
-        return 'Distance Matrix API';
-      case RouteDistanceSource.routesApi:
-        return 'Routes API response';
-      case RouteDistanceSource.geometry:
-        return 'Polyline geometry estimate';
-    }
-  }
-
-  void _onMapTapped(LatLng location) {
-    controller.updateSelectedLocation(location);
-    widget.onLocationSelected?.call(location);
-  }
-
-  // ignore: unused_element
-  void _onSearchPressed() {
-    final query = _searchController.text.trim();
-    if (query.isNotEmpty) {
-      widget.onMapSearch?.call(query);
-      controller.locationStatus.value = 'Searching for: $query';
-    }
   }
 
   // ignore: unused_element
@@ -955,32 +789,43 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Obx(
-                    () => controller.isLoading.value
-                        ? const Center(child: CircularProgressIndicator())
-                        : GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target:
-                                  controller.selectedLocation.value ??
-                                  controller.currentLocation.value,
-                              zoom: 15.0,
-                            ),
-                            onMapCreated: (GoogleMapController mapController) {
-                              controller.mapController = mapController;
-                            },
-                            onTap: _onMapTapped,
-                            markers: controller.markers,
-                            polylines: _routePolylines,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
-                            mapToolbarEnabled: false,
-                            compassEnabled: false,
-                            rotateGesturesEnabled: false,
-                            scrollGesturesEnabled: false,
-                            zoomGesturesEnabled: false,
+                  child: Obx(() {
+                    final bool isLoading = controller.isLoading.value;
+                    final LatLng currentLocation =
+                        controller.currentLocation.value;
+                    final LatLng? selectedLocation =
+                        controller.selectedLocation.value;
+
+                    return Stack(
+                      children: [
+                        MapPlaceholder(
+                          mode: MapPlaceholderMode.selector,
+                          initialSelection: selectedLocation,
+                          initialUserLocation: currentLocation,
+                          initialPosition: selectedLocation ?? currentLocation,
+                          zoomGesturesEnabled: true,
+                          scrollGesturesEnabled: true,
+                          showMyLocation: true,
+                          showMyLocationButton: false,
+                          enableLiveLocation: false,
+                          mapPadding: const EdgeInsets.only(bottom: 140),
+                          onSelectionChanged: (MapSelectionResult result) {
+                            final LatLng position = result.position;
+                            controller.updateSelectedLocation(position);
+                            if (result.address != null &&
+                                result.address!.isNotEmpty) {
+                              controller.locationStatus.value = result.address!;
+                            }
+                            widget.onLocationSelected?.call(position);
+                          },
+                        ),
+                        if (isLoading)
+                          const Positioned.fill(
+                            child: Center(child: CircularProgressIndicator()),
                           ),
-                  ),
+                      ],
+                    );
+                  }),
                 ),
               ),
               // Padding(
