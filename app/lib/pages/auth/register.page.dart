@@ -126,12 +126,21 @@ class _RegisterPageState extends State<RegisterPage>
             Flexible(
               child: Form(
                 key: _formKey,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: _buildStepContent(),
-                  ),
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: _buildStepContent(),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
