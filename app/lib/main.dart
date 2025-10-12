@@ -74,9 +74,9 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/',
 
       // home: OnBoardingPage(),
-      // home: DebugPage(),
+      home: DebugPage(),
       // home: DeliveryTrackingScreen(),
-      home: MapDebugPage(),
+      // home: MapDebugPage(),
       getPages: [
         GetPage(name: '/debug', page: () => const DebugPage()),
         GetPage(name: '/', page: () => const OnBoardingPage()),

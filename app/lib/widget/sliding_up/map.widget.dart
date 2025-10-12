@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:app/config/secret/api_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/service/map/routes_service.dart';
@@ -104,7 +105,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   Worker? _currentLocationWorker;
   Timer? _routeRefreshTimer;
 
-  static const String googleApiKey = "AIzaSyAYb0Bt02JhUMszTSW9vEsiKKIDmkTY04Y";
+  ApiData _apiData = ApiData();
 
   @override
   void initState() {
@@ -259,7 +260,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       final MapRouteResult result = await _routesService.computeRoute(
         origin: origin,
         destination: destination,
-        apiKey: googleApiKey,
+        apiKey: _apiData.apiKey,
         travelMode: MapRouteTravelMode.driving,
         distanceStrategy: widget.distanceStrategy,
         clientConfig: widget.routesClientConfig,
@@ -585,7 +586,139 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     TextTheme textTheme,
   ) {
     return SliverWoltModalSheetPage(
-      // pageTitle: Text(widget.isOpened.toString()),
+      // pageTitle: Center(child: Text("ค้นหาที่อยู่")),
+      pageTitle: Padding(
+        padding: const EdgeInsets.all(_pagePadding),
+        child: Row(
+          children: [
+            ButtonActions(
+              variant: ButtonVariant.danger,
+              icon: Icons.arrow_back,
+              onPressed: () {
+                _isModalCurrentlyOpen = false;
+                _hasProcessedOpenRequest = false;
+                widget.onModalClosed?.call();
+                Get.back();
+              },
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: GooglePlaceAutoCompleteTextField(
+                textEditingController: _searchController,
+                googleAPIKey: _apiData.apiKey,
+                inputDecoration: InputDecoration(
+                  hintText: 'ค้นหาที่อยู่',
+                  prefixIcon: Icon(Icons.search_sharp),
+                  filled: true,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  // fillColor: AppColors.primary4,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primary1, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+                debounceTime: 1000,
+                countries: const ["th"],
+                isLatLngRequired: true,
+                getPlaceDetailWithLatLng: (Prediction prediction) {
+                  log('Place selected: ${prediction.description}');
+                  _onPlaceSelected(prediction);
+                },
+                itemClick: (Prediction prediction) {
+                  _searchController.text = prediction.description ?? '';
+                  _searchController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: prediction.description?.length ?? 0),
+                  );
+                },
+                seperatedBuilder: const Divider(),
+                containerHorizontalPadding: 0,
+                itemBuilder: (context, index, Prediction prediction) {
+                  return Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          color: AppColors.primary1,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                prediction.structuredFormatting?.mainText ?? '',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (prediction
+                                      .structuredFormatting
+                                      ?.secondaryText !=
+                                  null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  prediction
+                                      .structuredFormatting!
+                                      .secondaryText!,
+                                  style: TextStyle(
+                                    color: AppColors.primary2,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(width: 16),
+            Obx(
+              () => Opacity(
+                opacity: controller.selectedLocation.value != null ? 1.0 : 0.5,
+                child: ButtonActions(
+                  variant: ButtonVariant.primary,
+                  icon: Icons.arrow_forward,
+                  onPressed: controller.selectedLocation.value != null
+                      ? () {
+                          final selectedLocation =
+                              controller.selectedLocation.value;
+                          if (selectedLocation != null) {
+                            _isModalCurrentlyOpen = false;
+                            _hasProcessedOpenRequest = false;
+                            widget.onModalClosed?.call();
+                            widget.onLocationSelected?.call(selectedLocation);
+                            Navigator.of(context).pop(selectedLocation);
+                          }
+                        }
+                      : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
       // pageTitle: Padding(
       //   padding: const EdgeInsets.all(_pagePadding),
       //   child: Row(
@@ -598,7 +731,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       //       Expanded(
       //         child: GooglePlaceAutoCompleteTextField(
       //           textEditingController: _searchController,
-      //           googleAPIKey: googleApiKey,
+      //           googleAPIKey: _apiData.apiKey,
       //           inputDecoration: InputDecoration(
       //             hintText: 'ค้นหาที่อยู่',
       //             prefixIcon: Icon(Icons.search_sharp),
@@ -695,12 +828,11 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       //     ],
       //   ),
       // ),
-
-      // trailingNavBarWidget: IconButton(
-      //   padding: const EdgeInsets.all(_pagePadding),
-      //   icon: const Icon(Icons.close),
-      //   onPressed: Navigator.of(modalSheetContext).pop,
-      // ),
+      trailingNavBarWidget: IconButton(
+        padding: const EdgeInsets.all(_pagePadding),
+        icon: const Icon(Icons.close),
+        onPressed: Navigator.of(modalSheetContext).pop,
+      ),
       // stickyActionBar: Padding(
       //   padding: const EdgeInsets.all(_pagePadding),
       //   child: Column(
@@ -792,7 +924,6 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       //   ),
       // ),
       mainContentSliversBuilder: (context) => [
-        // Map section
         SliverToBoxAdapter(
           child: Stack(
             children: [
@@ -832,157 +963,158 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(_pagePadding),
-                child: Row(
-                  children: [
-                    ButtonActions(
-                      variant: ButtonVariant.danger,
-                      icon: Icons.arrow_back,
-                      onPressed: () {
-                        _isModalCurrentlyOpen = false;
-                        _hasProcessedOpenRequest = false;
-                        widget.onModalClosed?.call();
-                        Get.back();
-                      },
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: GooglePlaceAutoCompleteTextField(
-                        textEditingController: _searchController,
-                        googleAPIKey: googleApiKey,
-                        inputDecoration: InputDecoration(
-                          hintText: 'ค้นหาที่อยู่',
-                          prefixIcon: Icon(Icons.search_sharp),
-                          filled: true,
-                          // fillColor: Theme.of(
-                          //   context,
-                          // ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                          fillColor: AppColors.primary4,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppColors.primary1,
-                              width: 2,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        debounceTime: 1000,
-                        countries: const ["th"],
-                        isLatLngRequired: true,
-                        getPlaceDetailWithLatLng: (Prediction prediction) {
-                          log('Place selected: ${prediction.description}');
-                          _onPlaceSelected(prediction);
-                        },
-                        itemClick: (Prediction prediction) {
-                          _searchController.text = prediction.description ?? '';
-                          _searchController.selection =
-                              TextSelection.fromPosition(
-                                TextPosition(
-                                  offset: prediction.description?.length ?? 0,
-                                ),
-                              );
-                        },
-                        seperatedBuilder: const Divider(),
-                        containerHorizontalPadding: 0,
-                        itemBuilder: (context, index, Prediction prediction) {
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  color: AppColors.primary1,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        prediction
-                                                .structuredFormatting
-                                                ?.mainText ??
-                                            '',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      if (prediction
-                                              .structuredFormatting
-                                              ?.secondaryText !=
-                                          null) ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          prediction
-                                              .structuredFormatting!
-                                              .secondaryText!,
-                                          style: TextStyle(
-                                            color: AppColors.primary4,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Obx(
-                      () => Opacity(
-                        opacity: controller.selectedLocation.value != null
-                            ? 1.0
-                            : 0.5,
-                        child: ButtonActions(
-                          variant: ButtonVariant.primary,
-                          icon: Icons.arrow_forward,
-                          onPressed: controller.selectedLocation.value != null
-                              ? () {
-                                  final selectedLocation =
-                                      controller.selectedLocation.value;
-                                  if (selectedLocation != null) {
-                                    _isModalCurrentlyOpen = false;
-                                    _hasProcessedOpenRequest = false;
-                                    widget.onModalClosed?.call();
-                                    widget.onLocationSelected?.call(
-                                      selectedLocation,
-                                    );
-                                    Navigator.of(context).pop(selectedLocation);
-                                  }
-                                }
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: _pagePadding,
-                right: _pagePadding,
-                bottom: _pagePadding,
-                child: _buildRouteBanner(context),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.all(_pagePadding),
+              //   child: Row(
+              //     children: [
+              //       ButtonActions(
+              //         variant: ButtonVariant.danger,
+              //         icon: Icons.arrow_back,
+              //         onPressed: () {
+              //           _isModalCurrentlyOpen = false;
+              //           _hasProcessedOpenRequest = false;
+              //           widget.onModalClosed?.call();
+              //           Get.back();
+              //         },
+              //       ),
+              //       SizedBox(width: 16),
+              //       Expanded(
+              //         child: GooglePlaceAutoCompleteTextField(
+              //           textEditingController: _searchController,
+              //           googleAPIKey: _apiData.apiKey,
+              //           inputDecoration: InputDecoration(
+              //             hintText: 'ค้นหาที่อยู่',
+              //             prefixIcon: Icon(Icons.search_sharp),
+              //             filled: true,
+              //             fillColor: Theme.of(context)
+              //                 .colorScheme
+              //                 .surfaceContainerHighest
+              //                 .withOpacity(0.5),
+              //             // fillColor: AppColors.primary4,
+              //             border: OutlineInputBorder(
+              //               borderRadius: BorderRadius.circular(12),
+              //               borderSide: BorderSide.none,
+              //             ),
+              //             enabledBorder: OutlineInputBorder(
+              //               borderRadius: BorderRadius.circular(12),
+              //               borderSide: BorderSide.none,
+              //             ),
+              //             focusedBorder: OutlineInputBorder(
+              //               borderRadius: BorderRadius.circular(12),
+              //               borderSide: BorderSide(
+              //                 color: AppColors.primary1,
+              //                 width: 2,
+              //               ),
+              //             ),
+              //             contentPadding: const EdgeInsets.symmetric(
+              //               horizontal: 16,
+              //               vertical: 16,
+              //             ),
+              //           ),
+              //           debounceTime: 1000,
+              //           countries: const ["th"],
+              //           isLatLngRequired: true,
+              //           getPlaceDetailWithLatLng: (Prediction prediction) {
+              //             log('Place selected: ${prediction.description}');
+              //             _onPlaceSelected(prediction);
+              //           },
+              //           itemClick: (Prediction prediction) {
+              //             _searchController.text = prediction.description ?? '';
+              //             _searchController.selection =
+              //                 TextSelection.fromPosition(
+              //                   TextPosition(
+              //                     offset: prediction.description?.length ?? 0,
+              //                   ),
+              //                 );
+              //           },
+              //           seperatedBuilder: const Divider(),
+              //           containerHorizontalPadding: 0,
+              //           itemBuilder: (context, index, Prediction prediction) {
+              //             return Container(
+              //               padding: const EdgeInsets.all(8),
+              //               child: Row(
+              //                 children: [
+              //                   Icon(
+              //                     Icons.location_on,
+              //                     color: AppColors.primary1,
+              //                     size: 20,
+              //                   ),
+              //                   const SizedBox(width: 12),
+              //                   Expanded(
+              //                     child: Column(
+              //                       crossAxisAlignment:
+              //                           CrossAxisAlignment.start,
+              //                       children: [
+              //                         Text(
+              //                           prediction
+              //                                   .structuredFormatting
+              //                                   ?.mainText ??
+              //                               '',
+              //                           style: const TextStyle(
+              //                             fontWeight: FontWeight.w500,
+              //                             fontSize: 14,
+              //                           ),
+              //                         ),
+              //                         if (prediction
+              //                                 .structuredFormatting
+              //                                 ?.secondaryText !=
+              //                             null) ...[
+              //                           const SizedBox(height: 2),
+              //                           Text(
+              //                             prediction
+              //                                 .structuredFormatting!
+              //                                 .secondaryText!,
+              //                             style: TextStyle(
+              //                               color: AppColors.primary2,
+              //                               fontSize: 12,
+              //                             ),
+              //                           ),
+              //                         ],
+              //                       ],
+              //                     ),
+              //                   ),
+              //                 ],
+              //               ),
+              //             );
+              //           },
+              //         ),
+              //       ),
+              //       SizedBox(width: 16),
+              //       Obx(
+              //         () => Opacity(
+              //           opacity: controller.selectedLocation.value != null
+              //               ? 1.0
+              //               : 0.5,
+              //           child: ButtonActions(
+              //             variant: ButtonVariant.primary,
+              //             icon: Icons.arrow_forward,
+              //             onPressed: controller.selectedLocation.value != null
+              //                 ? () {
+              //                     final selectedLocation =
+              //                         controller.selectedLocation.value;
+              //                     if (selectedLocation != null) {
+              //                       _isModalCurrentlyOpen = false;
+              //                       _hasProcessedOpenRequest = false;
+              //                       widget.onModalClosed?.call();
+              //                       widget.onLocationSelected?.call(
+              //                         selectedLocation,
+              //                       );
+              //                       Navigator.of(context).pop(selectedLocation);
+              //                     }
+              //                   }
+              //                 : null,
+              //           ),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              // Positioned(
+              //   left: _pagePadding,
+              //   right: _pagePadding,
+              //   bottom: _pagePadding,
+              //   child: _buildRouteBanner(context),
+              // ),
             ],
           ),
         ),
