@@ -587,137 +587,6 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   ) {
     return SliverWoltModalSheetPage(
       // pageTitle: Center(child: Text("ค้นหาที่อยู่")),
-      pageTitle: Padding(
-        padding: const EdgeInsets.all(_pagePadding),
-        child: Row(
-          children: [
-            ButtonActions(
-              variant: ButtonVariant.danger,
-              icon: Icons.arrow_back,
-              onPressed: () {
-                _isModalCurrentlyOpen = false;
-                _hasProcessedOpenRequest = false;
-                widget.onModalClosed?.call();
-                Get.back();
-              },
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: GooglePlaceAutoCompleteTextField(
-                textEditingController: _searchController,
-                googleAPIKey: _apiData.apiKey,
-                inputDecoration: InputDecoration(
-                  hintText: 'ค้นหาที่อยู่',
-                  prefixIcon: Icon(Icons.search_sharp),
-                  filled: true,
-                  fillColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  // fillColor: AppColors.primary4,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primary1, width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
-                debounceTime: 1000,
-                countries: const ["th"],
-                isLatLngRequired: true,
-                getPlaceDetailWithLatLng: (Prediction prediction) {
-                  log('Place selected: ${prediction.description}');
-                  _onPlaceSelected(prediction);
-                },
-                itemClick: (Prediction prediction) {
-                  _searchController.text = prediction.description ?? '';
-                  _searchController.selection = TextSelection.fromPosition(
-                    TextPosition(offset: prediction.description?.length ?? 0),
-                  );
-                },
-                seperatedBuilder: const Divider(),
-                containerHorizontalPadding: 0,
-                itemBuilder: (context, index, Prediction prediction) {
-                  return Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          color: AppColors.primary1,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                prediction.structuredFormatting?.mainText ?? '',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              if (prediction
-                                      .structuredFormatting
-                                      ?.secondaryText !=
-                                  null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  prediction
-                                      .structuredFormatting!
-                                      .secondaryText!,
-                                  style: TextStyle(
-                                    color: AppColors.primary2,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: 16),
-            Obx(
-              () => Opacity(
-                opacity: controller.selectedLocation.value != null ? 1.0 : 0.5,
-                child: ButtonActions(
-                  variant: ButtonVariant.primary,
-                  icon: Icons.arrow_forward,
-                  onPressed: controller.selectedLocation.value != null
-                      ? () {
-                          final selectedLocation =
-                              controller.selectedLocation.value;
-                          if (selectedLocation != null) {
-                            _isModalCurrentlyOpen = false;
-                            _hasProcessedOpenRequest = false;
-                            widget.onModalClosed?.call();
-                            widget.onLocationSelected?.call(selectedLocation);
-                            Navigator.of(context).pop(selectedLocation);
-                          }
-                        }
-                      : null,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
 
       // pageTitle: Padding(
       //   padding: const EdgeInsets.all(_pagePadding),
@@ -828,10 +697,161 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       //     ],
       //   ),
       // ),
-      trailingNavBarWidget: IconButton(
-        padding: const EdgeInsets.all(_pagePadding),
-        icon: const Icon(Icons.close),
-        onPressed: Navigator.of(modalSheetContext).pop,
+      // trailingNavBarWidget: IconButton(
+      //   padding: const EdgeInsets.all(_pagePadding),
+      //   icon: const Icon(Icons.close),
+      //   onPressed: Navigator.of(modalSheetContext).pop,
+      // ),
+      isTopBarLayerAlwaysVisible: true,
+      // navBarHeight: ,
+      topBar: SizedBox(
+        height: 84,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Row(
+            children: [
+              ButtonActions(
+                variant: ButtonVariant.danger,
+                icon: Icons.arrow_back,
+                onPressed: () {
+                  _isModalCurrentlyOpen = false;
+                  _hasProcessedOpenRequest = false;
+                  widget.onModalClosed?.call();
+                  Get.back();
+                },
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: GooglePlaceAutoCompleteTextField(
+                  textEditingController: _searchController,
+                  googleAPIKey: _apiData.apiKey,
+                  inputDecoration: InputDecoration(
+                    hintText: 'ค้นหาที่อยู่',
+                    prefixIcon: Icon(Icons.search_sharp),
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    // fillColor: AppColors.primary4,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: AppColors.primary1,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  debounceTime: 1000,
+                  countries: const ["th"],
+                  isLatLngRequired: true,
+                  getPlaceDetailWithLatLng: (Prediction prediction) {
+                    log('Place selected: ${prediction.description}');
+                    _onPlaceSelected(prediction);
+                  },
+                  itemClick: (Prediction prediction) {
+                    _searchController.text = prediction.description ?? '';
+                    _searchController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: prediction.description?.length ?? 0),
+                    );
+                  },
+                  seperatedBuilder: const Divider(),
+                  containerHorizontalPadding: 0,
+                  itemBuilder: (context, index, Prediction prediction) {
+                    return Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: AppColors.primary1,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    prediction.structuredFormatting?.mainText ??
+                                        '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (prediction
+                                          .structuredFormatting
+                                          ?.secondaryText !=
+                                      null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      prediction
+                                          .structuredFormatting!
+                                          .secondaryText!,
+                                      style: TextStyle(
+                                        color: AppColors.primary2,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(width: 8),
+              ButtonActions(
+                variant: ButtonVariant.outline,
+                icon: Icons.location_on,
+                onPressed: _getCurrentLocation,
+              ),
+              SizedBox(width: 8),
+              Obx(
+                () => Opacity(
+                  opacity: controller.selectedLocation.value != null
+                      ? 1.0
+                      : 0.5,
+                  child: ButtonActions(
+                    variant: ButtonVariant.primary,
+                    icon: Icons.arrow_forward,
+                    onPressed: controller.selectedLocation.value != null
+                        ? () {
+                            final selectedLocation =
+                                controller.selectedLocation.value;
+                            if (selectedLocation != null) {
+                              _isModalCurrentlyOpen = false;
+                              _hasProcessedOpenRequest = false;
+                              widget.onModalClosed?.call();
+                              widget.onLocationSelected?.call(selectedLocation);
+                              Navigator.of(context).pop(selectedLocation);
+                            }
+                          }
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       // stickyActionBar: Padding(
       //   padding: const EdgeInsets.all(_pagePadding),
