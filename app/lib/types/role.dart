@@ -1,1 +1,1 @@
-enum UserRole { user, rider }
+export 'user/role.dart';

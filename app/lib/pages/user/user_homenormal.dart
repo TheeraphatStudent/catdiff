@@ -1,6 +1,5 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:app/widget/status.dart';
 
 class TestHomeScreen extends StatefulWidget {
   TestHomeScreen({Key? key}) : super(key: key);

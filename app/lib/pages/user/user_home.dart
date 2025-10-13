@@ -1,7 +1,6 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/status.dart';
 import 'package:flutter/material.dart';
-import 'package:app/widget/status.dart';
 
 class DeliveryHome {
   List<Map> getDeliveryMockDataFormFirebase() {
@@ -44,7 +43,7 @@ class DeliveryHome {
 }
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -71,16 +70,16 @@ class _HomeScreenState extends State<HomeScreen> {
       StatusType sendStatus = _getStatusTypeFromString(
         _deliveryData[0]['status'],
       );
-      String senderStatus = StatusSender.typeStatusTag[sendStatus]?.label ?? '';
-      _sendController.text = senderStatus;
+      // String senderStatus = StatusSender.typeStatusTag[sendStatus]?.label ?? '';
+      _sendController.text = "pending";
 
       // Card ล่าง (รับของ) - ใช้ข้อมูลจาก index 1 กับ StatusGetProduct
       StatusType receiveStatus = _getStatusTypeFromString(
         _deliveryData[1]['status'],
       );
-      String receiverStatus =
-          StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
-      _receiveController.text = receiverStatus;
+      // String receiverStatus =
+      //     StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
+      _receiveController.text = "Pending";
     }
     setState(() {});
   }
@@ -110,16 +109,16 @@ class _HomeScreenState extends State<HomeScreen> {
           _deliveryData[0]['status'],
         );
         String senderStatus =
-            StatusSender.typeStatusTag[sendStatus]?.label ?? '';
-        _sendController.text = senderStatus;
+            // StatusSender.typeStatusTag[sendStatus]?.label ?? '';
+            _sendController.text = "Sample";
 
         // Card ล่าง (รับของ) - ใช้ข้อมูลจาก index 1 กับ StatusGetProduct
         StatusType receiveStatus = _getStatusTypeFromString(
           _deliveryData[1]['status'],
         );
-        String receiverStatus =
-            StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
-        _receiveController.text = receiverStatus;
+        // String receiverStatus =
+        //     StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
+        _receiveController.text = "Sample";
       }
     });
   }
@@ -219,20 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           StatusType sendStatus = _getStatusTypeFromString(
                             _deliveryData[0]['status'],
                           );
-                          String statusLabel =
-                              StatusSender.typeStatusTag[sendStatus]?.label ??
-                              '';
-                          print('Voice input for send location');
-                          print(
-                            'StatusSender (${_deliveryData[0]['status']}): $statusLabel',
-                          );
-                          print('Sender: ${_deliveryData[0]['name']}');
-                          print(
-                            'Pickup Address: ${_deliveryData[0]['pickup_address_id']}',
-                          );
-                          print(
-                            'Package Detail: ${_deliveryData[0]['sended_pkg_detail']}',
-                          );
                         }
                       },
                     ),
@@ -250,22 +235,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (_deliveryData.length >= 2) {
                           StatusType receiveStatus = _getStatusTypeFromString(
                             _deliveryData[1]['status'],
-                          );
-                          String statusLabel =
-                              StatusGetProduct
-                                  .typeStatusTag[receiveStatus]
-                                  ?.label ??
-                              '';
-                          print('Voice input for receive location');
-                          print(
-                            'StatusGetProduct (${_deliveryData[1]['status']}): $statusLabel',
-                          );
-                          print('Receiver: ${_deliveryData[1]['name']}');
-                          print(
-                            'Delivery Address: ${_deliveryData[1]['delivery_address_id']}',
-                          );
-                          print(
-                            'Delivered At: ${_deliveryData[1]['delivered_at']}',
                           );
                         }
                       },
