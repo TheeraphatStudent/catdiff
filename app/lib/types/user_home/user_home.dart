@@ -1,3 +1,0 @@
-class SenderUserhome {}
-
-class GetUserhome {}

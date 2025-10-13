@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/address/address_service.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map.widget.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart' hide Actions;
 import 'package:app/widget/header_card.widget.dart';
@@ -17,6 +19,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:app/service/upload/api_upload.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 
 class RegisterPage extends StatefulWidget {
@@ -50,7 +53,11 @@ class _RegisterPageState extends State<RegisterPage>
 
   // Address
   final _addressLocations = AddressLocationsProps(lat: 0, lon: 0);
+  final TextEditingController _addressLocationController = TextEditingController();
   final _addressDetailController = TextEditingController();
+  final FocusNode _addressLocationFocusNode = FocusNode();
+  bool _isLocationSelectorOpened = false;
+  LatLng? _selectedLatLng;
 
   // Image
   var uploadedImage = Rxn<File>();
@@ -104,6 +111,8 @@ class _RegisterPageState extends State<RegisterPage>
     );
     _animationController.forward();
 
+    _addressLocationFocusNode.addListener(_handleLocationFieldFocus);
+
     _profileController.addListener(() {
       if (mounted) {
         setState(() {
@@ -126,12 +135,21 @@ class _RegisterPageState extends State<RegisterPage>
             Flexible(
               child: Form(
                 key: _formKey,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: _buildStepContent(),
-                  ),
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: _buildStepContent(),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -167,9 +185,11 @@ class _RegisterPageState extends State<RegisterPage>
           InputField(
             label: 'ที่อยู่เริ่มต้น(สำหรับสินค้า)',
             type: InputType.line,
-            hintText: 'กรอกที่อยู่',
-            validate: true,
-            errorText: 'กรุณากรอกที่อยู่',
+            hintText: 'เลือกตำแหน่งจากแผนที่',
+            validate: false,
+            controller: _addressLocationController,
+            focusNode: _addressLocationFocusNode,
+            onFocus: _handleLocationFieldFocus,
           ),
           SizedBox(height: 8),
           InputField(
@@ -179,6 +199,12 @@ class _RegisterPageState extends State<RegisterPage>
             validate: true,
             errorText: 'กรุณากรอกรายละเอียดที่อยู่',
             controller: _addressDetailController,
+          ),
+          MapsLocationSelector(
+            isOpened: _isLocationSelectorOpened,
+            isShowingAction: false,
+            onLocationSelected: _handleLocationSelected,
+            onModalClosed: _handleLocationModalClosed,
           ),
           SizedBox(height: 8),
           InputField(
@@ -570,7 +596,58 @@ class _RegisterPageState extends State<RegisterPage>
     }
   }
 
+  void _handleLocationFieldFocus() {
+    if (_addressLocationFocusNode.hasFocus && !_isLocationSelectorOpened) {
+      setState(() => _isLocationSelectorOpened = true);
+    }
+  }
+
+  void _handleLocationSelected(LatLng location) {
+    String? resolvedAddress;
+    if (Get.isRegistered<MapLocationController>()) {
+      resolvedAddress = Get.find<MapLocationController>().locationStatus.value;
+    }
+
+    final String coordinateLabel =
+        '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+
+    final String detailLabel = (resolvedAddress != null && resolvedAddress.isNotEmpty)
+        ? resolvedAddress
+        : coordinateLabel;
+
+    _addressLocationController.text = coordinateLabel;
+    _addressDetailController.text = detailLabel;
+
+    setState(() {
+      _selectedLatLng = location;
+      _addressLocations.lat = location.latitude;
+      _addressLocations.lon = location.longitude;
+    });
+  }
+
+  void _handleLocationModalClosed() {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isLocationSelectorOpened = false);
+    _addressLocationFocusNode.unfocus();
+  }
+
   void _handleRegistration() async {
+    if (_selectedLatLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('กรุณาเลือกที่อยู่จากแผนที่ก่อนสมัครสมาชิก')),
+      );
+      return;
+    }
+
+    if (_addressDetailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ไม่พบข้อมูลรายละเอียดที่อยู่ กรุณาเลือกตำแหน่งอีกครั้ง')),
+      );
+      return;
+    }
+
     try {
       log('Starting registration for ${_selectedRole.name}...');
 
@@ -615,11 +692,19 @@ class _RegisterPageState extends State<RegisterPage>
         }
       }
 
-      // Create user account first
+      // Create address document
+      final addressDetail = _addressDetailController.text.trim();
+      final addressRecord = await AddressService.instance.createAddress(
+        latitude: _addressLocations.lat,
+        longitude: _addressLocations.lon,
+        detail: addressDetail,
+      );
+
+      // Create user account with newly created address
       final result = await UserService.AuthService.createUser(
         userId: _nameController.text,
         phone: _phoneController.text,
-        address: _addressDetailController.text,
+        address: addressRecord.addressId,
         password: _passwordController.text,
         role: _selectedRole,
         profileImageUrl: profileImageUrl,
@@ -783,6 +868,9 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   void dispose() {
     _animationController.dispose();
+    _addressLocationFocusNode.removeListener(_handleLocationFieldFocus);
+    _addressLocationFocusNode.dispose();
+    _addressLocationController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _addressDetailController.dispose();

@@ -1,14 +1,15 @@
 // To parse this JSON data, do
 //
-//     final userHome = userHomeFromJson(jsonString);
+//     final addressInfo = userHomeFromJson(jsonString);
 
 import 'dart:convert';
 
-UserHome userHomeFromJson(String str) => UserHome.fromJson(json.decode(str));
+AddressInfo addressInfoFromJson(String str) =>
+    AddressInfo.fromJson(json.decode(str));
 
-String userHomeToJson(UserHome data) => json.encode(data.toJson());
+String userHomeToJson(AddressInfo data) => json.encode(data.toJson());
 
-class UserHome {
+class AddressInfo {
   String addressId;
   double latitude;
   double longtitude;
@@ -16,7 +17,7 @@ class UserHome {
   String createdAt;
   String updatedAt;
 
-  UserHome({
+  AddressInfo({
     required this.addressId,
     required this.latitude,
     required this.longtitude,
@@ -25,7 +26,7 @@ class UserHome {
     required this.updatedAt,
   });
 
-  factory UserHome.fromJson(Map<String, dynamic> json) => UserHome(
+  factory AddressInfo.fromJson(Map<String, dynamic> json) => AddressInfo(
     addressId: json["address_id"],
     latitude: json["latitude"]?.toDouble(),
     longtitude: json["longtitude"]?.toDouble(),
