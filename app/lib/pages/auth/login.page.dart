@@ -9,12 +9,12 @@ import 'package:flutter/material.dart' hide Actions;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:app/service/auth/user.dart' as UserService;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:app/utils/storage.helper.dart';
 
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:app/widget/header_card.widget.dart';
+import 'package:app/types/user/user_auth.dart' as UserModel;
+import 'package:app/types/raider_auth.dart' as RiderModel;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -99,6 +99,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         '',
       );
 
+      final appData = Provider.of<AppData>(context, listen: false);
+
       // Try user login
       final userResult = await UserService.AuthService.loginUser(
         user_id: cleanPhone,
@@ -108,10 +110,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
       if (userResult['success']) {
         Get.back();
-        String token = (await FirebaseAuth.instance.currentUser!.getIdToken())!;
-        StorageHelper.saveToken(token);
-        StorageHelper.saveRole(UserRole.user);
-        Get.offAllNamed('/user');
+        final UserModel.User userModel = userResult['user'] as UserModel.User;
+        appData.setCurrentUserFromUserModel(userModel);
+        appData.setPreferredRole(UserRole.user);
+
+        Get.offAllNamed('/');
         return;
       }
 
@@ -125,13 +128,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       if (riderResult['success']) {
         log('Rider login successful');
         Get.back();
-        String token = (await FirebaseAuth.instance.currentUser!.getIdToken())!;
-        StorageHelper.saveToken(token);
-        StorageHelper.saveRole(UserRole.rider);
-        // Navigate to rider home
-        Get.offAllNamed('/rider');
+        final RiderModel.Raider riderModel =
+            riderResult['user'] as RiderModel.Raider;
+        appData.setCurrentUserFromRiderModel(riderModel);
+        appData.setPreferredRole(UserRole.rider);
+
+        Get.offAllNamed('/');
       } else {
         Get.back();
+        appData.clearCurrentUser();
         // Both login attempts failed
         _showErrorDialog(
           'เข้าสู่ระบบไม่สำเร็จ',
@@ -142,6 +147,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       Get.back();
 
       log('Login error: $e');
+      Provider.of<AppData>(context, listen: false).clearCurrentUser();
       _showErrorDialog(
         'เกิดข้อผิดพลาด',
         'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
@@ -173,7 +179,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     log("สมัครเป็น$roleText");
 
     final appData = Provider.of<AppData>(context, listen: false);
-    appData.user.setRole(_selectedRole);
+    appData.setPreferredRole(_selectedRole);
 
     Get.toNamed('/register');
   }

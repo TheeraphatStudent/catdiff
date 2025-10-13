@@ -5,17 +5,17 @@ import 'package:app/types/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/service/helper/firebase_connection.dart';
-import 'package:app/types/role.dart';
-import 'package:app/types/user_auth.dart' as UserAuth;
+import 'package:app/types/user/role.dart';
+import 'package:app/types/user/user_auth.dart' as UserAuth;
 
 class AuthService {
   static String _hashPassword(String password) {
     const salt = 'catdiff_salt';
     final saltedPassword = password + salt;
-    
+
     final bytes = utf8.encode(saltedPassword);
     final digest = sha256.convert(bytes);
-    
+
     return digest.toString();
   }
 
@@ -67,7 +67,7 @@ class AuthService {
         };
       } else {
         final hashedPassword = _hashPassword(password);
-        
+
         userData = {
           'user_id': userCredential.user!.uid,
           'name': userId,
@@ -160,8 +160,12 @@ class AuthService {
 
       final userData = doc.data()!;
       final userObject = role == UserRole.rider
-          ? Raider.fromJson(userData) // Raider now includes user_id from userData
-          : UserAuth.User.fromJson(userData); // User already has user_id in userData
+          ? Raider.fromJson(
+              userData,
+            ) // Raider now includes user_id from userData
+          : UserAuth.User.fromJson(
+              userData,
+            ); // User already has user_id in userData
 
       return {'success': true, 'message': 'ล็อคอินสำเร็จ', 'user': userObject};
     } on FirebaseAuthException catch (e) {

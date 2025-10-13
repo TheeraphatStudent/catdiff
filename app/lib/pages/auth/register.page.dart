@@ -21,7 +21,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:app/service/upload/api_upload.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -53,7 +52,8 @@ class _RegisterPageState extends State<RegisterPage>
 
   // Address
   final _addressLocations = AddressLocationsProps(lat: 0, lon: 0);
-  final TextEditingController _addressLocationController = TextEditingController();
+  final TextEditingController _addressLocationController =
+      TextEditingController();
   final _addressDetailController = TextEditingController();
   final FocusNode _addressLocationFocusNode = FocusNode();
   bool _isLocationSelectorOpened = false;
@@ -100,9 +100,9 @@ class _RegisterPageState extends State<RegisterPage>
     super.initState();
     
     final appData = Provider.of<AppData>(context, listen: false);
-    _selectedRole = appData.user.role;
-    
-    _animationController = AnimationController( 
+    _selectedRole = appData.preferredRole;
+
+    _animationController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
@@ -140,7 +140,9 @@ class _RegisterPageState extends State<RegisterPage>
                     return SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
                         child: IntrinsicHeight(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -244,10 +246,7 @@ class _RegisterPageState extends State<RegisterPage>
           SizedBox(height: 16),
           Text(
             'แตะเพื่อเลือกรูปภาพจากแกลเลอรี่หรือกล้อง',
-            style: TextStyle(
-              color: AppColors.grayMedium,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppColors.grayMedium, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           if (_profileController.error != null) ...[
@@ -320,7 +319,9 @@ class _RegisterPageState extends State<RegisterPage>
                 showModalBottomSheet(
                   context: context,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                   ),
                   builder: (BuildContext context) {
                     return SafeArea(
@@ -357,8 +358,14 @@ class _RegisterPageState extends State<RegisterPage>
                             if (vehicleImage.value != null) ...[
                               const Divider(),
                               ListTile(
-                                leading: Icon(Icons.delete, color: Colors.red[600]),
-                                title: Text('Remove Image', style: TextStyle(color: Colors.red[600])),
+                                leading: Icon(
+                                  Icons.delete,
+                                  color: Colors.red[600],
+                                ),
+                                title: Text(
+                                  'Remove Image',
+                                  style: TextStyle(color: Colors.red[600]),
+                                ),
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
@@ -492,15 +499,23 @@ class _RegisterPageState extends State<RegisterPage>
           Row(
             children: [
               Icon(
-                _profileController.hasImage ? Icons.check_circle : Icons.error_outline,
-                color: _profileController.hasImage ? Colors.green : Colors.orange,
+                _profileController.hasImage
+                    ? Icons.check_circle
+                    : Icons.error_outline,
+                color: _profileController.hasImage
+                    ? Colors.green
+                    : Colors.orange,
                 size: 16,
               ),
               SizedBox(width: 8),
               Text(
-                _profileController.hasImage ? 'รูปโปรไฟล์: เลือกแล้ว' : 'รูปโปรไฟล์: ยังไม่ได้เลือก',
+                _profileController.hasImage
+                    ? 'รูปโปรไฟล์: เลือกแล้ว'
+                    : 'รูปโปรไฟล์: ยังไม่ได้เลือก',
                 style: TextStyle(
-                  color: _profileController.hasImage ? Colors.green : Colors.orange,
+                  color: _profileController.hasImage
+                      ? Colors.green
+                      : Colors.orange,
                   fontSize: 14,
                 ),
               ),
@@ -513,15 +528,23 @@ class _RegisterPageState extends State<RegisterPage>
             Row(
               children: [
                 Icon(
-                  vehicleImage.value != null ? Icons.check_circle : Icons.error_outline,
-                  color: vehicleImage.value != null ? Colors.green : Colors.orange,
+                  vehicleImage.value != null
+                      ? Icons.check_circle
+                      : Icons.error_outline,
+                  color: vehicleImage.value != null
+                      ? Colors.green
+                      : Colors.orange,
                   size: 16,
                 ),
                 SizedBox(width: 8),
                 Text(
-                  vehicleImage.value != null ? 'รูปยานพาหนะ: เลือกแล้ว' : 'รูปยานพาหนะ: ยังไม่ได้เลือก',
+                  vehicleImage.value != null
+                      ? 'รูปยานพาหนะ: เลือกแล้ว'
+                      : 'รูปยานพาหนะ: ยังไม่ได้เลือก',
                   style: TextStyle(
-                    color: vehicleImage.value != null ? Colors.green : Colors.orange,
+                    color: vehicleImage.value != null
+                        ? Colors.green
+                        : Colors.orange,
                     fontSize: 14,
                   ),
                 ),
@@ -590,9 +613,9 @@ class _RegisterPageState extends State<RegisterPage>
       }
     } catch (e) {
       log('Error picking vehicle image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -611,7 +634,8 @@ class _RegisterPageState extends State<RegisterPage>
     final String coordinateLabel =
         '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
 
-    final String detailLabel = (resolvedAddress != null && resolvedAddress.isNotEmpty)
+    final String detailLabel =
+        (resolvedAddress != null && resolvedAddress.isNotEmpty)
         ? resolvedAddress
         : coordinateLabel;
 
@@ -643,7 +667,11 @@ class _RegisterPageState extends State<RegisterPage>
 
     if (_addressDetailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ไม่พบข้อมูลรายละเอียดที่อยู่ กรุณาเลือกตำแหน่งอีกครั้ง')),
+        SnackBar(
+          content: Text(
+            'ไม่พบข้อมูลรายละเอียดที่อยู่ กรุณาเลือกตำแหน่งอีกครั้ง',
+          ),
+        ),
       );
       return;
     }
@@ -669,7 +697,9 @@ class _RegisterPageState extends State<RegisterPage>
       String? profileImageUrl;
       if (_profileController.hasImage) {
         log('Uploading profile image...');
-        profileImageUrl = await _profileController.uploadProfile('temp_user_id');
+        profileImageUrl = await _profileController.uploadProfile(
+          'temp_user_id',
+        );
         if (profileImageUrl != null) {
           log('Profile image uploaded successfully: $profileImageUrl');
         } else {
@@ -747,16 +777,23 @@ class _RegisterPageState extends State<RegisterPage>
               ],
             ),
             actions: [
-              TextButton(
+              // TextButton(
+              //   onPressed: () {
+              //     Navigator.of(context).pop();
+              //     if (_selectedRole == UserRole.user) {
+              //       Get.offAllNamed('/user');
+              //     } else {
+              //       Get.offAllNamed('/rider');
+              //     }
+              //   },
+              //   child: Text('เข้าสู่ระบบ'),
+              // ),
+              ButtonActions(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  if (_selectedRole == UserRole.user) {
-                    Get.offAllNamed('/user');
-                  } else {
-                    Get.offAllNamed('/rider');
-                  }
+                  Get.offAllNamed('/login');
                 },
-                child: Text('เข้าสู่แอป'),
+                variant: ButtonVariant.primary,
+                text: "เข้าสู่ระบบ",
               ),
             ],
           ),
@@ -764,7 +801,7 @@ class _RegisterPageState extends State<RegisterPage>
       } else {
         // Close loading dialog
         Navigator.of(context).pop();
-        
+
         // Show error dialog
         showDialog(
           context: context,
@@ -791,9 +828,9 @@ class _RegisterPageState extends State<RegisterPage>
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
-      
+
       log('Registration error: $e');
-      
+
       // Show error dialog
       showDialog(
         context: context,
