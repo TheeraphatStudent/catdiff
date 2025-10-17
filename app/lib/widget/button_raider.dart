@@ -68,8 +68,6 @@ class _RaidCardState extends State<RaidCard> {
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.person, size: 60, color: Colors.grey),
               ),
             ),
             const SizedBox(width: 16),
@@ -79,21 +77,26 @@ class _RaidCardState extends State<RaidCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "สถานะ: ${delivery!.status}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  Row(
+                    children: [
+                      const Spacer(),
+                      Text(
+                        "# ${delivery!.status}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "รหัสที่อยู่จัดส่ง: ${delivery!.deliveryAddressId}",
-                    style: const TextStyle(color: Colors.black54),
+                    // style: const TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "ชื่อผู้ส่ง: ${delivery!.name}",
+                    "รายละเอียดเพิ่มเติม: ${delivery!.name}",
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ],
