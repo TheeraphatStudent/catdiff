@@ -3,7 +3,10 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
+import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -125,15 +128,33 @@ class _RiderListProdState extends State<RiderListProd> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 24,
                 children: [
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
-                  DeliverJobItem(),
+                  DeliverJobItem(
+                    deliveryJob: DeliveryJob(
+                      deliveryId: "Cf-2510001",
+                      status: StatusType.pending,
+                      pickupPkgImagesUrl: [
+                        "https://storage.googleapis.com/lottocat_bucket/uploads/c8230831-13f0-4ea6-b6a8-a5ca9d081e5b.jpeg",
+                      ],
+                      pickupAddress: AddressInfo(
+                        addressId: "",
+                        detail: "Test address detail info!",
+                        latitude: 0,
+                        longtitude: 0,
+                        createdAt: '',
+                        updatedAt: '',
+                      ),
+                      deliveryAddress: AddressInfo(
+                        addressId: "",
+                        detail: "Test address detail info!",
+                        latitude: 0,
+                        longtitude: 0,
+                        createdAt: '',
+                        updatedAt: '',
+                      ),
+                      sender: UserInfo(userId: "", name: "", imagesUrl: ""),
+                      reciver: UserInfo(userId: "", name: "", imagesUrl: ""),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -1,8 +1,9 @@
 import 'package:app/types/address/address.dart';
+import 'package:app/types/status.dart';
 
 class DeliveryJob {
   String deliveryId;
-  String status;
+  StatusType status;
   List<String> pickupPkgImagesUrl;
   AddressInfo pickupAddress;
   AddressInfo deliveryAddress;
