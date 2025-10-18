@@ -51,9 +51,9 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           // initialRoute: ,
-          // initialRoute: '/rider',
+          initialRoute: '/debug',
           getPages: <GetPage<dynamic>>[
-            GetPage(name: '/', page: () => const _RootLoadingChecker()),
+            // GetPage(name: '/', page: () => const _RootLoadingChecker()),
             GetPage(name: '/onboarding', page: () => const OnBoardingPage()),
             GetPage(name: '/login', page: () => const LoginPage()),
             GetPage(name: '/register', page: () => const RegisterPage()),
