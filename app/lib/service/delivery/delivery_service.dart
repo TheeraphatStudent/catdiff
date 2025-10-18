@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/delivery/delivery.dart';
+import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -73,6 +74,10 @@ class DeliveryService {
       log('Error getting deliveries: $e');
       return [];
     }
+  }
+
+  static Future<List<DeliveryJob>> getDeliveryJobs() async {
+    return [];
   }
 
   static Future<List<Delivery>> getDeliveryByUserId(String userId) async {

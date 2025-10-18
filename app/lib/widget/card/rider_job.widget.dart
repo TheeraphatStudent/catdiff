@@ -4,7 +4,6 @@ import 'package:app/config/theme/app_theme.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/tag.widget.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class DeliverJobItem extends StatelessWidget {

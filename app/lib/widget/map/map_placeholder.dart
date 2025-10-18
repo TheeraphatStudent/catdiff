@@ -14,7 +14,7 @@ import 'package:app/widget/map/map_destination.dart';
 import 'package:app/widget/map/map_path_segment.dart';
 import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/map/map_selection_result.dart';
-import 'package:app/types/geolocator.dart';
+import 'package:app/types/address/geolocator.dart';
 
 enum MapPlaceholderMode { view, selector, viewer }
 /*

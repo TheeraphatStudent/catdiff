@@ -1,4 +1,4 @@
-import 'package:app/types/address.dart';
+import 'package:app/types/address/address.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddressService {
