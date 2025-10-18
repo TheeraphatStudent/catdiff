@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           // initialRoute: ,
-          initialRoute: '/slider-debug',
+          initialRoute: '/debug',
           getPages: <GetPage<dynamic>>[
             // GetPage(name: '/', page: () => const _RootLoadingChecker()),
             GetPage(name: '/onboarding', page: () => const OnBoardingPage()),
@@ -101,7 +101,7 @@ class _RootLoadingCheckerState extends State<_RootLoadingChecker> {
                   Get.offNamed('/rider');
                   break;
                 case UserRole.user:
-                  Get.offNamed('/user');
+                  Get.offNamed('/rider');
                   break;
               }
             }

@@ -116,7 +116,7 @@ class OnBoardingPage extends GetView<OnBoardingController> {
                 Positioned(
                   bottom: -100,
                   left: -120,
-                  child: Container(
+                  child: SizedBox(
                     width: 420,
                     height: 590,
                     child: Image(
