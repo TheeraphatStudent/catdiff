@@ -1,10 +1,10 @@
+import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:app/config/share/app_data.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class OnBoardingController extends GetxController {
   void goToLogin() {
@@ -70,9 +70,9 @@ class OnBoardingPage extends GetView<OnBoardingController> {
 
                       // Title text
                       Text(
-                        'ส่งง่าย ไดชัวร์',
+                        'ส่งง่าย ได้ชัวร์',
                         style: TextStyle(
-                          color: const Color(0xFF0A400C), // Primary-Green1
+                          color: AppColors.primary1, // Primary-Green1
                           fontSize: 32,
                           fontFamily: 'Mali',
                           fontWeight: FontWeight.w700,
