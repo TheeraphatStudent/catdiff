@@ -5,10 +5,8 @@ import 'package:app/pages/debug.dart';
 import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
 import 'package:app/pages/rider/raider_listprod.dart';
-import 'package:app/pages/rider/rider_home.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:app/types/user/role.dart';
-import 'package:app/widget/button_raider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -52,17 +50,16 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           // initialRoute: ,
-          initialRoute: '/pend',
+          // initialRoute: '/rider',
           getPages: <GetPage<dynamic>>[
             GetPage(name: '/', page: () => const _RootLandingPage()),
             GetPage(name: '/onboarding', page: () => const OnBoardingPage()),
             GetPage(name: '/login', page: () => const LoginPage()),
             GetPage(name: '/register', page: () => const RegisterPage()),
             GetPage(name: '/user', page: () => const HomeScreen()),
-            GetPage(name: '/rider', page: () => const RiderHome()),
+            GetPage(name: '/rider', page: () => const RiderListProd()),
             GetPage(name: '/debug', page: () => const DebugPage()),
             GetPage(name: '/map-debug', page: () => const MapDebugPage()),
-            GetPage(name: '/pend', page: () => const PendingDeliveriesPage()),
           ],
         );
       },
@@ -84,7 +81,7 @@ class _RootLandingPage extends StatelessWidget {
 
         switch (user.role) {
           case UserRole.rider:
-            return const RiderHome();
+            return const RiderListProd();
           case UserRole.user:
             return const HomeScreen();
         }

@@ -149,7 +149,7 @@ class AuthService {
 
       // ดึงข้อมูลจาก Firestore
       final String collectionName = role == UserRole.rider ? 'rider' : 'user';
-      final doc = await FirebaseHelper().getDocument(
+      final doc = await FirebaseHelper().getDocumentById(
         collection: collectionName,
         documentId: userCredential.user!.uid,
       );

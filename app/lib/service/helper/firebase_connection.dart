@@ -13,12 +13,12 @@ class FirebaseHelper {
   // Firebase Firestore instance - เชื่อมตอไปที่ Firebase Database
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
-  /// ============== Sign out current user ============== 
+  /// ============== Sign out current user ==============
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// ============== Create user with email and password ============== 
+  /// ============== Create user with email and password ==============
   Future<fb.UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
@@ -50,11 +50,34 @@ class FirebaseHelper {
   }
 
   /// ============== Get ==============
-  Future<DocumentSnapshot<Map<String, dynamic>>> getDocument({
+  Future<DocumentSnapshot<Map<String, dynamic>>> getDocumentById({
     required String collection,
     required String documentId,
   }) async {
     return await _firestore.collection(collection).doc(documentId).get();
+  }
+
+  Future<List<DocumentSnapshot<Map<String, dynamic>>>> getDocuments({
+    required String collection,
+  }) async {
+    return await _firestore.collection(collection).get().then((querySnapshot) {
+      return querySnapshot.docs;
+    });
+  }
+
+  Future<List<DocumentSnapshot<Map<String, dynamic>>>> getDocumentsQuery({
+    required String collection,
+    required Map<String, dynamic> where,
+  }) async {
+    Query<Map<String, dynamic>> query = _firestore.collection(collection);
+    
+    where.forEach((field, value) {
+      query = query.where(field, isEqualTo: value);
+    });
+    
+    return await query.get().then((querySnapshot) {
+      return querySnapshot.docs;
+    });
   }
 
   /// ============== Update ==============
