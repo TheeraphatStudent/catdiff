@@ -1,7 +1,11 @@
+import 'package:app/config/share/app_data.dart';
+import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/status_container.widget.dart';
+import 'package:app/widget/profile_img.widget.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
+    final appData = Provider.of<AppData>(context);
     return MainLayout(
       scrollable: false,
       body: Column(
@@ -39,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 4,
                         ),
                         decoration: ShapeDecoration(
-                          color: const Color(0xFFECFFCC) /* Primary-Green5 */,
+                          color: AppColors.primary5,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -57,15 +62,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              'Theeraphat chueanokkhum',
-                              style: TextStyle(
-                                color: const Color(
-                                  0xFF001E01,
-                                ) /* General-Black */,
-                                fontSize: 14,
-                                fontFamily: 'Mali',
-                                fontWeight: FontWeight.w400,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 4.0,
+                              ),
+                              child: Text(
+                                appData.currentUser?.name ?? '???',
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'Mali',
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ),
                           ],
@@ -107,38 +116,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Positioned(
                   right: -24,
                   top: -24,
-                  child: Container(
-                    width: 152,
-                    height: 152,
-                    padding: const EdgeInsets.all(10),
-                    decoration: ShapeDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage("https://placehold.co/152x152"),
-                        fit: BoxFit.cover,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(
-                          width: 1,
-                          color: const Color(0xFF0A400C) /* Primary-Green1 */,
-                        ),
-                        borderRadius: BorderRadius.circular(128),
-                      ),
-                      shadows: [
-                        BoxShadow(
-                          color: Color(0x3F000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 4),
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      spacing: 10,
-                      children: [],
-                    ),
+                  // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
+                  child: ProfileWidgets.avatar(
+                    isEdited: false,
+                    size: ProfileSize.md,
+                    imageUrl: "https://placehold.co/152x152",
+                    // imageUrl: appData.currentUser?.imagesUrl,
                   ),
                 ),
               ],

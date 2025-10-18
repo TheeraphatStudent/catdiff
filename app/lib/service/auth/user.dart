@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:crypto/crypto.dart';
-import 'package:app/types/raider_auth.dart';
+import 'package:app/types/user/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/service/helper/firebase_connection.dart';

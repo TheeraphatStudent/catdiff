@@ -4,7 +4,7 @@
 
 import 'dart:convert';
 
-import 'user/role.dart';
+import 'role.dart';
 
 Raider RaiderFromJson(String str) => Raider.fromJson(json.decode(str));
 

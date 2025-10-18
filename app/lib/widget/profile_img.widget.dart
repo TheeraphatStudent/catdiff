@@ -29,6 +29,7 @@ class ProfileController extends ChangeNotifier {
 
   // Setters
   void setImageUrl(String? url) {
+    log("ProfileController.setImageUrl called with: $url");
     _imageUrl = url;
     _error = null;
     notifyListeners();
@@ -89,7 +90,8 @@ class ProfileController extends ChangeNotifier {
         _selectedFile = null;
         log("Upload successful: $uploadedUrl");
       } else {
-        _error = 'Failed to upload image - please check your internet connection and try again';
+        _error =
+            'Failed to upload image - please check your internet connection and try again';
         log("Upload failed: no URL returned");
       }
 
@@ -99,7 +101,8 @@ class ProfileController extends ChangeNotifier {
       _error = 'Upload failed: ${e.toString()}';
 
       // Provide user-friendly error messages
-      if (e.toString().contains('network') || e.toString().contains('connection')) {
+      if (e.toString().contains('network') ||
+          e.toString().contains('connection')) {
         _error = 'Network error - please check your internet connection';
       } else if (e.toString().contains('timeout')) {
         _error = 'Upload timeout - please try again';
@@ -272,7 +275,7 @@ class ProfileWidget extends StatefulWidget {
   final String? userId;
 
   const ProfileWidget({
-    Key? key,
+    super.key,
     required this.isEdited,
     required this.size,
     this.shape = ProfileShape.circular,
@@ -291,7 +294,7 @@ class ProfileWidget extends StatefulWidget {
     this.placeholder,
     this.autoUpload = false,
     this.userId,
-  }) : super(key: key);
+  });
 
   @override
   State<ProfileWidget> createState() => _ProfileWidgetState();
@@ -315,11 +318,15 @@ class _ProfileWidgetState extends State<ProfileWidget>
 
     if (widget.controller == null) {
       _internalController = ProfileController();
-      if (widget.imageUrl != null) {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
         _internalController!.setImageUrl(widget.imageUrl);
       }
       if (widget.initialImage != null) {
         _internalController!.setSelectedFile(widget.initialImage);
+      }
+    } else {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+        widget.controller!.setImageUrl(widget.imageUrl);
       }
     }
 
@@ -357,6 +364,14 @@ class _ProfileWidgetState extends State<ProfileWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.size != widget.size || oldWidget.shape != widget.shape) {
       _dimensions = ProfileDimensions.getDimensions(widget.size, widget.shape);
+    }
+
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+        _controller.setImageUrl(widget.imageUrl);
+      } else {
+        _controller.clearImage();
+      }
     }
   }
 

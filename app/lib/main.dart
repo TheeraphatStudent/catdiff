@@ -74,7 +74,7 @@ class _RootLandingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppData>(
       builder: (BuildContext context, AppData appData, _) {
-        final AppUser? user = appData.currentUser;
+        final user = appData.currentUser;
 
         Future.microtask(() {
           if (user == null) {

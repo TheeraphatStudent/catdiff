@@ -14,7 +14,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:app/widget/header_card.widget.dart';
 import 'package:app/types/user/user_auth.dart' as UserModel;
-import 'package:app/types/raider_auth.dart' as RiderModel;
+import 'package:app/types/user/raider_auth.dart' as RiderModel;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
