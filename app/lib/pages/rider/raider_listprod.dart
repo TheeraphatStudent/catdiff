@@ -1,10 +1,15 @@
+import 'dart:developer';
+
 import 'package:app/config/share/app_data.dart';
-import 'package:app/widget/button_raider.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:app/types/delivery/delivery.dart';
-import 'package:app/widget/button_raider.dart';
+import 'package:app/config/theme/app_theme.dart';
+import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/delivery/delivery_home.dart';
+import 'package:app/types/user/type.dart';
+import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
 class RiderListProd extends StatefulWidget {
   const RiderListProd({super.key});
@@ -14,140 +19,115 @@ class RiderListProd extends StatefulWidget {
 }
 
 class _RiderListProdState extends State<RiderListProd> {
-  late Future<List<Delivery>> _pendingDeliveries;
-  String statusMessage = ' ';
-  int deliveryCount = 0;
-
-  final AppData _appData = AppData();
-
-  @override
-  void initState() {
-    super.initState();
-    _pendingDeliveries = Future.value([]);
-    _updateStatus();
-  }
-
-  Future<void> _updateStatus() async {
-    final deliveries = await _pendingDeliveries;
-    setState(() {
-      deliveryCount = deliveries.length;
-      if (deliveryCount == 0) {
-        statusMessage = 'ไม่มีพัสดุจัดส่งหรือรอรับ';
-      } else {
-        statusMessage = 'มีพัสดุรอจัดส่ง $deliveryCount รายการ';
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(180),
-        child: AppBar(
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          flexibleSpace: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final appData = Provider.of<AppData>(context);
+    return MainLayout(
+      scrollable: false,
+      body: Column(
+        children: [
+          SizedBox(
+            width: MediaQuery.of(context).size.width,
+            height: 152,
+            child: Stack(
               children: [
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: 6,
                     children: [
-                      FutureBuilder<List<Delivery>>(
-                        future: _pendingDeliveries,
-                        builder: (context, snapshot) {
-                          String displayName =
-                              _appData.currentUser?.name ?? 'ผู้ใช้';
-                          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                            displayName =
-                                snapshot.data!.first.name ??
-                                _appData.currentUser?.name ??
-                                'ผู้ใช้';
-                          }
-                          return Text(
-                            displayName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: ShapeDecoration(
+                          color: AppColors.primary5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          shadows: [
+                            BoxShadow(
+                              color: Color(0x3F819067),
+                              blurRadius: 8,
+                              offset: Offset(0, 1.50),
+                              spreadRadius: 0,
                             ),
-                          );
-                        },
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 4.0,
+                              ),
+                              child: Text(
+                                appData.currentUser?.name ?? '???',
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'Mali',
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      FutureBuilder<List<Delivery>>(
-                        future: _pendingDeliveries,
-                        builder: (context, snapshot) {
-                          int count = snapshot.data?.length ?? 0;
-                          statusMessage = 'มีพัสดุรอจัดส่ง $count รายการ';
-                          return Text(
-                            statusMessage,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[500],
-                            ),
-                          );
-                        },
+                      SizedBox(height: 2),
+                      Text(
+                        'ว่างงาน',
+                        style: TextStyle(
+                          color: const Color(0xFF819067) /* Primary-Green2 */,
+                          fontSize: 10,
+                          fontFamily: 'Mali',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                FutureBuilder<List<Delivery>>(
-                  future: _pendingDeliveries,
-                  builder: (context, snapshot) {
-                    String? profileImage = _appData.currentUser?.imagesUrl;
+                Positioned(
+                  right: -22,
+                  top: -22,
+                  // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
+                  child: ProfileWidgets.avatar(
+                    isEdited: false,
+                    size: ProfileSize.md,
+                    // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
+                    imageUrl: appData.currentUser?.imagesUrl,
+                    onPressed: () {
+                      log("On preseed work");
 
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                      profileImage =
-                          snapshot.data!.first.profileImageUrl ??
-                          _appData.currentUser?.imagesUrl;
-                    }
-                    return ProfileWidgets.avatar(
-                      isEdited: false,
-                      imageUrl: profileImage,
-                      size: ProfileSize.sm,
-                      shape: ProfileShape.circular,
-                      config: ProfileWidgetConfig.light,
-                    );
-                  },
+                      Get.offNamed('/profile');
+                    },
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-      body: FutureBuilder<List<Delivery>>(
-        future: _pendingDeliveries,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No pending deliveries'));
-          }
-
-          final deliveries = snapshot.data!;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: deliveries.length,
-            itemBuilder: (context, index) {
-              final delivery = deliveries[index];
-              return RaidCard(documentId: delivery.deliveryId);
-            },
-          );
-        },
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [DeliverJobItem()],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

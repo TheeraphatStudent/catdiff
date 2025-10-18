@@ -6,6 +6,53 @@ import 'package:app/types/status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DeliveryService {
+  static const String _counterCollection = 'delivery_counters';
+
+  static Future<String> _generateDeliveryId() async {
+    try {
+      final now = DateTime.now();
+      final yearMonth =
+          '${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}';
+      final counterId = 'fc-$yearMonth';
+
+      final counterRef = FirebaseFirestore.instance
+          .collection(_counterCollection)
+          .doc(counterId);
+
+      return await FirebaseFirestore.instance.runTransaction((
+        transaction,
+      ) async {
+        final counterDoc = await transaction.get(counterRef);
+
+        int currentCount;
+        if (!counterDoc.exists) {
+          currentCount = 1;
+        } else {
+          currentCount = (counterDoc.data()?['count'] ?? 0) + 1;
+
+          if (currentCount > 999) {
+            currentCount = 1;
+          }
+        }
+
+        // Update counter
+        transaction.set(counterRef, {
+          'count': currentCount,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+
+        final deliveryId =
+            'fc-$yearMonth${currentCount.toString().padLeft(3, '0')}';
+        log('Generated delivery ID: $deliveryId');
+
+        return deliveryId;
+      });
+    } catch (e) {
+      log('Error generating delivery ID: $e');
+      return 'fc-${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
   static Future<List<Delivery>> getDeliveries() async {
     try {
       final response = await FirebaseHelper().getDocuments(
@@ -82,17 +129,16 @@ class DeliveryService {
       deliveryData['created_at'] = now;
       deliveryData['updated_at'] = now;
 
-      // Generate new document ID
-      final docRef = FirebaseFirestore.instance.collection('delivery').doc();
-      deliveryData['delivery_id'] = docRef.id;
+      final customDeliveryId = await _generateDeliveryId();
+      deliveryData['delivery_id'] = customDeliveryId;
 
       await FirebaseHelper().setDocument(
         collection: 'delivery',
-        documentId: docRef.id,
+        documentId: customDeliveryId,
         data: deliveryData,
       );
 
-      log('Created delivery: ${docRef.id}');
+      log('Created delivery: $customDeliveryId');
       return Delivery.fromJson(deliveryData);
     } catch (e) {
       log('Error creating delivery: $e');

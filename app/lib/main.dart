@@ -99,7 +99,8 @@ class _RootLoadingCheckerState extends State<_RootLoadingChecker> {
                   Get.offNamed('/rider');
                   break;
                 case UserRole.user:
-                  Get.offNamed('/user');
+                  // Get.offNamed('/user');
+                  Get.offNamed('/rider');
                   break;
               }
             }

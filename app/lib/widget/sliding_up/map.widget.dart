@@ -70,13 +70,15 @@ class MapsLocationSelector extends StatefulWidget {
 
   const MapsLocationSelector({
     super.key,
+
     this.onOpenModal,
-    this.onLocationSelected,
-    this.onMapSearch,
+    this.onModalClosed,
     this.isShowingAction = false,
     this.isOpened = false,
+
+    this.onLocationSelected,
+    this.onMapSearch,
     this.onConfirmLocation,
-    this.onModalClosed,
     this.distanceStrategy = MapRouteDistanceStrategy.distanceMatrixPreferred,
     this.routesClientConfig,
   });

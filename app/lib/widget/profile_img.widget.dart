@@ -16,6 +16,8 @@ class ProfileController extends ChangeNotifier {
   String? _uploadedUrl;
   bool _isUploading = false;
   String? _error;
+  int _loadAttempts = 0;
+  static const int _maxLoadAttempts = 2;
 
   // Getters
   File? get selectedFile => _selectedFile;
@@ -26,12 +28,13 @@ class ProfileController extends ChangeNotifier {
       _selectedFile != null || _imageUrl != null || _uploadedUrl != null;
   String? get error => _error;
   String? get currentImageUrl => _uploadedUrl ?? _imageUrl;
+  bool get canRetryLoad => _loadAttempts < _maxLoadAttempts;
 
-  // Setters
   void setImageUrl(String? url) {
     log("ProfileController.setImageUrl called with: $url");
     _imageUrl = url;
     _error = null;
+    _loadAttempts = 0;
     notifyListeners();
   }
 
@@ -46,6 +49,7 @@ class ProfileController extends ChangeNotifier {
     _imageUrl = null;
     _uploadedUrl = null;
     _error = null;
+    _loadAttempts = 0;
     notifyListeners();
   }
 
@@ -57,6 +61,11 @@ class ProfileController extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  void _incrementLoadAttempt() {
+    _loadAttempts++;
+    log("Image load attempt: $_loadAttempts/$_maxLoadAttempts");
   }
 
   Future<String?> uploadProfile(String userId) async {
@@ -536,6 +545,7 @@ class _ProfileWidgetState extends State<ProfileWidget>
         Widget imageWidget;
 
         if (_controller.selectedFile != null) {
+          // Local file image
           imageWidget = Container(
             width: _dimensions.imageSize,
             height: _dimensions.imageSize,
@@ -549,7 +559,103 @@ class _ProfileWidgetState extends State<ProfileWidget>
               ),
             ),
           );
+        } else if (_controller.currentImageUrl != null &&
+            _controller.currentImageUrl!.isNotEmpty &&
+            _controller.canRetryLoad) {
+          imageWidget = ClipRRect(
+            borderRadius: BorderRadius.circular(_dimensions.imageBorderRadius),
+            child: Image.network(
+              _controller.currentImageUrl!,
+              width: _dimensions.imageSize,
+              height: _dimensions.imageSize,
+              fit: BoxFit.cover,
+              cacheWidth: _dimensions.imageSize.toInt() * 2,
+              cacheHeight: _dimensions.imageSize.toInt() * 2,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _controller._loadAttempts = 0;
+                  });
+                  return child;
+                }
+                return Container(
+                  width: _dimensions.imageSize,
+                  height: _dimensions.imageSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      _dimensions.imageBorderRadius,
+                    ),
+                    color: widget.config.placeholderColor,
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.config.overlayColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                // WidgetsBinding.instance.addPostFrameCallback((_) {
+                //   _controller._incrementLoadAttempt();
+                //   if (_controller.canRetryLoad) {
+                //     log(
+                //       'Image load failed, attempt ${_controller._loadAttempts}/${ProfileController._maxLoadAttempts}',
+                //     );
+                //   }
+                // });
+
+                return Container(
+                  width: _dimensions.imageSize,
+                  height: _dimensions.imageSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      _dimensions.imageBorderRadius,
+                    ),
+                    color: widget.config.placeholderColor,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 24,
+                    color: widget.config.placeholderIconColor,
+                  ),
+                );
+              },
+            ),
+          );
+        } else if (_controller.currentImageUrl != null &&
+            _controller.currentImageUrl!.isNotEmpty &&
+            !_controller.canRetryLoad) {
+          // log(
+          //   'Image retry limit exceeded (${_controller._loadAttempts}/${ProfileController._maxLoadAttempts}), showing error state',
+          // );
+          imageWidget = Container(
+            width: _dimensions.imageSize,
+            height: _dimensions.imageSize,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(
+                _dimensions.imageBorderRadius,
+              ),
+              color: widget.config.placeholderColor,
+            ),
+            child: Icon(
+              Icons.error_outline,
+              size: 24,
+              color: widget.config.placeholderIconColor,
+            ),
+          );
         } else {
+          // Placeholder
           imageWidget = Container(
             width: _dimensions.imageSize,
             height: _dimensions.imageSize,
