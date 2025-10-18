@@ -75,18 +75,23 @@ class _RootLandingPage extends StatelessWidget {
     return Consumer<AppData>(
       builder: (BuildContext context, AppData appData, _) {
         final AppUser? user = appData.currentUser;
-        if (user == null) {
-          return const OnBoardingPage();
-        }
 
-        switch (user.role) {
-          case UserRole.rider:
-            return const RiderListProd();
-          case UserRole.user:
-            return const HomeScreen();
-          default:
-            throw Exception('Unknown user role: ${user.role}');
-        }
+        Future.microtask(() {
+          if (user == null) {
+            Get.offNamed('/onboarding');
+          } else {
+            switch (user.role) {
+              case UserRole.rider:
+                Get.offNamed('/rider');
+                break;
+              case UserRole.user:
+                Get.offNamed('/user');
+                break;
+            }
+          }
+        });
+
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }

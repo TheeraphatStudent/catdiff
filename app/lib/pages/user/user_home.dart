@@ -1,46 +1,7 @@
-import 'package:app/config/theme/app_theme.dart';
-import 'package:app/types/status.dart';
-import 'package:flutter/material.dart';
-
-class DeliveryHome {
-  List<Map> getDeliveryMockDataFormFirebase() {
-    return [
-      {
-        "profileImageUrl": "https://cataas.com/cat",
-        "name": "Alice Johnson",
-        "status": "pending",
-        "delivery_id": "DEL12345",
-        "pickup_address_id": "ADDR1001",
-        "delivery_address_id": "ADDR2001",
-        "pickup_pkg_images_url": [
-          "https://example.com/packages/pkg1_img1.png",
-          "https://example.com/packages/pkg1_img2.png",
-        ],
-        "created_at": "2025-09-29T10:15:00Z",
-        "updated_at": "2025-09-29T11:00:00Z",
-        "delivered_at": null,
-        "pickup_at": null,
-        "sended_pkg_detail": "Small box, fragile",
-        "sended_pkg_img_url": "https://example.com/packages/pkg1_main.png",
-      },
-      {
-        "profileImageUrl": "https://example.com/images/user2.png",
-        "name": "Michael Smith",
-        "status": "riding",
-        "delivery_id": "DEL67890",
-        "pickup_address_id": "ADDR1002",
-        "delivery_address_id": "ADDR2002",
-        "pickup_pkg_images_url": ["https://example.com/packages/pkg2_img1.png"],
-        "created_at": "2025-09-28T08:00:00Z",
-        "updated_at": "2025-09-28T12:30:00Z",
-        "delivered_at": "2025-09-28T12:00:00Z",
-        "pickup_at": "2025-09-28T09:00:00Z",
-        "sended_pkg_detail": "Medium parcel, electronics",
-        "sended_pkg_img_url": "https://example.com/packages/pkg2_main.png",
-      },
-    ];
-  }
-}
+import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/user/type.dart';
+import 'package:app/widget/card/status_container.widget.dart';
+import 'package:flutter/cupertino.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,308 +11,158 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _sendController = TextEditingController();
-  final TextEditingController _receiveController = TextEditingController();
-  final DeliveryHome _deliveryHome = DeliveryHome();
-
-  int _selectedDeliveryIndex = 0;
-  List<Map> _deliveryData = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDeliveryData();
-  }
-
-  void _loadDeliveryData() {
-    _deliveryData = _deliveryHome.getDeliveryMockDataFormFirebase();
-    if (_deliveryData.isNotEmpty && _deliveryData.length >= 2) {
-      // Card บน (ส่งของ) - ใช้ข้อมูลจาก index 0 กับ StatusSender
-      StatusType sendStatus = _getStatusTypeFromString(
-        _deliveryData[0]['status'],
-      );
-      // String senderStatus = StatusSender.typeStatusTag[sendStatus]?.label ?? '';
-      _sendController.text = "pending";
-
-      // Card ล่าง (รับของ) - ใช้ข้อมูลจาก index 1 กับ StatusGetProduct
-      StatusType receiveStatus = _getStatusTypeFromString(
-        _deliveryData[1]['status'],
-      );
-      // String receiverStatus =
-      //     StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
-      _receiveController.text = "Pending";
-    }
-    setState(() {});
-  }
-
-  StatusType _getStatusTypeFromString(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return StatusType.pending;
-      case 'receiving':
-        return StatusType.receiving;
-      case 'riding':
-        return StatusType.riding;
-      case 'success':
-        return StatusType.success;
-      default:
-        return StatusType.pending;
-    }
-  }
-
-  void _changeDelivery(int index) {
-    setState(() {
-      _selectedDeliveryIndex = index;
-
-      if (_deliveryData.length >= 2) {
-        // Card บน (ส่งของ) - ใช้ข้อมูลจาก index 0 กับ StatusSender
-        StatusType sendStatus = _getStatusTypeFromString(
-          _deliveryData[0]['status'],
-        );
-        String senderStatus =
-            // StatusSender.typeStatusTag[sendStatus]?.label ?? '';
-            _sendController.text = "Sample";
-
-        // Card ล่าง (รับของ) - ใช้ข้อมูลจาก index 1 กับ StatusGetProduct
-        StatusType receiveStatus = _getStatusTypeFromString(
-          _deliveryData[1]['status'],
-        );
-        // String receiverStatus =
-        //     StatusGetProduct.typeStatusTag[receiveStatus]?.label ?? '';
-        _receiveController.text = "Sample";
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // ดึงข้อมูลผู้ใช้งานปัจจุบัน
-    String userName = _deliveryData.isNotEmpty
-        ? _deliveryData[_selectedDeliveryIndex]['name'] ??
-              'Theeraphat chueanokkhum'
-        : 'Theeraphat chueanokkhum';
-
-    String userRole = _deliveryData.isNotEmpty
-        ? 'ID: ${_deliveryData[_selectedDeliveryIndex]['delivery_id']}'
-        : 'ไรเดอร์ส่งของรวดเร็ว';
-
-    String? profileImageUrl = _deliveryData.isNotEmpty
-        ? _deliveryData[_selectedDeliveryIndex]['profileImageUrl']
-        : null;
-
-    // ดึงข้อมูลสถานะ
-    StatusType currentStatus = _deliveryData.isNotEmpty
-        ? _getStatusTypeFromString(
-            _deliveryData[_selectedDeliveryIndex]['status'],
-          )
-        : StatusType.pending;
-
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section - แสดงข้อมูลผู้ใช้งาน
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.black,
+    return MainLayout(
+      scrollable: false,
+      body: Column(
+        children: [
+          SizedBox(
+            width: MediaQuery.of(context).size.width,
+            height: 152,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 6,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: ShapeDecoration(
+                          color: const Color(0xFFECFFCC) /* Primary-Green5 */,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          shadows: [
+                            BoxShadow(
+                              color: Color(0x3F819067),
+                              blurRadius: 8,
+                              offset: Offset(0, 1.50),
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Theeraphat chueanokkhum',
+                              style: TextStyle(
+                                color: const Color(
+                                  0xFF001E01,
+                                ) /* General-Black */,
+                                fontSize: 14,
+                                fontFamily: 'Mali',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: ShapeDecoration(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          userRole,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.grayMedium,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          spacing: 8,
+                          children: [
+                            Text(
+                              'ไม่มีพัสดุจัดส่งหรือรอรับ',
+                              style: TextStyle(
+                                color: const Color(
+                                  0xFF819067,
+                                ) /* Primary-Green2 */,
+                                fontSize: 8,
+                                fontFamily: 'Mali',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: -24,
+                  top: -24,
+                  child: Container(
+                    width: 152,
+                    height: 152,
+                    padding: const EdgeInsets.all(10),
+                    decoration: ShapeDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage("https://placehold.co/152x152"),
+                        fit: BoxFit.cover,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                          width: 1,
+                          color: const Color(0xFF0A400C) /* Primary-Green1 */,
+                        ),
+                        borderRadius: BorderRadius.circular(128),
+                      ),
+                      shadows: [
+                        BoxShadow(
+                          color: Color(0x3F000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 4),
+                          spreadRadius: 0,
                         ),
                       ],
                     ),
-                  ),
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: AppColors.grayLight,
-                    backgroundImage: profileImageUrl != null
-                        ? NetworkImage(profileImageUrl)
-                        : null,
-                    child: profileImageUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 40,
-                            color: AppColors.grayMedium,
-                          )
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-
-            // Main Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // ส่งของ Card (บน) - ใช้ข้อมูลจาก index 0 กับ StatusSender
-                    _buildDeliveryCard(
-                      title: 'ส่งของ',
-                      placeholder: 'ใส่ที่อยู่ของคุณ',
-                      controller: _sendController,
-                      gradient: AppColors.gradientSender,
-                      onVoicePressed: () {
-                        // ใช้โมเดล StatusSender จาก index 0
-                        if (_deliveryData.isNotEmpty) {
-                          StatusType sendStatus = _getStatusTypeFromString(
-                            _deliveryData[0]['status'],
-                          );
-                        }
-                      },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      spacing: 10,
+                      children: [],
                     ),
-
-                    const SizedBox(height: 20),
-
-                    // รับของ Card (ล่าง) - ใช้ข้อมูลจาก index 1 กับ StatusGetProduct
-                    _buildDeliveryCard(
-                      title: 'รับของ',
-                      placeholder: 'ใส่ปลายทางของคุณ',
-                      controller: _receiveController,
-                      gradient: AppColors.gradientRecever,
-                      onVoicePressed: () {
-                        // ใช้โมเดล StatusGetProduct จาก index 1
-                        if (_deliveryData.length >= 2) {
-                          StatusType receiveStatus = _getStatusTypeFromString(
-                            _deliveryData[1]['status'],
-                          );
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // ปุ่มสลับ Delivery (สำหรับทดสอบ)
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeliveryCard({
-    required String title,
-    required String placeholder,
-    required TextEditingController controller,
-    required Gradient gradient,
-    required VoidCallback onVoicePressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.grayMedium, width: 2),
-        borderRadius: BorderRadius.circular(20),
-        color: AppColors.white,
-      ),
-      child: Column(
-        children: [
-          // Title with gradient
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-              ),
-            ),
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.black,
-              ),
-            ),
-          ),
-
-          // Input Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.grayLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.grayMedium),
-                    ),
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(
-                        hintText: placeholder,
-                        hintStyle: const TextStyle(
-                          color: AppColors.grayMedium,
-                          fontSize: 14,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Voice Button
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.primary5,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.grayMedium, width: 2),
-                  ),
-                  child: IconButton(
-                    onPressed: onVoicePressed,
-                    icon: const Icon(
-                      Icons.play_arrow,
-                      color: AppColors.primary1,
-                      size: 28,
-                    ),
-                    padding: const EdgeInsets.all(12),
                   ),
                 ),
               ],
             ),
           ),
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    StatusContainer(type: UserType.sender),
+                    const SizedBox(height: 48),
+                    StatusContainer(type: UserType.receiver),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _sendController.dispose();
-    _receiveController.dispose();
-    super.dispose();
   }
 }
