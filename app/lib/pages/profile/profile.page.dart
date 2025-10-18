@@ -168,21 +168,31 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Close button
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: SizedBox(
-                      width: 52,
-                      child: ButtonActions(
-                        variant: ButtonVariant.danger,
-                        icon: Icons.close,
-                        onPressed: () {
-                          Get.back();
-                          Get.offNamed('/');
-                        },
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ButtonActions(
+                          variant: ButtonVariant.danger,
+                          icon: Icons.logout,
+                          onPressed: () {
+                            AuthService.logout();
+                            Get.offNamed('/');
+                          },
+                        ),
+                        ButtonActions(
+                          variant: ButtonVariant.danger,
+                          icon: Icons.close,
+                          onPressed: () {
+                            Get.back();
+                            Get.offNamed('/');
+                          },
+                        ),
+                      ],
                     ),
                   ),
+
                   SizedBox(height: 20),
 
                   Stack(

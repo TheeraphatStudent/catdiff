@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:app/config/share/app_data.dart';
 import 'package:crypto/crypto.dart';
 import 'package:app/types/user/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/user/role.dart';
 import 'package:app/types/user/user_auth.dart' as UserAuth;
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
 class AuthService {
   static String _hashPassword(String password) {
@@ -21,7 +24,20 @@ class AuthService {
 
   // Logout
   static Future<void> logout() async {
-    await FirebaseHelper().signOut();
+    try {
+      final context = Get.context;
+      if (context != null) {
+        final appData = Provider.of<AppData>(context, listen: false);
+        appData.clearCurrentUser();
+        log('AppData cleared successfully');
+      }
+
+      await FirebaseHelper().signOut();
+      log('User logged out successfully');
+    } catch (e) {
+      log('Error during logout: $e');
+      await FirebaseHelper().signOut();
+    }
   }
 
   static Future<Map<String, dynamic>> createUser({
