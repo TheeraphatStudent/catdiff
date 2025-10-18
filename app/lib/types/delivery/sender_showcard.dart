@@ -9,7 +9,7 @@ SenderJob senderJobFromJson(String str) => SenderJob.fromJson(json.decode(str));
 String senderJobToJson(SenderJob data) => json.encode(data.toJson());
 
 class SenderJob {
-  String deliveryId;
+  String sendedName;
   List<String> pickupPkgImagesUrl;
   String pickupAddressId;
   String deliveryAddressId;
@@ -19,7 +19,7 @@ class SenderJob {
   Address deliveryAddress;
 
   SenderJob({
-    required this.deliveryId,
+    required this.sendedName,
     required this.pickupPkgImagesUrl,
     required this.pickupAddressId,
     required this.deliveryAddressId,
@@ -30,7 +30,7 @@ class SenderJob {
   });
 
   factory SenderJob.fromJson(Map<String, dynamic> json) => SenderJob(
-    deliveryId: json["delivery_id"],
+    sendedName: json["sended_name"],
     pickupPkgImagesUrl: List<String>.from(
       json["pickup_pkg_images_url"].map((x) => x),
     ),
@@ -43,7 +43,7 @@ class SenderJob {
   );
 
   Map<String, dynamic> toJson() => {
-    "delivery_id": deliveryId,
+    "sended_name": sendedName,
     "pickup_pkg_images_url": List<dynamic>.from(
       pickupPkgImagesUrl.map((x) => x),
     ),
