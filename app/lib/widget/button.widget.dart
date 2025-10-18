@@ -16,9 +16,11 @@ class ButtonActions extends StatefulWidget {
     required this.variant,
     this.theme,
     this.onPressed,
-    this.icon,
     this.onLabelPressed,
+
+    this.icon,
     this.iconPosition = IconPosition.right,
+
     this.height = 48,
     this.width = ButtonWidth.fit,
   });

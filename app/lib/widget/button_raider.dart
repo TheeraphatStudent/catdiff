@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:app/types/delivery.dart';
+import 'package:app/types/delivery/delivery.dart';
 
 class RaidCard extends StatefulWidget {
   final String documentId;

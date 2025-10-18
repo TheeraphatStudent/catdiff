@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
-import 'package:app/types/delivery.dart';
+import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

@@ -2,7 +2,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:app/widget/button_raider.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:app/types/delivery.dart';
+import 'package:app/types/delivery/delivery.dart';
 import 'package:app/widget/button_raider.dart';
 import 'package:app/widget/profile_img.widget.dart';
 

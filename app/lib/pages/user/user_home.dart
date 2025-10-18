@@ -1,6 +1,7 @@
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -80,42 +81,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: ShapeDecoration(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          spacing: 8,
-                          children: [
-                            Text(
-                              'ไม่มีพัสดุจัดส่งหรือรอรับ',
-                              style: TextStyle(
-                                color: const Color(
-                                  0xFF819067,
-                                ) /* Primary-Green2 */,
-                                fontSize: 8,
-                                fontFamily: 'Mali',
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
+                      SizedBox(height: 2),
+                      Text(
+                        'ไม่มีพัสดุจัดส่งหรือรอรับ',
+                        style: TextStyle(
+                          color: const Color(0xFF819067) /* Primary-Green2 */,
+                          fontSize: 10,
+                          fontFamily: 'Mali',
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Positioned(
-                  right: -16,
-                  top: -16,
+                  right: -22,
+                  top: -22,
                   // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
                   child: ProfileWidgets.avatar(
                     isEdited: false,
@@ -130,15 +111,49 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 32,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    StatusContainer(type: UserType.sender),
+                    StatusContainer(
+                      type: UserType.sender,
+                      deliveryStatDisplayItems: [
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                        DeliveryStatDisplayItem(
+                          deliveryId: "Sample",
+                          status: "",
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 48),
-                    StatusContainer(type: UserType.receiver),
+                    StatusContainer(
+                      type: UserType.receiver,
+                      deliveryStatDisplayItems: [],
+                    ),
                   ],
                 ),
               ),
