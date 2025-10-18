@@ -3,6 +3,23 @@ import 'package:flutter/material.dart';
 
 enum InputType { fill, line }
 
+// 8, 12, 16
+
+enum FontSize { xs, sm, md }
+
+extension FontSizeExtension on FontSize {
+  double get value {
+    switch (this) {
+      case FontSize.xs:
+        return 8;
+      case FontSize.sm:
+        return 12;
+      case FontSize.md:
+        return 16;
+    }
+  }
+}
+
 class InputField extends StatefulWidget {
   final String? label;
   final String hintText;
@@ -12,6 +29,8 @@ class InputField extends StatefulWidget {
   final Widget? suffixIcon;
   final String? errorText;
   final FocusNode? focusNode;
+  final FontSize? fontSize;
+  final bool? multiline;
 
   final bool validate;
   final bool obscureText;
@@ -20,6 +39,7 @@ class InputField extends StatefulWidget {
   final Function(String)? onChanged;
   final Function(String)? onSubmitted;
   final VoidCallback? onFocus;
+  final VoidCallback? onSuffixIconTap;
 
   const InputField({
     super.key,
@@ -31,12 +51,15 @@ class InputField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.onFocus,
+    this.onSuffixIconTap,
     this.keyboardType,
     this.obscureText = false,
     this.suffixIcon,
     this.enabled = true,
     this.errorText,
     this.focusNode,
+    this.fontSize = FontSize.md,
+    this.multiline = false,
   });
 
   @override
@@ -135,7 +158,7 @@ class _InputFieldState extends State<InputField> {
             widget.label!,
             style: TextStyle(
               fontFamily: 'Mali',
-              fontSize: 16,
+              fontSize: widget.fontSize?.value,
               fontWeight: FontWeight.w500,
               color: AppColors.primary1.withOpacity(_isFocused ? 1.0 : 0.7),
             ),
@@ -151,6 +174,8 @@ class _InputFieldState extends State<InputField> {
               enabled: widget.enabled,
               obscureText: widget.obscureText,
               keyboardType: widget.keyboardType,
+              minLines: 1,
+              maxLines: widget.multiline! ? 4 : 1,
               onChanged: (value) {
                 _validateInput(value);
                 widget.onChanged?.call(value);
@@ -158,29 +183,32 @@ class _InputFieldState extends State<InputField> {
               onFieldSubmitted: widget.onSubmitted,
               style: TextStyle(
                 fontFamily: 'Mali',
-                fontSize: 16,
+                fontSize: widget.fontSize?.value,
                 color: _getTextColor(),
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 hintStyle: TextStyle(
                   fontFamily: 'Mali',
-                  fontSize: 16,
+                  fontSize: widget.fontSize?.value,
                   color: _getHintColor(),
                 ),
                 suffixIcon: widget.suffixIcon != null
                     ? IconTheme(
                         data: IconThemeData(color: _getIconColor()),
-                        child: widget.suffixIcon!,
+                        child: GestureDetector(
+                          onTap: widget.onSuffixIconTap,
+                          child: widget.suffixIcon!,
+                        ),
                       )
                     : null,
                 filled: widget.type == InputType.fill,
                 fillColor: widget.type == InputType.fill
                     ? _getBackgroundColor()
                     : null,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: widget.fontSize?.value ?? 16,
+                  vertical: (widget.fontSize?.value ?? 16) - 6,
                 ),
                 border: widget.type == InputType.line
                     ? UnderlineInputBorder(
@@ -265,7 +293,7 @@ class _InputFieldState extends State<InputField> {
                     color: _hasError
                         ? AppColors.darkDanger
                         : AppColors.primary1,
-                    fontSize: 12,
+                    fontSize: (widget.fontSize?.value! ?? 16) - 4,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
