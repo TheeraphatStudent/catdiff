@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
@@ -6,6 +8,7 @@ import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -103,6 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     size: ProfileSize.md,
                     // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
                     imageUrl: appData.currentUser?.imagesUrl,
+                    onPressed: () {
+                      log("On preseed work");
+
+                      Get.offNamed('/profile');
+                    },
                   ),
                 ),
               ],
