@@ -8,6 +8,8 @@ class StatusContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String title = (type == UserType.sender) ? "ส่งของ" : "รับของ";
+
     return Container(
       width: 347,
       padding: const EdgeInsets.all(16),
@@ -50,7 +52,7 @@ class StatusContainer extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Text',
+                  title,
                   style: TextStyle(
                     color: const Color(0xFF001E01) /* General-Black */,
                     fontSize: 24,
@@ -61,7 +63,7 @@ class StatusContainer extends StatelessWidget {
               ],
             ),
           ),
-          Container(
+          SizedBox(
             width: double.infinity,
             child: Row(
               mainAxisSize: MainAxisSize.min,

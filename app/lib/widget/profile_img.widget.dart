@@ -273,6 +273,7 @@ class ProfileWidget extends StatefulWidget {
   final String? placeholder;
   final bool autoUpload;
   final String? userId;
+  final VoidCallback? onPressed;
 
   const ProfileWidget({
     super.key,
@@ -294,6 +295,7 @@ class ProfileWidget extends StatefulWidget {
     this.placeholder,
     this.autoUpload = false,
     this.userId,
+    this.onPressed,
   });
 
   @override
@@ -547,24 +549,6 @@ class _ProfileWidgetState extends State<ProfileWidget>
               ),
             ),
           );
-        } else if (_controller.currentImageUrl != null &&
-            _controller.currentImageUrl!.isNotEmpty) {
-          imageWidget = Container(
-            width: _dimensions.imageSize,
-            height: _dimensions.imageSize,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(
-                _dimensions.imageBorderRadius,
-              ),
-              image: DecorationImage(
-                image: NetworkImage(_controller.currentImageUrl!),
-                fit: BoxFit.cover,
-                onError: (error, stackTrace) {
-                  _handleError('Failed to load image from URL');
-                },
-              ),
-            ),
-          );
         } else {
           imageWidget = Container(
             width: _dimensions.imageSize,
@@ -639,19 +623,19 @@ class _ProfileWidgetState extends State<ProfileWidget>
   }
 
   void _onTapDown(TapDownDetails details) {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.forward();
     }
   }
 
   void _onTapUp(TapUpDetails details) {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.reverse();
     }
   }
 
   void _onTapCancel() {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.reverse();
     }
   }
@@ -659,7 +643,7 @@ class _ProfileWidgetState extends State<ProfileWidget>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.isEdited ? _showImageSourceDialog : null,
+      onTap: widget.isEdited ? _showImageSourceDialog : widget.onPressed,
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
@@ -715,6 +699,7 @@ class ProfileWidgets {
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
     bool autoUpload = false,
     String? userId,
+    VoidCallback? onPressed,
   }) {
     return ProfileWidget(
       isEdited: isEdited,
@@ -724,6 +709,7 @@ class ProfileWidgets {
       config: config,
       autoUpload: autoUpload,
       userId: userId,
+      onPressed: onPressed,
     );
   }
 
@@ -732,6 +718,7 @@ class ProfileWidgets {
     String? imageUrl,
     File? initialImage,
     Function(File?)? onImageSelected,
+    VoidCallback? onPressed,
     ProfileSize size = ProfileSize.md,
     ProfileShape shape = ProfileShape.circular,
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
@@ -743,6 +730,7 @@ class ProfileWidgets {
       imageUrl: imageUrl,
       initialImage: initialImage,
       onImageSelected: onImageSelected,
+      onPressed: onPressed,
       config: config,
     );
   }
@@ -750,6 +738,7 @@ class ProfileWidgets {
   static Widget placeholder({
     required ProfileSize size,
     String? text,
+    VoidCallback? onPressed,
     ProfileShape shape = ProfileShape.circular,
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
   }) {
@@ -758,6 +747,7 @@ class ProfileWidgets {
       size: size,
       shape: shape,
       placeholder: text,
+      onPressed: onPressed,
       config: config,
       showEditIcon: false,
     );

@@ -114,14 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Positioned(
-                  right: -24,
-                  top: -24,
+                  right: -16,
+                  top: -16,
                   // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
                   child: ProfileWidgets.avatar(
                     isEdited: false,
                     size: ProfileSize.md,
-                    imageUrl: "https://placehold.co/152x152",
-                    // imageUrl: appData.currentUser?.imagesUrl,
+                    // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
+                    imageUrl: appData.currentUser?.imagesUrl,
                   ),
                 ),
               ],
