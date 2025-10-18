@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/delivery.dart';
+import 'package:app/types/status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DeliveryService {
@@ -76,15 +77,15 @@ class DeliveryService {
     try {
       final now = DateTime.now().toIso8601String();
       final deliveryData = delivery.toJson();
-      
+
       // Set timestamps
       deliveryData['created_at'] = now;
       deliveryData['updated_at'] = now;
-      
+
       // Generate new document ID
       final docRef = FirebaseFirestore.instance.collection('delivery').doc();
       deliveryData['delivery_id'] = docRef.id;
-      
+
       await FirebaseHelper().setDocument(
         collection: 'delivery',
         documentId: docRef.id,
@@ -103,7 +104,7 @@ class DeliveryService {
     try {
       final deliveryData = delivery.toJson();
       deliveryData['updated_at'] = DateTime.now().toIso8601String();
-      
+
       await FirebaseHelper().updateDocument(
         collection: 'delivery',
         documentId: delivery.deliveryId,
@@ -133,7 +134,10 @@ class DeliveryService {
     }
   }
 
-  static Future<Delivery?> updateDeliveryStatus(String deliveryId, String status) async {
+  static Future<Delivery?> updateDeliveryStatus(
+    String deliveryId,
+    StatusType status,
+  ) async {
     try {
       final delivery = await getDeliveryById(deliveryId);
       if (delivery != null) {
@@ -142,17 +146,21 @@ class DeliveryService {
           name: delivery.name,
           status: status,
           deliveryId: delivery.deliveryId,
+          sendedId: delivery.sendedId,
+          receivedId: delivery.receivedId,
           pickupAddressId: delivery.pickupAddressId,
           deliveryAddressId: delivery.deliveryAddressId,
           pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
           createdAt: delivery.createdAt,
           updatedAt: DateTime.now().toIso8601String(),
-          deliveredAt: status == 'delivered' ? DateTime.now().toIso8601String() : delivery.deliveredAt,
+          deliveredAt: status == StatusType.success
+              ? DateTime.now().toIso8601String()
+              : delivery.deliveredAt,
           pickupAt: delivery.pickupAt,
           sendedPkgDetail: delivery.sendedPkgDetail,
           sendedPkgImgUrl: delivery.sendedPkgImgUrl,
         );
-        
+
         return await updateDelivery(updatedDelivery);
       }
       return null;
@@ -160,5 +168,13 @@ class DeliveryService {
       log('Error updating delivery status $deliveryId: $e');
       return null;
     }
+  }
+
+  static Future<Delivery?> updateDeliveryStatusFromString(
+    String deliveryId,
+    String statusString,
+  ) async {
+    final status = StatusTypes().getStatusTypeEnum(statusString);
+    return await updateDeliveryStatus(deliveryId, status);
   }
 }

@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
-import 'package:app/types/role.dart';
+import 'package:app/types/user/role.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:flutter/material.dart' hide Actions;

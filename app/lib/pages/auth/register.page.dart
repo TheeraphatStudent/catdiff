@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/address/address_service.dart';
+import 'package:app/types/user/role.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -11,10 +12,9 @@ import 'package:flutter/material.dart' hide Actions;
 import 'package:app/widget/header_card.widget.dart';
 import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get.dart';
 import 'package:app/service/auth/user.dart' as UserService;
-import 'package:app/types/role.dart';
+import 'package:app/types/user/type.dart';
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -98,7 +98,7 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   void initState() {
     super.initState();
-    
+
     final appData = Provider.of<AppData>(context, listen: false);
     _selectedRole = appData.preferredRole;
 

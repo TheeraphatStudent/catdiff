@@ -1,6 +1,6 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/raider_auth.dart' as RiderModel;
-import 'package:app/types/role.dart';
+import 'package:app/types/user/role.dart';
 import 'package:app/types/user/user_auth.dart' as UserModel;
 import 'package:flutter/material.dart';
 
@@ -69,7 +69,7 @@ class AppUser {
       phone: user.phone,
       addressId: user.addressId,
       imagesUrl: user.imagesUrl,
-      role: _roleFromString(user.role),
+      role: user.role,
       vehicle: AppVehicle.fromUserVehicle(user.verhicle),
     );
   }
@@ -81,17 +81,11 @@ class AppUser {
       phone: rider.phone,
       addressId: rider.addressId,
       imagesUrl: rider.imagesUrl,
-      role: _roleFromString(rider.role),
+      role: rider.role,
       vehicle: AppVehicle.fromRiderVehicle(rider.verhicle),
     );
   }
 
-  static UserRole _roleFromString(String value) {
-    return UserRole.values.firstWhere(
-      (element) => element.name == value,
-      orElse: () => UserRole.user,
-    );
-  }
 }
 
 class AppVehicle {

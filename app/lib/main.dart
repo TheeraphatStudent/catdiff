@@ -84,6 +84,8 @@ class _RootLandingPage extends StatelessWidget {
             return const RiderListProd();
           case UserRole.user:
             return const HomeScreen();
+          default:
+            throw Exception('Unknown user role: ${user.role}');
         }
       },
     );
