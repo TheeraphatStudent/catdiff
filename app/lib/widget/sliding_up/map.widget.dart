@@ -70,13 +70,15 @@ class MapsLocationSelector extends StatefulWidget {
 
   const MapsLocationSelector({
     super.key,
+
     this.onOpenModal,
-    this.onLocationSelected,
-    this.onMapSearch,
+    this.onModalClosed,
     this.isShowingAction = false,
     this.isOpened = false,
+
+    this.onLocationSelected,
+    this.onMapSearch,
     this.onConfirmLocation,
-    this.onModalClosed,
     this.distanceStrategy = MapRouteDistanceStrategy.distanceMatrixPreferred,
     this.routesClientConfig,
   });
@@ -86,7 +88,7 @@ class MapsLocationSelector extends StatefulWidget {
 }
 
 class _MapsLocationSelectorState extends State<MapsLocationSelector> {
-  final MapLocationController controller = Get.put(MapLocationController());
+  late MapLocationController controller;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lonController = TextEditingController();
@@ -110,6 +112,13 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   @override
   void initState() {
     super.initState();
+
+    try {
+      controller = Get.find<MapLocationController>();
+    } catch (e) {
+      controller = Get.put(MapLocationController());
+    }
+
     _selectedLocationWorker = ever<LatLng?>(
       controller.selectedLocation,
       (_) => unawaited(_refreshRoutePreview()),
@@ -1020,6 +1029,15 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
     _searchController.dispose();
     _latController.dispose();
     _lonController.dispose();
+
+    try {
+      if (Get.isRegistered<MapLocationController>()) {
+        Get.delete<MapLocationController>();
+      }
+    } catch (e) {
+      log(e.toString());
+    }
+
     super.dispose();
   }
 }

@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
-import 'package:app/types/role.dart';
+import 'package:app/types/user/role.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:flutter/material.dart' hide Actions;
@@ -14,7 +14,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:app/widget/header_card.widget.dart';
 import 'package:app/types/user/user_auth.dart' as UserModel;
-import 'package:app/types/raider_auth.dart' as RiderModel;
+import 'package:app/types/user/raider_auth.dart' as RiderModel;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -6,23 +6,44 @@ import 'dart:convert';
 
 enum StatusType { pending, receiving, riding, success }
 
-// { <Status_fill> }
-Statustype StatustypeFromJson(String str) =>
-    Statustype.fromJson(json.decode(str));
-String StatustypeToJson(Statustype data) => json.encode(data.toJson());
+class StatusTypes {
+  StatusType getStatusTypeEnum(String status) {
+    switch (status) {
+      case 'pending':
+        return StatusType.pending;
+      case 'receiving':
+        return StatusType.receiving;
+      case 'riding':
+        return StatusType.riding;
+      case 'success':
+        return StatusType.success;
+      default:
+        return StatusType.pending;
+    }
+  }
 
-class Statustype {
-  String id;
-  String status;
-  Statustype({required this.id, required this.status});
-  factory Statustype.fromJson(Map<String, dynamic> json) =>
-      Statustype(id: json["id"], status: json["status"]);
+  String getStatusTypeString(StatusType status) {
+    switch (status) {
+      case StatusType.pending:
+        return 'pending';
+      case StatusType.receiving:
+        return 'receiving';
+      case StatusType.riding:
+        return 'riding';
+      case StatusType.success:
+        return 'success';
+    }
+  }
 
-  Map<String, dynamic> toJson() => {"id": id, "status": status};
+  // Get status meaning
+  String getStatusMeaning(StatusType status) {
+    Map<StatusType, String> statusMap = {
+      StatusType.pending: 'รอไรเดอร์มารับสินค้า',
+      StatusType.receiving: 'ไรเดอร์รับงาน',
+      StatusType.riding: 'ไรเดอร์รับสินค้าแล้วและกำลังเดินทางไปส่ง',
+      StatusType.success: 'ไรเดอร์นำส่งสินค้าแล้ว',
+    };
+
+    return statusMap[status] ?? 'ไม่พบข้อมูล';
+  }
 }
-//
-// [{ <Status_fill> }, { <Status_fill> }, { <Status_fill> }, ...]
-
-class StautsConttainer {}
-
-// =================================

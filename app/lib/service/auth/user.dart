@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:app/config/share/app_data.dart';
 import 'package:crypto/crypto.dart';
-import 'package:app/types/raider_auth.dart';
+import 'package:app/types/user/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/user/role.dart';
 import 'package:app/types/user/user_auth.dart' as UserAuth;
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
 class AuthService {
   static String _hashPassword(String password) {
@@ -21,7 +24,20 @@ class AuthService {
 
   // Logout
   static Future<void> logout() async {
-    await FirebaseHelper().signOut();
+    try {
+      final context = Get.context;
+      if (context != null) {
+        final appData = Provider.of<AppData>(context, listen: false);
+        appData.clearCurrentUser();
+        log('AppData cleared successfully');
+      }
+
+      await FirebaseHelper().signOut();
+      log('User logged out successfully');
+    } catch (e) {
+      log('Error during logout: $e');
+      await FirebaseHelper().signOut();
+    }
   }
 
   static Future<Map<String, dynamic>> createUser({
@@ -149,7 +165,7 @@ class AuthService {
 
       // ดึงข้อมูลจาก Firestore
       final String collectionName = role == UserRole.rider ? 'rider' : 'user';
-      final doc = await FirebaseHelper().getDocument(
+      final doc = await FirebaseHelper().getDocumentById(
         collection: collectionName,
         documentId: userCredential.user!.uid,
       );
@@ -185,6 +201,39 @@ class AuthService {
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateUserProfileById({
+    required String userId,
+    required String name,
+    required String phone,
+    String? imagesUrl,
+    String? addressId,
+  }) async {
+    try {
+      Map<String, dynamic> updateData = {'name': name, 'phone': phone};
+
+      if (imagesUrl != null) {
+        updateData['images_url'] = imagesUrl;
+      }
+      if (addressId != null) {
+        updateData['address_id'] = addressId;
+      }
+
+      await FirebaseHelper().updateDocument(
+        collection: 'user',
+        documentId: userId,
+        data: updateData,
+      );
+
+      return {'success': true, 'message': 'อัปเดตข้อมูลโปรไฟล์สำเร็จ'};
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
         'error': e.toString(),
       };
     }

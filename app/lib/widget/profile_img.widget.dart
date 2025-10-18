@@ -16,6 +16,8 @@ class ProfileController extends ChangeNotifier {
   String? _uploadedUrl;
   bool _isUploading = false;
   String? _error;
+  int _loadAttempts = 0;
+  static const int _maxLoadAttempts = 2;
 
   // Getters
   File? get selectedFile => _selectedFile;
@@ -26,11 +28,13 @@ class ProfileController extends ChangeNotifier {
       _selectedFile != null || _imageUrl != null || _uploadedUrl != null;
   String? get error => _error;
   String? get currentImageUrl => _uploadedUrl ?? _imageUrl;
+  bool get canRetryLoad => _loadAttempts < _maxLoadAttempts;
 
-  // Setters
   void setImageUrl(String? url) {
+    log("ProfileController.setImageUrl called with: $url");
     _imageUrl = url;
     _error = null;
+    _loadAttempts = 0;
     notifyListeners();
   }
 
@@ -45,6 +49,7 @@ class ProfileController extends ChangeNotifier {
     _imageUrl = null;
     _uploadedUrl = null;
     _error = null;
+    _loadAttempts = 0;
     notifyListeners();
   }
 
@@ -56,6 +61,11 @@ class ProfileController extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  void _incrementLoadAttempt() {
+    _loadAttempts++;
+    log("Image load attempt: $_loadAttempts/$_maxLoadAttempts");
   }
 
   Future<String?> uploadProfile(String userId) async {
@@ -89,7 +99,8 @@ class ProfileController extends ChangeNotifier {
         _selectedFile = null;
         log("Upload successful: $uploadedUrl");
       } else {
-        _error = 'Failed to upload image - please check your internet connection and try again';
+        _error =
+            'Failed to upload image - please check your internet connection and try again';
         log("Upload failed: no URL returned");
       }
 
@@ -99,7 +110,8 @@ class ProfileController extends ChangeNotifier {
       _error = 'Upload failed: ${e.toString()}';
 
       // Provide user-friendly error messages
-      if (e.toString().contains('network') || e.toString().contains('connection')) {
+      if (e.toString().contains('network') ||
+          e.toString().contains('connection')) {
         _error = 'Network error - please check your internet connection';
       } else if (e.toString().contains('timeout')) {
         _error = 'Upload timeout - please try again';
@@ -270,9 +282,10 @@ class ProfileWidget extends StatefulWidget {
   final String? placeholder;
   final bool autoUpload;
   final String? userId;
+  final VoidCallback? onPressed;
 
   const ProfileWidget({
-    Key? key,
+    super.key,
     required this.isEdited,
     required this.size,
     this.shape = ProfileShape.circular,
@@ -291,7 +304,8 @@ class ProfileWidget extends StatefulWidget {
     this.placeholder,
     this.autoUpload = false,
     this.userId,
-  }) : super(key: key);
+    this.onPressed,
+  });
 
   @override
   State<ProfileWidget> createState() => _ProfileWidgetState();
@@ -315,11 +329,15 @@ class _ProfileWidgetState extends State<ProfileWidget>
 
     if (widget.controller == null) {
       _internalController = ProfileController();
-      if (widget.imageUrl != null) {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
         _internalController!.setImageUrl(widget.imageUrl);
       }
       if (widget.initialImage != null) {
         _internalController!.setSelectedFile(widget.initialImage);
+      }
+    } else {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+        widget.controller!.setImageUrl(widget.imageUrl);
       }
     }
 
@@ -357,6 +375,14 @@ class _ProfileWidgetState extends State<ProfileWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.size != widget.size || oldWidget.shape != widget.shape) {
       _dimensions = ProfileDimensions.getDimensions(widget.size, widget.shape);
+    }
+
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+        _controller.setImageUrl(widget.imageUrl);
+      } else {
+        _controller.clearImage();
+      }
     }
   }
 
@@ -519,6 +545,7 @@ class _ProfileWidgetState extends State<ProfileWidget>
         Widget imageWidget;
 
         if (_controller.selectedFile != null) {
+          // Local file image
           imageWidget = Container(
             width: _dimensions.imageSize,
             height: _dimensions.imageSize,
@@ -533,7 +560,85 @@ class _ProfileWidgetState extends State<ProfileWidget>
             ),
           );
         } else if (_controller.currentImageUrl != null &&
-            _controller.currentImageUrl!.isNotEmpty) {
+            _controller.currentImageUrl!.isNotEmpty &&
+            _controller.canRetryLoad) {
+          imageWidget = ClipRRect(
+            borderRadius: BorderRadius.circular(_dimensions.imageBorderRadius),
+            child: Image.network(
+              _controller.currentImageUrl!,
+              width: _dimensions.imageSize,
+              height: _dimensions.imageSize,
+              fit: BoxFit.cover,
+              cacheWidth: _dimensions.imageSize.toInt() * 2,
+              cacheHeight: _dimensions.imageSize.toInt() * 2,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _controller._loadAttempts = 0;
+                  });
+                  return child;
+                }
+                return Container(
+                  width: _dimensions.imageSize,
+                  height: _dimensions.imageSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      _dimensions.imageBorderRadius,
+                    ),
+                    color: widget.config.placeholderColor,
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.config.overlayColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                // WidgetsBinding.instance.addPostFrameCallback((_) {
+                //   _controller._incrementLoadAttempt();
+                //   if (_controller.canRetryLoad) {
+                //     log(
+                //       'Image load failed, attempt ${_controller._loadAttempts}/${ProfileController._maxLoadAttempts}',
+                //     );
+                //   }
+                // });
+
+                return Container(
+                  width: _dimensions.imageSize,
+                  height: _dimensions.imageSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      _dimensions.imageBorderRadius,
+                    ),
+                    color: widget.config.placeholderColor,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 24,
+                    color: widget.config.placeholderIconColor,
+                  ),
+                );
+              },
+            ),
+          );
+        } else if (_controller.currentImageUrl != null &&
+            _controller.currentImageUrl!.isNotEmpty &&
+            !_controller.canRetryLoad) {
+          // log(
+          //   'Image retry limit exceeded (${_controller._loadAttempts}/${ProfileController._maxLoadAttempts}), showing error state',
+          // );
           imageWidget = Container(
             width: _dimensions.imageSize,
             height: _dimensions.imageSize,
@@ -541,16 +646,16 @@ class _ProfileWidgetState extends State<ProfileWidget>
               borderRadius: BorderRadius.circular(
                 _dimensions.imageBorderRadius,
               ),
-              image: DecorationImage(
-                image: NetworkImage(_controller.currentImageUrl!),
-                fit: BoxFit.cover,
-                onError: (error, stackTrace) {
-                  _handleError('Failed to load image from URL');
-                },
-              ),
+              color: widget.config.placeholderColor,
+            ),
+            child: Icon(
+              Icons.error_outline,
+              size: 24,
+              color: widget.config.placeholderIconColor,
             ),
           );
         } else {
+          // Placeholder
           imageWidget = Container(
             width: _dimensions.imageSize,
             height: _dimensions.imageSize,
@@ -624,19 +729,19 @@ class _ProfileWidgetState extends State<ProfileWidget>
   }
 
   void _onTapDown(TapDownDetails details) {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.forward();
     }
   }
 
   void _onTapUp(TapUpDetails details) {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.reverse();
     }
   }
 
   void _onTapCancel() {
-    if (widget.isEdited) {
+    if (widget.isEdited || widget.onPressed != null) {
       _animationController.reverse();
     }
   }
@@ -644,7 +749,7 @@ class _ProfileWidgetState extends State<ProfileWidget>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.isEdited ? _showImageSourceDialog : null,
+      onTap: widget.isEdited ? _showImageSourceDialog : widget.onPressed,
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
@@ -700,6 +805,7 @@ class ProfileWidgets {
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
     bool autoUpload = false,
     String? userId,
+    VoidCallback? onPressed,
   }) {
     return ProfileWidget(
       isEdited: isEdited,
@@ -709,6 +815,7 @@ class ProfileWidgets {
       config: config,
       autoUpload: autoUpload,
       userId: userId,
+      onPressed: onPressed,
     );
   }
 
@@ -717,6 +824,7 @@ class ProfileWidgets {
     String? imageUrl,
     File? initialImage,
     Function(File?)? onImageSelected,
+    VoidCallback? onPressed,
     ProfileSize size = ProfileSize.md,
     ProfileShape shape = ProfileShape.circular,
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
@@ -728,6 +836,7 @@ class ProfileWidgets {
       imageUrl: imageUrl,
       initialImage: initialImage,
       onImageSelected: onImageSelected,
+      onPressed: onPressed,
       config: config,
     );
   }
@@ -735,6 +844,7 @@ class ProfileWidgets {
   static Widget placeholder({
     required ProfileSize size,
     String? text,
+    VoidCallback? onPressed,
     ProfileShape shape = ProfileShape.circular,
     ProfileWidgetConfig config = ProfileWidgetConfig.dark,
   }) {
@@ -743,6 +853,7 @@ class ProfileWidgets {
       size: size,
       shape: shape,
       placeholder: text,
+      onPressed: onPressed,
       config: config,
       showEditIcon: false,
     );

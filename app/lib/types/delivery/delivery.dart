@@ -3,6 +3,7 @@
 //     final delivery = deliveryFromJson(jsonString);
 
 import 'dart:convert';
+import 'package:app/types/status.dart';
 
 List<Delivery> deliveryFromJson(String str) =>
     List<Delivery>.from(json.decode(str).map((x) => Delivery.fromJson(x)));
@@ -13,8 +14,11 @@ String deliveryToJson(List<Delivery> data) =>
 class Delivery {
   String profileImageUrl;
   String name;
-  String status;
+  StatusType status;
   String deliveryId;
+  String sendedId;
+  String receivedId;
+
   String pickupAddressId;
   String deliveryAddressId;
   List<String> pickupPkgImagesUrl;
@@ -30,6 +34,8 @@ class Delivery {
     required this.name,
     required this.status,
     required this.deliveryId,
+    required this.sendedId,
+    required this.receivedId,
     required this.pickupAddressId,
     required this.deliveryAddressId,
     required this.pickupPkgImagesUrl,
@@ -44,8 +50,10 @@ class Delivery {
   factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
     profileImageUrl: json["profileImageUrl"],
     name: json["name"],
-    status: json["status"],
+    status: StatusTypes().getStatusTypeEnum(json["status"]),
     deliveryId: json["delivery_id"],
+    sendedId: json["sended_id"],
+    receivedId: json["received_id"],
     pickupAddressId: json["pickup_address_id"],
     deliveryAddressId: json["delivery_address_id"],
     pickupPkgImagesUrl: List<String>.from(
@@ -62,8 +70,10 @@ class Delivery {
   Map<String, dynamic> toJson() => {
     "profileImageUrl": profileImageUrl,
     "name": name,
-    "status": status,
+    "status": StatusTypes().getStatusTypeString(status),
     "delivery_id": deliveryId,
+    "sended_id": sendedId,
+    "received_id": receivedId,
     "pickup_address_id": pickupAddressId,
     "delivery_address_id": deliveryAddressId,
     "pickup_pkg_images_url": List<dynamic>.from(

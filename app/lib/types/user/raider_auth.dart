@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import 'role.dart';
+
 Raider RaiderFromJson(String str) => Raider.fromJson(json.decode(str));
 
 String RaiderToJson(Raider data) => json.encode(data.toJson());
@@ -13,7 +15,7 @@ class Raider {
   String imagesUrl;
   String name;
   String phone;
-  String role;
+  UserRole role;
   String addressId;
   Verhicle verhicle;
 
@@ -32,7 +34,7 @@ class Raider {
     imagesUrl: json["images_url"],
     name: json["name"],
     phone: json["phone"],
-    role: json["role"],
+    role: UserRole.values.firstWhere((e) => e.name == json["role"]),
     addressId: json["address_id"],
     verhicle: Verhicle.fromJson(json["verhicle"]),
   );
@@ -42,7 +44,7 @@ class Raider {
     "images_url": imagesUrl,
     "name": name,
     "phone": phone,
-    "role": role,
+    "role": role.name,
     "address_id": addressId,
     "verhicle": verhicle.toJson(),
   };

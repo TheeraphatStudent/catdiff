@@ -1,11 +1,51 @@
+import 'dart:developer';
+
+import 'package:app/config/share/app_data.dart';
+import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/auth/user.dart';
+import 'package:app/types/user/user_auth.dart' as UserModel;
+import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
-import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/profile_img.widget.dart' as ProfileWidget;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:io';
+import 'package:provider/provider.dart';
 
 class ProfileController extends GetxController {
   var isEditing = false.obs;
+  var isLoading = false.obs;
+
+  late TextEditingController nameController;
+  late TextEditingController phoneController;
+  late TextEditingController addressController;
+
+  final ProfileWidget.ProfileController profileImageController =
+      ProfileWidget.ProfileController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    nameController = TextEditingController();
+    phoneController = TextEditingController();
+    addressController = TextEditingController();
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    super.onClose();
+  }
+
+  void initializeWithUserData(UserModel.User? user) {
+    if (user != null) {
+      nameController.text = user.name;
+      phoneController.text = user.phone;
+      addressController.text = user.addressId;
+      profileImageController.setImageUrl(user.imagesUrl);
+    }
+  }
 
   void toggleEdit() {
     isEditing.value = !isEditing.value;
@@ -13,244 +53,251 @@ class ProfileController extends GetxController {
 
   void cancelEdit() {
     isEditing.value = false;
+    try {
+      final appData = Get.find<AppData>();
+      if (appData.currentUser != null) {
+        initializeWithUserData(appData.currentUser as UserModel.User);
+      }
+    } catch (e) {
+      log(e.toString());
+    }
   }
 
-  void saveProfile() {
-    isEditing.value = false;
-    Get.snackbar('สำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้ว');
+  Future<void> saveProfile() async {
+    try {
+      isLoading.value = true;
+
+      final appData = Get.find<AppData>();
+      final currentUser = appData.currentUser as UserModel.User?;
+
+      if (currentUser == null) {
+        Get.snackbar('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้');
+        return;
+      }
+
+      String? imageUrl = currentUser.imagesUrl;
+      if (profileImageController.selectedFile != null) {
+        final uploadResult = await profileImageController.uploadProfile(
+          currentUser.userId,
+        );
+        if (uploadResult != null) {
+          imageUrl = uploadResult;
+        }
+      }
+
+      final result = await AuthService.updateUserProfileById(
+        userId: currentUser.userId,
+        name: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        imagesUrl: imageUrl,
+        addressId: addressController.text.trim(),
+      );
+
+      if (result['success']) {
+        final updatedUser = UserModel.User(
+          imagesUrl: imageUrl,
+          name: nameController.text.trim(),
+          userId: currentUser.userId,
+          password: currentUser.password,
+          phone: phoneController.text.trim(),
+          addressId: addressController.text.trim(),
+          role: currentUser.role,
+          verhicle: currentUser.verhicle,
+        );
+
+        appData.setCurrentUserFromUserModel(updatedUser);
+
+        isEditing.value = false;
+        Get.snackbar(
+          'สำเร็จ',
+          result['message'] ?? 'บันทึกข้อมูลเรียบร้อยแล้ว',
+        );
+      } else {
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          result['message'] ?? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${e.toString()}',
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
 
-class ProfilePage extends StatelessWidget {
-  final ProfileController controller = Get.put(ProfileController());
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late ProfileController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(ProfileController());
+
+    // Initialize with current user data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appData = Provider.of<AppData>(context, listen: false);
+      if (appData.currentUser != null) {
+        controller.initializeWithUserData(
+          appData.currentUser as UserModel.User,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF5F5DC), // สีครีม
-      appBar: AppBar(
-        backgroundColor: Color(0xFFF5F5DC),
-        elevation: 0,
-        leading: Container(), // ซ่อน back button
-        actions: [
-          Container(
-            margin: EdgeInsets.only(right: 16, top: 8),
-            child: CircleAvatar(
-              backgroundColor: Color(0xFFE8B4B4),
-              radius: 20,
-              child: IconButton(
-                icon: Icon(Icons.close, color: Colors.red, size: 20),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Obx(
-        () => SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(height: 40),
+    return Consumer<AppData>(
+      builder: (context, appData, child) {
+        final currentUser = appData.currentUser as UserModel.User?;
 
-              // Profile Avatar with edit icon when editing
-              Stack(
+        return MainLayout(
+          body: Obx(
+            () => SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ProfileWidgets.avatar(
-                    isEdited: controller.isEditing.value,
-                    size: ProfileSize.xl,
-                  ),
-                  if (controller.isEditing.value)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(width: 40, height: 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ButtonActions(
+                          variant: ButtonVariant.danger,
+                          icon: Icons.logout,
+                          onPressed: () {
+                            AuthService.logout();
+                            Get.offNamed('/');
+                          },
+                        ),
+                        ButtonActions(
+                          variant: ButtonVariant.danger,
+                          icon: Icons.close,
+                          onPressed: () {
+                            Get.back();
+                            Get.offNamed('/');
+                          },
+                        ),
+                      ],
                     ),
-                ],
-              ),
-
-              SizedBox(height: 60),
-
-              // Name Field
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InputField(
-                    label: 'ชื่อ-นามสกุล:',
-                    type: InputType.line,
-                    hintText: 'Hint text',
-                    validate: false,
                   ),
-                ],
-              ),
 
-              SizedBox(height: 40),
+                  SizedBox(height: 20),
 
-              // Phone Field
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InputField(
-                    label: 'เบอร์โทร:',
-                    type: InputType.line,
-                    hintText: 'Hint text',
-                    validate: false,
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 40),
-
-              // Key Field with eye icon
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                  Stack(
                     children: [
-                      Expanded(
-                        child: InputField(
-                          label: 'ทือยู่(สำหรับรับสินค้า):',
-                          type: InputType.line,
-                          hintText: 'Hint text',
-                          validate: false,
-                        ),
+                      ProfileWidget.ProfileWidgets.managed(
+                        controller: controller.profileImageController,
+                        isEdited: controller.isEditing.value,
+                        size: ProfileWidget.ProfileSize.xl,
+                        userId: currentUser?.userId,
                       ),
-                      SizedBox(width: 10),
-                      Container(
-                        padding: EdgeInsets.only(top: 25),
-                        child: CircleAvatar(
-                          backgroundColor: Colors.grey[300],
-                          radius: 20,
-                          child: Icon(
-                            Icons.remove_red_eye_outlined,
-                            color: Colors.grey[600],
-                            size: 20,
-                          ),
+                      if (controller.isEditing.value)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(width: 40, height: 40),
                         ),
+                    ],
+                  ),
+
+                  SizedBox(height: 60),
+
+                  // Name Field
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InputField(
+                        label: 'ชื่อ-นามสกุล:',
+                        type: InputType.line,
+                        hintText: 'กรอกชื่อ-นามสกุล',
+                        validate: false,
+                        controller: controller.nameController,
+                        enabled: controller.isEditing.value,
                       ),
                     ],
                   ),
+
+                  SizedBox(height: 40),
+
+                  // Phone Field
+                  InputField(
+                    label: 'เบอร์โทร:',
+                    type: InputType.line,
+                    hintText: 'กรอกเบอร์โทรศัพท์',
+                    validate: false,
+                    controller: controller.phoneController,
+                    enabled: controller.isEditing.value,
+                  ),
+
+                  SizedBox(height: 40),
+
+                  InputField(
+                    label: 'ที่อยู่(สำหรับรับสินค้า):',
+                    type: InputType.line,
+                    hintText: 'กรอกที่อยู่',
+                    validate: false,
+                    controller: controller.addressController,
+                    enabled: controller.isEditing.value,
+                  ),
+
+                  SizedBox(height: 40),
+
+                  if (controller.isLoading.value)
+                    CircularProgressIndicator()
+                  else
+                    // Buttons - เปลี่ยนตาม editing state
+                    controller.isEditing.value
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: ButtonActions(
+                                  variant: ButtonVariant.danger,
+                                  text: "ย้อนกลับ",
+                                  onPressed: controller.cancelEdit,
+                                  icon: Icons.arrow_back,
+                                  iconPosition: IconPosition.left,
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: ButtonActions(
+                                  variant: ButtonVariant.primary,
+                                  text: "บันทึก",
+                                  onPressed: controller.saveProfile,
+                                  icon: Icons.save,
+                                  iconPosition: IconPosition.right,
+                                ),
+                              ),
+                            ],
+                          )
+                        : SizedBox(
+                            width: 120,
+                            child: ButtonActions(
+                              variant: ButtonVariant.danger,
+                              icon: Icons.edit,
+                              iconPosition: IconPosition.left,
+                              text: "แก้ไข",
+                              onPressed: controller.toggleEdit,
+                            ),
+                          ),
                 ],
               ),
-
-              SizedBox(height: 80),
-
-              // Buttons - เปลี่ยนตาม editing state
-              controller.isEditing.value
-                  ? // Edit mode - 2 buttons
-                    Row(
-                      children: [
-                        // Back Button (สีชมพู)
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: controller.cancelEdit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFE8B4B4),
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.red[400],
-                                  size: 18,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'ย้อนกลับ',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.red[400],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        // Save Button (สีเขียว)
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: controller.saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF8FBC8F),
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'ยืนยัน',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : // Normal mode - single edit button
-                    Container(
-                      width: 120,
-                      child: ElevatedButton(
-                        onPressed: controller.toggleEdit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFE8B4B4),
-                          padding: EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.edit, color: Colors.red[400], size: 16),
-                            SizedBox(width: 8),
-                            Text(
-                              'แก้ไข',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.red[400],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

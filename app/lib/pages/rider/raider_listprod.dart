@@ -1,188 +1,165 @@
-import 'package:app/widget/button_raider.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:app/types/delivery.dart';
-import 'package:app/widget/button_raider.dart';
-import 'package:app/widget/profile_img.widget.dart';
+import 'dart:developer';
 
-class PendingDeliveriesPage extends StatefulWidget {
-  final String? userProfileImage;
-  final String? userName;
-  const PendingDeliveriesPage({Key? key, this.userProfileImage, this.userName})
-    : super(key: key);
+import 'package:app/config/share/app_data.dart';
+import 'package:app/config/theme/app_theme.dart';
+import 'package:app/layout/MainLayout.dart';
+import 'package:app/types/address/address.dart';
+import 'package:app/types/delivery/delivery_home.dart';
+import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/status.dart';
+import 'package:app/types/user/type.dart';
+import 'package:app/widget/card/rider_job.widget.dart';
+import 'package:app/widget/profile_img.widget.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
+
+class RiderListProd extends StatefulWidget {
+  const RiderListProd({super.key});
 
   @override
-  State<PendingDeliveriesPage> createState() => _PendingDeliveriesPageState();
+  State<RiderListProd> createState() => _RiderListProdState();
 }
 
-class _PendingDeliveriesPageState extends State<PendingDeliveriesPage> {
-  late Future<List<Delivery>> _pendingDeliveries;
-  String statusMessage = ' ';
-  int deliveryCount = 0;
-  @override
-  void initState() {
-    super.initState();
-    // _pendingDeliveries = _fetchPendingDeliveries();
-    _updateStatus();
-  }
-
-  Future<void> _updateStatus() async {
-    final deliveries = await _pendingDeliveries;
-    setState(() {
-      deliveryCount = deliveries.length;
-      if (deliveryCount == 0) {
-        statusMessage = 'ไม่มีพัสดุจัดส่งหรือรอรับ';
-      } else {
-        statusMessage = 'มีพัสดุรอจัดส่ง $deliveryCount รายการ';
-      }
-    });
-  }
-
-  // Future<List<Delivery>> _fetchPendingDeliveries() async {
-  //   try {
-  //     final querySnapshot = await FirebaseFirestore.instance
-  //         .collection('Delivery')
-  //         .where('status', isEqualTo: 'pending')
-  //         .get();
-  //     await FirebaseFirestore.instance.collection('Delivery').add({
-  //       "profileImageUrl":
-  //           "https://cdn-icons-png.flaticon.com/512/194/194938.png",
-  //       "name": "bobo",
-  //       "status": "pending",
-  //       "delivery_id": "DEL001",
-  //       "pickup_address_id": "ADDR001",
-  //       "delivery_address_id": "ADDR002",
-  //       "pickup_pkg_images_url": [
-  //         "https://cdn-icons-png.flaticon.com/512/679/679821.png",
-  //       ],
-  //       "created_at": "2025-10-16T10:00:00Z",
-  //       "updated_at": "2025-10-16T10:00:00Z",
-  //       "delivered_at": null,
-  //       "pickup_at": "2025-10-16T09:30:00Z",
-  //       "sended_pkg_detail": "กล่องพัสดุขนาดกลาง",
-  //       "sended_pkg_img_url":
-  //           "https://cdn-icons-png.flaticon.com/512/679/679821.png",
-  //     });
-  //     final deliveries = querySnapshot.docs.map((doc) {
-  //       final data = doc.data();
-  //       data['delivery_id'] = doc.id;
-  //       return Delivery.fromJson(data);
-  //     }).toList();
-
-  //     return deliveries;
-  //   } catch (e) {
-  //     print('Error fetching deliveries: $e');
-  //     rethrow;
-  //   }
-  // }
+class _RiderListProdState extends State<RiderListProd> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(180),
-        child: AppBar(
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          flexibleSpace: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final appData = Provider.of<AppData>(context);
+    return MainLayout(
+      scrollable: false,
+      body: Column(
+        children: [
+          SizedBox(
+            width: MediaQuery.of(context).size.width,
+            height: 152,
+            child: Stack(
               children: [
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: 6,
                     children: [
-                      FutureBuilder<List<Delivery>>(
-                        future: _pendingDeliveries,
-                        builder: (context, snapshot) {
-                          String displayName = widget.userName ?? 'ผู้ใช้';
-                          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                            displayName =
-                                snapshot.data!.first.name ??
-                                widget.userName ??
-                                'ผู้ใช้';
-                          }
-                          return Text(
-                            displayName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: ShapeDecoration(
+                          color: AppColors.primary5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          shadows: [
+                            BoxShadow(
+                              color: Color(0x3F819067),
+                              blurRadius: 8,
+                              offset: Offset(0, 1.50),
+                              spreadRadius: 0,
                             ),
-                          );
-                        },
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 4.0,
+                              ),
+                              child: Text(
+                                appData.currentUser?.name ?? '???',
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'Mali',
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      FutureBuilder<List<Delivery>>(
-                        future: _pendingDeliveries,
-                        builder: (context, snapshot) {
-                          int count = snapshot.data!.length;
-                          statusMessage = 'มีพัสดุรอจัดส่ง $count รายการ';
-                          return Text(
-                            statusMessage,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[500],
-                            ),
-                          );
-                        },
+                      SizedBox(height: 2),
+                      Text(
+                        'ว่างงาน',
+                        style: TextStyle(
+                          color: const Color(0xFF819067) /* Primary-Green2 */,
+                          fontSize: 10,
+                          fontFamily: 'Mali',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                FutureBuilder<List<Delivery>>(
-                  future: _pendingDeliveries,
-                  builder: (context, snapshot) {
-                    String? profileImage = widget.userProfileImage;
+                Positioned(
+                  right: -22,
+                  top: -22,
+                  // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
+                  child: ProfileWidgets.avatar(
+                    isEdited: false,
+                    size: ProfileSize.md,
+                    // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
+                    imageUrl: appData.currentUser?.imagesUrl,
+                    onPressed: () {
+                      log("On preseed work");
 
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                      profileImage =
-                          snapshot.data!.first.profileImageUrl ??
-                          widget.userProfileImage;
-                    }
-                    return ProfileWidgets.avatar(
-                      isEdited: false,
-                      imageUrl: profileImage,
-                      size: ProfileSize.sm,
-                      shape: ProfileShape.circular,
-                      config: ProfileWidgetConfig.light,
-                    );
-                  },
+                      Get.offNamed('/profile');
+                    },
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-      body: FutureBuilder<List<Delivery>>(
-        future: _pendingDeliveries,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No pending deliveries'));
-          }
-
-          final deliveries = snapshot.data!;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: deliveries.length,
-            itemBuilder: (context, index) {
-              final delivery = deliveries[index];
-              return RaidCard(documentId: delivery.deliveryId);
-            },
-          );
-        },
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 24,
+                children: [
+                  DeliverJobItem(
+                    deliveryJob: DeliveryJob(
+                      deliveryId: "Cf-2510001",
+                      status: StatusType.pending,
+                      pickupPkgImagesUrl: [
+                        "https://storage.googleapis.com/lottocat_bucket/uploads/c8230831-13f0-4ea6-b6a8-a5ca9d081e5b.jpeg",
+                      ],
+                      pickupAddress: AddressInfo(
+                        addressId: "",
+                        detail: "Test address detail info!",
+                        latitude: 0,
+                        longtitude: 0,
+                        createdAt: '',
+                        updatedAt: '',
+                      ),
+                      deliveryAddress: AddressInfo(
+                        addressId: "",
+                        detail: "Test address detail info!",
+                        latitude: 0,
+                        longtitude: 0,
+                        createdAt: '',
+                        updatedAt: '',
+                      ),
+                      sender: UserInfo(userId: "", name: "", imagesUrl: ""),
+                      reciver: UserInfo(userId: "", name: "", imagesUrl: ""),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

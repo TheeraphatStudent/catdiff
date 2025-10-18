@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import 'role.dart';
+
 User userFromJson(String str) => User.fromJson(json.decode(str));
 
 String userToJson(User data) => json.encode(data.toJson());
@@ -15,7 +17,7 @@ class User {
   String password;
   String phone;
   String addressId;
-  String role;
+  UserRole role;
   Verhicle verhicle;
 
   User({
@@ -36,7 +38,7 @@ class User {
     password: json["password"],
     phone: json["phone"],
     addressId: json["address_id"],
-    role: json["role"],
+    role: UserRole.values.firstWhere((e) => e.name == json["role"]),
     verhicle: Verhicle.fromJson(json["verhicle"]),
   );
 
@@ -47,7 +49,7 @@ class User {
     "password": password,
     "phone": phone,
     "address_id": addressId,
-    "role": role,
+    "role": role.name,
     "verhicle": verhicle.toJson(),
   };
 }
