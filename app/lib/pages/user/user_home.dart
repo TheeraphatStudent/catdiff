@@ -28,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<DeliveryStatDisplayItem> receiverItems = [];
 
   bool _hasLoadedData = false;
+  String _currentContentType = "";
+  bool _isSliderOpen = false;
 
   @override
   void initState() {
@@ -180,6 +182,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     // ส่งของ
                     StatusContainer(
+                      onAddedTab: () {
+                        setState(() {
+                          _currentContentType = "sender";
+                          _isSliderOpen = true;
+                        });
+                      },
+                      onTap: () {
+                        setState(() {
+                          _currentContentType = "sender";
+                          _isSliderOpen = true;
+                        });
+                      },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
                     ),
@@ -188,6 +202,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // รับของ
                     StatusContainer(
+                      onAddedTab: () {
+                        setState(() {
+                          _currentContentType = "receiver";
+                          _isSliderOpen = !_isSliderOpen;
+                        });
+                      },
+                      onTap: () {
+                        setState(() {
+                          _currentContentType = "receiver";
+                          _isSliderOpen = !_isSliderOpen;
+                        });
+                      },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,
                     ),
@@ -198,30 +224,57 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           SlidingTemplate(
-            isShowingAction: true,
-            actionButtonText: 'Open Sliding Template',
-            customTopBar: Row(
-              children: [
-                ButtonActions(
-                  variant: ButtonVariant.danger,
-                  icon: Icons.arrow_back,
-                  onPressed: () {},
-                ),
-                Expanded(
-                  child: InputField(
-                    hintText: "ค้นหาผู้รับ",
-                    onChanged: (value) {},
-                    suffixIcon: Icon(Icons.search),
+            isOpened: _isSliderOpen,
+            onModalClosed: () => onClosedModal(),
+            customTopBar: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  ButtonActions(
+                    variant: ButtonVariant.danger,
+                    icon: Icons.arrow_back,
+                    onPressed: () => onClosedModal(),
                   ),
-                ),
-              ],
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: InputField(
+                      hintText: _currentContentType == "sender"
+                          ? "ค้นหาผู้รับ"
+                          : "ค้นหาผู้ส่ง",
+                      onChanged: (value) {},
+                      suffixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                ],
+              ),
             ),
             children: [
-              Column(children: [Text("test")]),
+              _currentContentType == "sender"
+                  ? _buildSenderContent()
+                  : _currentContentType == "receiver"
+                  ? _buildReceiverContent()
+                  : Column(children: [Text("เลือกประเภทการจัดส่ง")]),
             ],
           ),
         ],
       ),
     );
+  }
+
+  void onClosedModal() {
+    log("On close work");
+
+    setState(() {
+      _isSliderOpen = false;
+      _currentContentType = "";
+    });
+  }
+
+  Widget _buildSenderContent() {
+    return Column(children: [Text("Sender test")]);
+  }
+
+  Widget _buildReceiverContent() {
+    return Column(children: [Text("Receiver test")]);
   }
 }

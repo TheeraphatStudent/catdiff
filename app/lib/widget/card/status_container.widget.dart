@@ -7,15 +7,15 @@ import 'package:flutter/material.dart';
 class StatusContainer extends StatelessWidget {
   final UserType type;
   final List<DeliveryStatDisplayItem> deliveryStatDisplayItems;
-  final VoidCallback? onTap;
-  final VoidCallback? onAddedTab;
+  final VoidCallback onTap;
+  final VoidCallback onAddedTab;
 
   const StatusContainer({
     super.key,
     required this.type,
     required this.deliveryStatDisplayItems,
-    this.onTap,
-    this.onAddedTab,
+    required this.onTap,
+    required this.onAddedTab,
   });
 
   @override
@@ -23,7 +23,7 @@ class StatusContainer extends StatelessWidget {
     final String title = (type == UserType.sender) ? "ส่งของ" : "รับของ";
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(),
       child: Container(
         width: double.infinity,
         decoration: ShapeDecoration(
@@ -208,9 +208,7 @@ class StatusContainer extends StatelessWidget {
                         ButtonActions(
                           variant: ButtonVariant.secondary,
                           icon: Icons.add,
-                          onPressed: () {
-                            onAddedTab!();
-                          },
+                          onPressed: () => onAddedTab(),
                         ),
                       ],
                     ),
