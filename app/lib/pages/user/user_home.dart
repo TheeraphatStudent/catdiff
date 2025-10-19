@@ -3,13 +3,15 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/auth/reciver.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/sender_showcard.dart';
+import 'package:app/types/user/reciver/reciver.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
-import 'package:app/widget/card/sender_job.widget.dart';
+import 'package:app/widget/card/reciver_job.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -27,8 +29,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Status container
   final List<DeliveryStatDisplayItem> senderItems = [];
   final List<DeliveryStatDisplayItem> receiverItems = [];
+
+  // Reciver list
+  final List<ReciverList> reciverItems = [];
+  List<ReciverList> filteredReciverItems = [];
+  String _searchQuery = '';
 
   bool _hasLoadedData = false;
   String _currentContentType = "";
@@ -57,6 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
       appData.currentUser!.id,
     );
 
+    final reciverListRes = await ReciverService.getReciverList(
+      '',
+      appData.currentUser!.id,
+    );
+
     log(
       'Retrieved ${resposne.length} deliveries for user: ${appData.currentUser!.id}',
     );
@@ -73,6 +86,25 @@ class _HomeScreenState extends State<HomeScreen> {
       receiverItems.addAll(
         resposne.where((item) => item.receiverId == appData.currentUser!.id),
       );
+
+      reciverItems.addAll(reciverListRes);
+      filteredReciverItems = List.from(reciverItems);
+    });
+  }
+
+  void _filterReciverItems(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        filteredReciverItems = List.from(reciverItems);
+      } else {
+        filteredReciverItems = reciverItems
+            .where(
+              (receiver) =>
+                  receiver.name.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
     });
   }
 
@@ -343,54 +375,44 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: InputField(
                 type: InputType.fill,
-                hintText: _currentContentType == "sender"
-                    ? "ค้นหาผู้รับ"
-                    : "ค้นหาผู้ส่ง",
-                onChanged: (value) {},
+                hintText: "ค้นหาผู้รับ",
+                onChanged: (value) => _filterReciverItems(value),
                 suffixIcon: Icon(Icons.search),
               ),
             ),
           ],
         ),
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              spacing: 8,
-              children: [
-                SenderJobItem(
-                  senderJob: SenderJob(
-                    sendedName: "Test",
-                    pickupPkgImagesUrl: [
-                      "https://fastly.picsum.photos/id/798/536/354.jpg?hmac=G7WN49OaaiBgJFNQzJSajzPX1H_eOGD8eTuvWQlhzVI",
-                    ],
-                    pickupAddressId: "",
-                    deliveryAddressId: "",
-                    sendedPkgImgUrl: "",
-                    sendedPkgDetail: "",
-                    pickupAddress: AddressInfo(
-                      addressId: "",
-                      latitude: 0,
-                      longtitude: 0,
-                      detail: "",
-                      createdAt: "",
-                      updatedAt: "",
-                    ),
-                    deliveryAddress: AddressInfo(
-                      addressId: "",
-                      latitude: 0,
-                      longtitude: 0,
-                      detail: "",
-                      createdAt: "",
-                      updatedAt: "",
-                    ),
+          child: filteredReciverItems.isNotEmpty
+              ? SingleChildScrollView(
+                  child: Column(
+                    spacing: 8,
+                    children: filteredReciverItems.map((receiver) {
+                      return ReciverJobItem(
+                        senderJob: SenderJob(
+                          sendedName: receiver.name,
+                          pickupPkgImagesUrl: [
+                            receiver.imageUrl.isNotEmpty
+                                ? receiver.imageUrl
+                                : "https://fastly.picsum.photos/id/798/536/354.jpg?hmac=G7WN49OaaiBgJFNQzJSajzPX1H_eOGD8eTuvWQlhzVI",
+                          ],
+                          pickupAddressId: receiver.address.addressId,
+                          deliveryAddressId: receiver.address.addressId,
+                          sendedPkgImgUrl: receiver.imageUrl,
+                          sendedPkgDetail: receiver.address.detail,
+                          pickupAddress: receiver.address,
+                          deliveryAddress: receiver.address,
+                        ),
+                        onTap: () {
+                          log(
+                            "Selected receiver: ${receiver.name} (${receiver.userId})",
+                          );
+                        },
+                      );
+                    }).toList(),
                   ),
-                  onTap: () {
-                    log("On tab work");
-                  },
-                ),
-              ],
-            ),
-          ),
+                )
+              : Center(child: Text("ไม่พบผู้รับ")),
         ),
       ],
     );

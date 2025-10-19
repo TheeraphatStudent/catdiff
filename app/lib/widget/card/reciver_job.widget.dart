@@ -7,11 +7,11 @@ import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/tag.widget.dart';
 import 'package:flutter/material.dart';
 
-class SenderJobItem extends StatelessWidget {
+class ReciverJobItem extends StatelessWidget {
   final SenderJob senderJob;
   final VoidCallback onTap;
 
-  const SenderJobItem({
+  const ReciverJobItem({
     super.key,
     required this.senderJob,
     required this.onTap,

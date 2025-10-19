@@ -5,13 +5,18 @@ import 'package:app/types/address/address.dart';
 import 'package:app/types/user/reciver/reciver.dart';
 
 class ReciverService {
-  static Future<List<ReciverList>> getReciverList([String query = '']) async {
+  static Future<List<ReciverList>> getReciverList([
+    String query = '',
+    String? excludeUserId,
+  ]) async {
     try {
-      log('Searching for receivers with query: "$query"');
+      log(
+        'Searching for receivers with query: "$query", excluding user: "$excludeUserId"',
+      );
 
       final response = await FirebaseHelper().getDocumentsQuery(
         collection: 'user',
-        where: {},
+        where: {'role': 'user'},
       );
 
       List<ReciverList> receivers = [];
@@ -19,6 +24,10 @@ class ReciverService {
       for (final doc in response) {
         final userData = doc.data()!;
         final String userName = userData['name'] ?? '';
+
+        if (excludeUserId != null && doc.id == excludeUserId) {
+          continue;
+        }
 
         if (query.isNotEmpty &&
             !userName.toLowerCase().contains(query.toLowerCase())) {
