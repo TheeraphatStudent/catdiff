@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/status_container.widget.dart';
@@ -19,6 +20,41 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final List<DeliveryStatDisplayItem> senderItems = [];
+  final List<DeliveryStatDisplayItem> receiverItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() async {
+    final appData = Provider.of<AppData>(context);
+
+    final resposne = await DeliveryService.getDeliveryDisplayByUserId(
+      appData.currentUser!.id,
+    );
+
+    log(
+      'Retrieved ${resposne.length} deliveries for user: ${appData.currentUser!.id}',
+    );
+
+    setState(() {
+      // senderItems = resposne.where((item) => item.status == 'sender').toList();
+      // receiverItems = resposne
+      //     .where((item) => item.status == 'receiver')
+      //     .toList();
+
+      senderItems.addAll(
+        resposne.where((item) => item.sendedId == appData.currentUser!.id),
+      );
+      receiverItems.addAll(
+        resposne.where((item) => item.receiverId == appData.currentUser!.id),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
@@ -128,39 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // ส่งของ
                     StatusContainer(
                       type: UserType.sender,
-                      deliveryStatDisplayItems: [
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                        DeliveryStatDisplayItem(
-                          deliveryId: "Sample",
-                          status: "",
-                        ),
-                      ],
+                      deliveryStatDisplayItems: senderItems,
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 36),
+
+                    // รับของ
                     StatusContainer(
                       type: UserType.receiver,
-                      deliveryStatDisplayItems: [],
+                      deliveryStatDisplayItems: receiverItems,
                     ),
                   ],
                 ),
