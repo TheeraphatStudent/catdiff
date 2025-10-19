@@ -1,6 +1,7 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/delivery/sended_state_card.dart';
 import 'package:app/types/status.dart';
+import 'package:app/utils/status_helper.dart';
 import 'package:flutter/material.dart';
 
 class DebugPage extends StatefulWidget {
@@ -69,7 +70,6 @@ class _DebugPageState extends State<DebugPage> {
       ],
     ),
   ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -295,15 +295,12 @@ class _DebugPageState extends State<DebugPage> {
 class DeliveryGroup {
   final String time;
   final List<Del001> orders;
-
   DeliveryGroup({required this.time, required this.orders});
 }
 
 class DeliveryGroupCard extends StatelessWidget {
   final DeliveryGroup group;
-
   const DeliveryGroupCard({Key? key, required this.group}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -316,7 +313,6 @@ class DeliveryGroupCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header ของ Card ใหญ่
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -337,9 +333,22 @@ class DeliveryGroupCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Text(
-                'แยกตาม วัน',
-                style: TextStyle(fontSize: 12, color: AppColors.grayMedium),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ถึง:',
+                    style: TextStyle(fontSize: 12, color: AppColors.grayMedium),
+                  ),
+                  const Text(
+                    'name',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.black,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -361,35 +370,20 @@ class DeliveryGroupCard extends StatelessWidget {
   }
 }
 
+//card เล็กๆข้างใน
 class OrderItemCard extends StatelessWidget {
   final Del001 data;
 
   const OrderItemCard({Key? key, required this.data}) : super(key: key);
-
-  Color _getCircleColor(String status) {
-    final statusTypes = StatusTypes();
-    final statusEnum = statusTypes.getStatusTypeEnum(status);
-
-    switch (statusEnum) {
-      case StatusType.pending:
-        return const Color(0xFFFFB800);
-      case StatusType.receiving:
-        return const Color(0xFFFF4DAA);
-      case StatusType.riding:
-        return const Color(0xFF00A3FF);
-      case StatusType.success:
-        return const Color(0xFF00C853);
-      default:
-        return const Color(0xFFFFB800);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final statusTypes = StatusTypes();
     final statusEnum = statusTypes.getStatusTypeEnum(data.status);
     final statusMeaning = statusTypes.getStatusMeaning(statusEnum);
-    final circleColor = _getCircleColor(data.status);
+
+    final statusColors = StatusHelper.colors(statusEnum);
+    final circleColor = statusColors.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -401,7 +395,6 @@ class OrderItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // จุดสีสถานะ
           Container(
             width: 20,
             height: 20,
@@ -413,7 +406,6 @@ class OrderItemCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // ข้อมูล
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +427,7 @@ class OrderItemCard extends StatelessWidget {
                   'ทะเบียน: ${data.vehicle.licencePlate}',
                   style: const TextStyle(
                     fontSize: 11,
-                    color: AppColors.grayMedium,
+                    color: Color.fromARGB(255, 13, 14, 11),
                   ),
                 ),
               ],
