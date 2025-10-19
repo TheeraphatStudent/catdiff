@@ -6,6 +6,7 @@ import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
 import 'package:app/pages/profile/profile.page.dart';
 import 'package:app/pages/rider/raider_listprod.dart';
+import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:app/types/user/role.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/profile', page: () => const ProfilePage()),
 
             GetPage(name: '/debug', page: () => const DebugPage()),
+            GetPage(name: '/slider-debug', page: () => const SilderDebug()),
             GetPage(name: '/map-debug', page: () => const MapDebugPage()),
           ],
         );
