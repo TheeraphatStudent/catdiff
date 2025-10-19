@@ -87,6 +87,12 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
       });
     }
 
+    if (!widget.isOpened && oldWidget.isOpened && _isModalCurrentlyOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _closeModal();
+      });
+    }
+
     if (!widget.isOpened && oldWidget.isOpened) {
       _hasProcessedOpenRequest = false;
     }
@@ -124,6 +130,15 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
         .catchError((error) {
           _handleModalClose();
         });
+  }
+
+  void _closeModal() {
+    if (!_isModalCurrentlyOpen) {
+      return;
+    }
+
+    // Use Navigator to dismiss the modal
+    Navigator.of(context).pop();
   }
 
   void _handleModalClose() {

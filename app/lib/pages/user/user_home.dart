@@ -226,29 +226,30 @@ class _HomeScreenState extends State<HomeScreen> {
           SlidingTemplate(
             isOpened: _isSliderOpen,
             onModalClosed: () => onClosedModal(),
-            customTopBar: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  ButtonActions(
-                    variant: ButtonVariant.danger,
-                    icon: Icons.arrow_back,
-                    onPressed: () => onClosedModal(),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: InputField(
-                      hintText: _currentContentType == "sender"
-                          ? "ค้นหาผู้รับ"
-                          : "ค้นหาผู้ส่ง",
-                      onChanged: (value) {},
-                      suffixIcon: Icon(Icons.search),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            customTopBar: Center(child: Text("test")),
             children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    ButtonActions(
+                      variant: ButtonVariant.danger,
+                      icon: Icons.arrow_back,
+                      onPressed: () => onClosedModal(),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: InputField(
+                        hintText: _currentContentType == "sender"
+                            ? "ค้นหาผู้รับ"
+                            : "ค้นหาผู้ส่ง",
+                        onChanged: (value) {},
+                        suffixIcon: Icon(Icons.search),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               _currentContentType == "sender"
                   ? _buildSenderContent()
                   : _currentContentType == "receiver"
