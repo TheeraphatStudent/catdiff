@@ -163,16 +163,13 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
       mainContentSliversBuilder: (context) => [
         SliverPadding(
           padding: widget.contentPadding,
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index < widget.children.length) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: widget.children[index],
-                );
-              }
-              return null;
-            }, childCount: widget.children.length),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              children: widget.children.map((child) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: child,
+              )).toList(),
+            ),
           ),
         ),
       ],

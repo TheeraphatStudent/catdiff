@@ -69,6 +69,7 @@ class _DebugPageState extends State<DebugPage> {
       ],
     ),
   ];
+
   @override
   Widget build(BuildContext context) {
     return MainLayout(
@@ -296,7 +297,7 @@ class DeliveryGroup {
 
 class DeliveryGroupCard extends StatelessWidget {
   final DeliveryGroup group;
-  const DeliveryGroupCard({Key? key, required this.group}) : super(key: key);
+  const DeliveryGroupCard({super.key, required this.group});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -368,7 +369,7 @@ class DeliveryGroupCard extends StatelessWidget {
 
 class OrderItemCard extends StatelessWidget {
   final Del001 data;
-  const OrderItemCard({Key? key, required this.data}) : super(key: key);
+  const OrderItemCard({super.key, required this.data});
   @override
   Widget build(BuildContext context) {
     final statusTypes = StatusTypes();

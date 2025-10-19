@@ -11,6 +11,7 @@ import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
+import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasLoadedData = false;
   String _currentContentType = "";
   bool _isSliderOpen = false;
+
+  int _currentSenderStep = 0;
 
   @override
   void initState() {
@@ -227,28 +230,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onModalClosed: () => onClosedModal(),
             customTopBar: Center(child: Text("test")),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    ButtonActions(
-                      variant: ButtonVariant.danger,
-                      icon: Icons.arrow_back,
-                      onPressed: () => onClosedModal(),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: InputField(
-                        hintText: _currentContentType == "sender"
-                            ? "ค้นหาผู้รับ"
-                            : "ค้นหาผู้ส่ง",
-                        onChanged: (value) {},
-                        suffixIcon: Icon(Icons.search),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               _currentContentType == "sender"
                   ? _buildSenderContent()
                   : _currentContentType == "receiver"
@@ -267,12 +248,180 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isSliderOpen = false;
       _currentContentType = "";
+      _currentSenderStep = 0;
     });
   }
 
-  Widget _buildSenderContent() {
-    return Column(children: [Text("Sender test")]);
+  void _nextSenderStep() {
+    if (_currentSenderStep < 2) {
+      setState(() {
+        _currentSenderStep++;
+      });
+    }
   }
+
+  void _previousSenderStep() {
+    if (_currentSenderStep > 0) {
+      setState(() {
+        _currentSenderStep--;
+      });
+    }
+  }
+
+  void _goToSenderStep(int step) {
+    if (step >= 0 && step <= 2) {
+      setState(() {
+        _currentSenderStep = step;
+      });
+    }
+  }
+
+  Widget _getCurrentSenderStepContent() {
+    switch (_currentSenderStep) {
+      case 0:
+        return _buildSelectReceiverContent();
+      case 1:
+        return _buildPreparePackageContent();
+      case 2:
+        return _buildConfirmDeliveryContent();
+      default:
+        return _buildSelectReceiverContent();
+    }
+  }
+
+  // Sender content
+
+  Widget _buildSenderContent() {
+    return SizedBox(
+      height: 678,
+      child: Column(
+        spacing: 12,
+        children: [
+          Expanded(child: _getCurrentSenderStepContent()),
+          StepperWidget(
+            steps: [
+              StepData(
+                label: "เลือกผู้รับ",
+                active: _currentSenderStep == 0,
+                icon: Icon(Icons.add),
+              ),
+              StepData(
+                label: "จัดเตรียมสินค้า",
+                active: _currentSenderStep == 1,
+                icon: Icon(Icons.inbox),
+              ),
+              StepData(
+                label: "ยืนยันการส่ง",
+                active: _currentSenderStep == 2,
+                icon: Icon(Icons.check),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 1. Select receiver -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  Widget _buildSelectReceiverContent() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              ButtonActions(
+                variant: ButtonVariant.danger,
+                icon: Icons.arrow_back,
+                width: ButtonWidth.fit,
+                onPressed: () => onClosedModal(),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: InputField(
+                  type: InputType.fill,
+                  hintText: _currentContentType == "sender"
+                      ? "ค้นหาผู้รับ"
+                      : "ค้นหาผู้ส่ง",
+                  onChanged: (value) {},
+                  suffixIcon: Icon(Icons.search),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: Center(child: Text("Select receiver content"))),
+      ],
+    );
+  }
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 2. Prepare package -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  Widget _buildPreparePackageContent() {
+    return Column(
+      children: [
+        // Expanded(child: Center(child: Text("Prepare package content"))),
+        // Padding(
+        //   padding: const EdgeInsets.all(16.0),
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //     children: [
+        //       ButtonActions(
+        //         variant: ButtonVariant.secondary,
+        //         icon: Icons.arrow_back,
+        //         onPressed: _previousSenderStep,
+        //         text: "ย้อนกลับ",
+        //       ),
+        //       ButtonActions(
+        //         variant: ButtonVariant.primary,
+        //         icon: Icons.arrow_forward,
+        //         onPressed: _nextSenderStep,
+        //         text: "ถัดไป",
+        //       ),
+        //     ],
+        //   ),
+        // ),
+      ],
+    );
+  }
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 3. Confirm delivery -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  Widget _buildConfirmDeliveryContent() {
+    return Column(
+      children: [
+        // Expanded(child: Center(child: Text("Confirm delivery content"))),
+        // Padding(
+        //   padding: const EdgeInsets.all(16.0),
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //     children: [
+        //       ButtonActions(
+        //         variant: ButtonVariant.secondary,
+        //         icon: Icons.arrow_back,
+        //         onPressed: _previousSenderStep,
+        //         text: "ย้อนกลับ",
+        //       ),
+        //       ButtonActions(
+        //         variant: ButtonVariant.primary,
+        //         icon: Icons.check,
+        //         onPressed: () {
+        //           // Handle final confirmation
+        //           onClosedModal();
+        //         },
+        //         text: "ยืนยัน",
+        //       ),
+        //     ],
+        //   ),
+        // ),
+      ],
+    );
+  }
+
+  // Receiver content
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- Display receiver delivery to me -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   Widget _buildReceiverContent() {
     return Column(children: [Text("Receiver test")]);
