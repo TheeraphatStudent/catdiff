@@ -13,11 +13,36 @@ class DebugPage extends StatefulWidget {
 class _DebugPageState extends State<DebugPage> {
   int _selectedTab = 0;
 
-  // Mock data - จัดกลุ่มตามวันที่
   final List<DeliveryGroup> deliveryGroups = [
     DeliveryGroup(
-      date: '2025/09/16',
       time: '00:00 น.',
+      orders: [
+        Del001(
+          pickupAddressUrl: "https://maps.google.com/?q=13.7563,100.5018",
+          deliveryAddressUrl: "https://maps.google.com/?q=13.8563,100.6018",
+          status: "riding",
+          createdAt: "2025-09-16T00:00:00",
+          updatedAt: "2025-09-16T08:30:00",
+          deliveredAt: null,
+          pickupAt: "2025-09-16 00:00",
+          vehicle: Vehicle(licencePlate: "กข-1234", type: "motorcycle"),
+          name: "Somchai",
+        ),
+        Del001(
+          pickupAddressUrl: "https://maps.google.com/?q=13.7563,100.5018",
+          deliveryAddressUrl: "https://maps.google.com/?q=13.8563,100.6018",
+          status: "receiving",
+          createdAt: "2025-09-16T00:00:00",
+          updatedAt: "2025-09-16T08:30:00",
+          deliveredAt: null,
+          pickupAt: "2025-09-16 00:00",
+          vehicle: Vehicle(licencePlate: "กง-5678", type: "car"),
+          name: "Manee",
+        ),
+      ],
+    ),
+    DeliveryGroup(
+      time: '00.00 น.',
       orders: [
         Del001(
           pickupAddressUrl: "https://maps.google.com/?q=13.7563,100.5018",
@@ -52,7 +77,6 @@ class _DebugPageState extends State<DebugPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -127,8 +151,6 @@ class _DebugPageState extends State<DebugPage> {
                 ],
               ),
             ),
-
-            // Tab Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -206,7 +228,7 @@ class _DebugPageState extends State<DebugPage> {
                               'รับเข้า',
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: _selectedTab == 1
+                                fontWeight: _selectedTab == 2
                                     ? FontWeight.w600
                                     : FontWeight.w400,
                                 color: _selectedTab == 1
@@ -230,10 +252,11 @@ class _DebugPageState extends State<DebugPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
             Expanded(
-              child: _selectedTab == 0
+              child:
+                  _selectedTab ==
+                      0 //card แสดงผล ถ้า 0 is ส่งออก 1 รับเข้า
                   ? ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: deliveryGroups.length,
@@ -270,11 +293,10 @@ class _DebugPageState extends State<DebugPage> {
 }
 
 class DeliveryGroup {
-  final String date;
   final String time;
   final List<Del001> orders;
 
-  DeliveryGroup({required this.date, required this.time, required this.orders});
+  DeliveryGroup({required this.time, required this.orders});
 }
 
 class DeliveryGroupCard extends StatelessWidget {
@@ -306,7 +328,7 @@ class DeliveryGroupCard extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: AppColors.grayMedium),
                   ),
                   Text(
-                    '${group.date} | ${group.time}',
+                    ' ${group.time}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -339,7 +361,6 @@ class DeliveryGroupCard extends StatelessWidget {
   }
 }
 
-// Card เล็กของแต่ละออเดอร์
 class OrderItemCard extends StatelessWidget {
   final Del001 data;
 
@@ -388,7 +409,7 @@ class OrderItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: circleColor.withOpacity(0.3),
               border: Border.all(color: circleColor, width: 2),
-              shape: BoxShape.circle,
+              shape: BoxShape.rectangle,
             ),
           ),
           const SizedBox(width: 12),
@@ -429,6 +450,7 @@ class OrderItemCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.grayLight),
             ),
+            //icon
             child: IconButton(
               padding: EdgeInsets.zero,
               icon: const Icon(
@@ -436,9 +458,7 @@ class OrderItemCard extends StatelessWidget {
                 size: 20,
                 color: AppColors.black,
               ),
-              onPressed: () {
-                // Open map
-              },
+              onPressed: () {},
             ),
           ),
         ],
