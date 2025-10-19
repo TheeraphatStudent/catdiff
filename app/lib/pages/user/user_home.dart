@@ -6,9 +6,13 @@ import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/user/type.dart';
+import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
+import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
@@ -23,14 +27,24 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<DeliveryStatDisplayItem> senderItems = [];
   final List<DeliveryStatDisplayItem> receiverItems = [];
 
+  bool _hasLoadedData = false;
+
   @override
   void initState() {
     super.initState();
-    _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoadedData) {
+      _loadData();
+      _hasLoadedData = true;
+    }
   }
 
   void _loadData() async {
-    final appData = Provider.of<AppData>(context);
+    final appData = Provider.of<AppData>(context, listen: false);
 
     final resposne = await DeliveryService.getDeliveryDisplayByUserId(
       appData.currentUser!.id,
@@ -169,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
                     ),
+
                     const SizedBox(height: 36),
 
                     // รับของ
@@ -180,6 +195,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          ),
+
+          SlidingTemplate(
+            isShowingAction: true,
+            actionButtonText: 'Open Sliding Template',
+            customTopBar: Row(
+              children: [
+                ButtonActions(
+                  variant: ButtonVariant.danger,
+                  icon: Icons.arrow_back,
+                  onPressed: () {},
+                ),
+                Expanded(
+                  child: InputField(
+                    hintText: "ค้นหาผู้รับ",
+                    onChanged: (value) {},
+                    suffixIcon: Icon(Icons.search),
+                  ),
+                ),
+              ],
+            ),
+            children: [
+              Column(children: [Text("test")]),
+            ],
           ),
         ],
       ),

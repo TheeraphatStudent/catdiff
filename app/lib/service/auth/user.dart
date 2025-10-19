@@ -2,12 +2,11 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:crypto/crypto.dart';
-import 'package:app/types/user/raider_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/user/role.dart';
-import 'package:app/types/user/user_auth.dart' as UserAuth;
+import 'package:app/types/user/user_auth.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
@@ -110,9 +109,7 @@ class AuthService {
       );
 
       // แปลงเป็น object
-      final userObject = role == UserRole.rider
-          ? Raider.fromJson(userData)
-          : UserAuth.User.fromJson(userData);
+      final userObject = User.fromJson(userData);
 
       return {
         'success': true,
@@ -120,7 +117,7 @@ class AuthService {
         'userId': userCredential.user!.uid,
         'user': userObject,
       };
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuth.FirebaseAuthException catch (e) {
       String message = '';
       switch (e.code) {
         case 'weak-password':
@@ -175,16 +172,10 @@ class AuthService {
       }
 
       final userData = doc.data()!;
-      final userObject = role == UserRole.rider
-          ? Raider.fromJson(
-              userData,
-            ) // Raider now includes user_id from userData
-          : UserAuth.User.fromJson(
-              userData,
-            ); // User already has user_id in userData
+      final userObject = User.fromJson(userData);
 
       return {'success': true, 'message': 'ล็อคอินสำเร็จ', 'user': userObject};
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuth.FirebaseAuthException catch (e) {
       String message = '';
       switch (e.code) {
         case 'user-not-found':

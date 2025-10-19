@@ -13,8 +13,7 @@ import 'package:app/service/auth/user.dart' as UserService;
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
 import 'package:app/widget/header_card.widget.dart';
-import 'package:app/types/user/user_auth.dart' as UserModel;
-import 'package:app/types/user/raider_auth.dart' as RiderModel;
+import 'package:app/types/user/user_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -110,8 +109,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
       if (userResult['success']) {
         Get.back();
-        final UserModel.User userModel = userResult['user'] as UserModel.User;
-        appData.setCurrentUserFromUserModel(userModel);
+        final User user = userResult['user'] as User;
+        appData.setCurrentUser(user);
         appData.setPreferredRole(UserRole.user);
 
         Get.offAllNamed('/');
@@ -128,9 +127,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       if (riderResult['success']) {
         log('Rider login successful');
         Get.back();
-        final RiderModel.Raider riderModel =
-            riderResult['user'] as RiderModel.Raider;
-        appData.setCurrentUserFromRiderModel(riderModel);
+        final User user = riderResult['user'] as User;
+        appData.setCurrentUser(user);
         appData.setPreferredRole(UserRole.rider);
 
         Get.offAllNamed('/');

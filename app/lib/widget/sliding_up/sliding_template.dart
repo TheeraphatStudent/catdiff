@@ -137,7 +137,13 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
   SliverWoltModalSheetPage _buildModalPage(BuildContext modalSheetContext) {
     return SliverWoltModalSheetPage(
       isTopBarLayerAlwaysVisible: true,
-      topBar: widget.customTopBar ?? null,
+      topBar: widget.customTopBar != null 
+        ? Container(
+            height: widget.topBarHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: widget.customTopBar,
+          )
+        : null,
       mainContentSliversBuilder: (context) => [
         SliverPadding(
           padding: widget.contentPadding,
