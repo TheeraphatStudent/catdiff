@@ -1,8 +1,15 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-class EmptyStateScreen extends StatelessWidget {
-  const EmptyStateScreen({Key? key}) : super(key: key);
+class DebugPage extends StatefulWidget {
+  const DebugPage({Key? key}) : super(key: key);
+
+  @override
+  State<DebugPage> createState() => _DebugPageState();
+}
+
+class _DebugPageState extends State<DebugPage> {
+  int _selectedTab = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +73,109 @@ class EmptyStateScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.pop(context);
                       },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tab Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedTab = 0;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: _selectedTab == 0
+                                  ? AppColors.black
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'ส่งออก',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: _selectedTab == 0
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: _selectedTab == 0
+                                    ? AppColors.black
+                                    : AppColors.grayMedium,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 16,
+                              color: _selectedTab == 0
+                                  ? AppColors.black
+                                  : AppColors.grayMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedTab = 1;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: _selectedTab == 1
+                                  ? AppColors.black
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'รับเข้า',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: _selectedTab == 1
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: _selectedTab == 1
+                                    ? AppColors.black
+                                    : AppColors.grayMedium,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_back,
+                              size: 16,
+                              color: _selectedTab == 1
+                                  ? AppColors.black
+                                  : AppColors.grayMedium,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
