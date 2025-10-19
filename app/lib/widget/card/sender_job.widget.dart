@@ -9,14 +9,20 @@ import 'package:flutter/material.dart';
 
 class SenderJobItem extends StatelessWidget {
   final SenderJob senderJob;
+  final Color? backgroundColor;
 
-  const SenderJobItem({super.key, required this.senderJob});
+  const SenderJobItem({
+    super.key,
+    required this.senderJob,
+    required bool isSelected,
+    this.backgroundColor,
+  });
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: backgroundColor ?? AppColors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
