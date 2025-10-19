@@ -15,7 +15,6 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
-
 ## Firebase configuration
 
 1. Create firebase project
@@ -24,4 +23,10 @@ samples, guidance on mobile development, and a full API reference.
 
 ```bash
 flutterfire configure --project=<project_id>
+```
+
+## Flutter build apk
+
+```bash
+flutter build apk --release
 ```

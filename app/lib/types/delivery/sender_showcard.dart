@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import 'package:app/types/address/address.dart';
+
 SenderJob senderJobFromJson(String str) => SenderJob.fromJson(json.decode(str));
 
 String senderJobToJson(SenderJob data) => json.encode(data.toJson());
@@ -15,8 +17,8 @@ class SenderJob {
   String deliveryAddressId;
   String sendedPkgImgUrl;
   String sendedPkgDetail;
-  Address pickupAddress;
-  Address deliveryAddress;
+  AddressInfo pickupAddress;
+  AddressInfo deliveryAddress;
 
   SenderJob({
     required this.sendedName,
@@ -38,8 +40,8 @@ class SenderJob {
     deliveryAddressId: json["delivery_address_id"],
     sendedPkgImgUrl: json["sended_pkg_img_url"],
     sendedPkgDetail: json["sended_pkg_detail"],
-    pickupAddress: Address.fromJson(json["pickup_address"]),
-    deliveryAddress: Address.fromJson(json["delivery_address"]),
+    pickupAddress: AddressInfo.fromJson(json["pickup_address"]),
+    deliveryAddress: AddressInfo.fromJson(json["delivery_address"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -53,41 +55,5 @@ class SenderJob {
     "sended_pkg_detail": sendedPkgDetail,
     "pickup_address": pickupAddress.toJson(),
     "delivery_address": deliveryAddress.toJson(),
-  };
-}
-
-class Address {
-  String addressId;
-  double latitude;
-  double longtitude;
-  String detail;
-  String createdAt;
-  String updatedAt;
-
-  Address({
-    required this.addressId,
-    required this.latitude,
-    required this.longtitude,
-    required this.detail,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory Address.fromJson(Map<String, dynamic> json) => Address(
-    addressId: json["address_id"],
-    latitude: json["latitude"]?.toDouble(),
-    longtitude: json["longtitude"]?.toDouble(),
-    detail: json["detail"],
-    createdAt: json["created_at"],
-    updatedAt: json["updated_at"],
-  );
-
-  Map<String, dynamic> toJson() => {
-    "address_id": addressId,
-    "latitude": latitude,
-    "longtitude": longtitude,
-    "detail": detail,
-    "created_at": createdAt,
-    "updated_at": updatedAt,
   };
 }

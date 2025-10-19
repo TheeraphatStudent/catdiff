@@ -4,9 +4,12 @@ import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/delivery/delivery_service.dart';
+import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
+import 'package:app/types/delivery/sender_showcard.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
+import 'package:app/widget/card/sender_job.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -326,32 +329,69 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSelectReceiverContent() {
     return Column(
+      spacing: 16,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              ButtonActions(
-                variant: ButtonVariant.danger,
-                icon: Icons.arrow_back,
-                width: ButtonWidth.fit,
-                onPressed: () => onClosedModal(),
+        Row(
+          children: [
+            ButtonActions(
+              variant: ButtonVariant.danger,
+              icon: Icons.arrow_back,
+              width: ButtonWidth.fit,
+              onPressed: () => onClosedModal(),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: InputField(
+                type: InputType.fill,
+                hintText: _currentContentType == "sender"
+                    ? "ค้นหาผู้รับ"
+                    : "ค้นหาผู้ส่ง",
+                onChanged: (value) {},
+                suffixIcon: Icon(Icons.search),
               ),
-              SizedBox(width: 16),
-              Expanded(
-                child: InputField(
-                  type: InputType.fill,
-                  hintText: _currentContentType == "sender"
-                      ? "ค้นหาผู้รับ"
-                      : "ค้นหาผู้ส่ง",
-                  onChanged: (value) {},
-                  suffixIcon: Icon(Icons.search),
+            ),
+          ],
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              spacing: 8,
+              children: [
+                SenderJobItem(
+                  senderJob: SenderJob(
+                    sendedName: "Test",
+                    pickupPkgImagesUrl: [
+                      "https://fastly.picsum.photos/id/798/536/354.jpg?hmac=G7WN49OaaiBgJFNQzJSajzPX1H_eOGD8eTuvWQlhzVI",
+                    ],
+                    pickupAddressId: "",
+                    deliveryAddressId: "",
+                    sendedPkgImgUrl: "",
+                    sendedPkgDetail: "",
+                    pickupAddress: AddressInfo(
+                      addressId: "",
+                      latitude: 0,
+                      longtitude: 0,
+                      detail: "",
+                      createdAt: "",
+                      updatedAt: "",
+                    ),
+                    deliveryAddress: AddressInfo(
+                      addressId: "",
+                      latitude: 0,
+                      longtitude: 0,
+                      detail: "",
+                      createdAt: "",
+                      updatedAt: "",
+                    ),
+                  ),
+                  onTap: () {
+                    log("On tab work");
+                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        Expanded(child: Center(child: Text("Select receiver content"))),
       ],
     );
   }
