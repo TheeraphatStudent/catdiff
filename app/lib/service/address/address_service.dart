@@ -1,37 +1,29 @@
+import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/address/address.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddressService {
-  AddressService._internal();
 
-  static final AddressService instance = AddressService._internal();
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  Future<AddressInfo> createAddress({
+  static Future<AddressInfo> createAddress({
     required double latitude,
     required double longitude,
     required String detail,
   }) async {
     try {
-      final DocumentReference<Map<String, dynamic>> docRef = _firestore
-          .collection('address')
-          .doc();
-
       final String timestamp = DateTime.now().toIso8601String();
 
-      final Map<String, dynamic> data = <String, dynamic>{
-        'latitude': latitude,
-        'longtitude': longitude,
-        'detail': detail,
-        'created_at': timestamp,
-        'updated_at': timestamp,
-      };
-
-      await docRef.set(data);
+      final String documentId = await FirebaseHelper().createDocument(
+        collection: 'address',
+        data: {
+          'latitude': latitude,
+          'longtitude': longitude,
+          'detail': detail,
+          'created_at': timestamp,
+          'updated_at': timestamp,
+        },
+      );
 
       return AddressInfo(
-        addressId: docRef.id,
+        addressId: documentId,
         latitude: latitude,
         longtitude: longitude,
         detail: detail,
@@ -40,6 +32,27 @@ class AddressService {
       );
     } catch (error) {
       throw Exception('Failed to create address: $error');
+    }
+  }
+
+  static Future<AddressInfo> getAddressById(String id) async {
+    try {
+      final response = await FirebaseHelper().getDocumentsQuery(
+        collection: 'address',
+        where: {'id': id},
+      );
+
+      final data = response.first.data()!;
+      return AddressInfo(
+        addressId: response.first.id,
+        latitude: data['latitude']?.toDouble() ?? 0.0,
+        longtitude: data['longtitude']?.toDouble() ?? 0.0,
+        detail: data['detail'] ?? '',
+        createdAt: data['created_at'] ?? '',
+        updatedAt: data['updated_at'] ?? '',
+      );
+    } catch (error) {
+      throw Exception('Failed to get address: $error');
     }
   }
 }
