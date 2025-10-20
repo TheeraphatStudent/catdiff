@@ -116,7 +116,7 @@ class DeliveryService {
         },
       );
 
-      log('Retrieved ${response.length} deliveries for user: $userId');
+      // log('Retrieved ${response.length} deliveries for user: $userId');
 
       return response
           .where((doc) {
@@ -128,7 +128,7 @@ class DeliveryService {
               final data = doc.data()!;
               data['delivery_id'] = doc.id;
 
-              log('Processing delivery ${doc.id}: $data');
+              // log('Processing delivery ${doc.id}: $data');
 
               return DeliveryStatDisplayItem.fromJson(data);
             } catch (e) {

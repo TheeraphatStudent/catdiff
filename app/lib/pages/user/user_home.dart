@@ -89,8 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
       senderItems.addAll(resposneSender);
       receiverItems.addAll(resposneReceiver);
 
-      log(senderItems.length.toString());
-      log(receiverItems.length.toString());
+      // log(senderItems.length.toString());
+      // log(receiverItems.length.toString());
 
       reciverItems.addAll(reciverListRes);
       filteredReciverItems = List.from(reciverItems);
@@ -232,11 +232,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         _loadExistingPrepareJobs();
                       },
                       onTap: () {
-                        setState(() {
-                          _currentContentType = "sender";
-                          _isSliderOpen = true;
-                        });
-                        _loadExistingPrepareJobs();
+                        log("on tap sender");
+
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -253,10 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        setState(() {
-                          _currentContentType = "receiver";
-                          _isSliderOpen = !_isSliderOpen;
-                        });
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,
