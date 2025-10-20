@@ -87,6 +87,12 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
       });
     }
 
+    if (!widget.isOpened && oldWidget.isOpened && _isModalCurrentlyOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _closeModal();
+      });
+    }
+
     if (!widget.isOpened && oldWidget.isOpened) {
       _hasProcessedOpenRequest = false;
     }
@@ -126,6 +132,15 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
         });
   }
 
+  void _closeModal() {
+    if (!_isModalCurrentlyOpen) {
+      return;
+    }
+
+    // Use Navigator to dismiss the modal
+    Navigator.of(context).pop();
+  }
+
   void _handleModalClose() {
     log("Handle modal close wotk!");
 
@@ -137,20 +152,24 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
   SliverWoltModalSheetPage _buildModalPage(BuildContext modalSheetContext) {
     return SliverWoltModalSheetPage(
       isTopBarLayerAlwaysVisible: true,
-      topBar: widget.customTopBar ?? null,
+      topBar: widget.customTopBar != null
+          // ? Container(
+          //     height: widget.topBarHeight,
+          //     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          //     child: widget.customTopBar,
+          //   )
+          ? SizedBox(height: widget.topBarHeight, child: widget.customTopBar)
+          : null,
       mainContentSliversBuilder: (context) => [
         SliverPadding(
           padding: widget.contentPadding,
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index < widget.children.length) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: widget.children[index],
-                );
-              }
-              return null;
-            }, childCount: widget.children.length),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              children: widget.children.map((child) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: child,
+              )).toList(),
+            ),
           ),
         ),
       ],

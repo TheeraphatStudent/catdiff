@@ -70,14 +70,26 @@ class FirebaseHelper {
     required Map<String, dynamic> where,
   }) async {
     Query<Map<String, dynamic>> query = _firestore.collection(collection);
-    
-    where.forEach((field, value) {
-      query = query.where(field, isEqualTo: value);
-    });
-    
+
+    if (where.isNotEmpty) {
+      where.forEach((field, value) {
+        query = query.where(field, isEqualTo: value);
+      });
+    }
+
     return await query.get().then((querySnapshot) {
       return querySnapshot.docs;
     });
+  }
+
+  /// ============== Create ==============
+
+  Future<String> createDocument({
+    required String collection,
+    required Map<String, dynamic> data,
+  }) async {
+    final docRef = await _firestore.collection(collection).add(data);
+    return docRef.id;
   }
 
   /// ============== Update ==============

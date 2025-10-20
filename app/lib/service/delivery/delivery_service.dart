@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/delivery/delivery.dart';
+import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -76,10 +77,6 @@ class DeliveryService {
     }
   }
 
-  static Future<List<DeliveryJob>> getDeliveryJobs() async {
-    return [];
-  }
-
   static Future<List<Delivery>> getDeliveryByUserId(String userId) async {
     try {
       final response = await FirebaseHelper().getDocumentsQuery(
@@ -94,6 +91,31 @@ class DeliveryService {
         if (data != null) {
           data['delivery_id'] = doc.id;
           return Delivery.fromJson(data);
+        }
+        throw Exception('Document data is null for delivery: ${doc.id}');
+      }).toList();
+    } catch (e) {
+      log('Error getting deliveries for user $userId: $e');
+      return [];
+    }
+  }
+
+  static Future<List<DeliveryStatDisplayItem>> getDeliveryDisplayByUserId(
+    String userId,
+  ) async {
+    try {
+      final response = await FirebaseHelper().getDocumentsQuery(
+        collection: 'delivery',
+        where: {'sendedId': userId, 'receivedId': userId},
+      );
+
+      log('Retrieved ${response.length} deliveries for user: $userId');
+
+      return response.map((doc) {
+        final data = doc.data();
+        if (data != null) {
+          data['delivery_id'] = doc.id;
+          return DeliveryStatDisplayItem.fromJson(data);
         }
         throw Exception('Document data is null for delivery: ${doc.id}');
       }).toList();

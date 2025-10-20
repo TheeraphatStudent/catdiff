@@ -724,7 +724,7 @@ class _RegisterPageState extends State<RegisterPage>
 
       // Create address document
       final addressDetail = _addressDetailController.text.trim();
-      final addressRecord = await AddressService.instance.createAddress(
+      final addressRecord = await AddressService.createAddress(
         latitude: _addressLocations.lat,
         longitude: _addressLocations.lon,
         detail: addressDetail,

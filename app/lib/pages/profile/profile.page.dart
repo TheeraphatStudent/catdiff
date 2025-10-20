@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/auth/user.dart';
-import 'package:app/types/user/user_auth.dart' as UserModel;
+import 'package:app/types/user/user_auth.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart' as ProfileWidget;
@@ -38,7 +38,7 @@ class ProfileController extends GetxController {
     super.onClose();
   }
 
-  void initializeWithUserData(UserModel.User? user) {
+  void initializeWithUserData(User? user) {
     if (user != null) {
       nameController.text = user.name;
       phoneController.text = user.phone;
@@ -56,7 +56,7 @@ class ProfileController extends GetxController {
     try {
       final appData = Get.find<AppData>();
       if (appData.currentUser != null) {
-        initializeWithUserData(appData.currentUser as UserModel.User);
+        initializeWithUserData(appData.currentUser);
       }
     } catch (e) {
       log(e.toString());
@@ -68,7 +68,7 @@ class ProfileController extends GetxController {
       isLoading.value = true;
 
       final appData = Get.find<AppData>();
-      final currentUser = appData.currentUser as UserModel.User?;
+      final currentUser = appData.currentUser;
 
       if (currentUser == null) {
         Get.snackbar('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้');
@@ -94,7 +94,7 @@ class ProfileController extends GetxController {
       );
 
       if (result['success']) {
-        final updatedUser = UserModel.User(
+        final updatedUser = User(
           imagesUrl: imageUrl,
           name: nameController.text.trim(),
           userId: currentUser.userId,
@@ -105,7 +105,7 @@ class ProfileController extends GetxController {
           verhicle: currentUser.verhicle,
         );
 
-        appData.setCurrentUserFromUserModel(updatedUser);
+        appData.setCurrentUser(updatedUser);
 
         isEditing.value = false;
         Get.snackbar(
@@ -149,7 +149,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final appData = Provider.of<AppData>(context, listen: false);
       if (appData.currentUser != null) {
         controller.initializeWithUserData(
-          appData.currentUser as UserModel.User,
+          appData.currentUser,
         );
       }
     });
@@ -159,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Consumer<AppData>(
       builder: (context, appData, child) {
-        final currentUser = appData.currentUser as UserModel.User?;
+        final currentUser = appData.currentUser;
 
         return MainLayout(
           body: Obx(

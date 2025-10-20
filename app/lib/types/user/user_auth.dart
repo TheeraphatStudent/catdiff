@@ -31,6 +31,8 @@ class User {
     required this.verhicle,
   });
 
+  String get id => userId;
+
   factory User.fromJson(Map<String, dynamic> json) => User(
     imagesUrl: json["images_url"],
     name: json["name"],
