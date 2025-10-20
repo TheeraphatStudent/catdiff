@@ -1,6 +1,7 @@
 import 'package:app/config/share/app_data.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
+import 'package:app/pages/debug-rider.dart';
 import 'package:app/pages/debug.dart';
 import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
@@ -9,6 +10,7 @@ import 'package:app/pages/rider/raider_listprod.dart';
 import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/sender_state_have_prod.dart';
 import 'package:app/pages/user/user_home.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/user/role.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -53,7 +55,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           // initialRoute: ,
-          // initialRoute: '/debug',
+          initialRoute: '/debug-rider',
           getPages: <GetPage<dynamic>>[
             GetPage(name: '/', page: () => const _RootLoadingChecker()),
             GetPage(name: '/onboarding', page: () => const OnBoardingPage()),
