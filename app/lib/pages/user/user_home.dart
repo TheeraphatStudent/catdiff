@@ -421,18 +421,22 @@ class _HomeScreenState extends State<HomeScreen> {
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 2. Prepare package -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   final List<DeliverJobItem> _addedJobItemToDeliver = [];
+  final Map<String, ProfileController> _packageImageControllers = {};
 
   void addedJobItemToDeliver() {
     log("Adding job item. Current count: ${_addedJobItemToDeliver.length}");
     setState(() {
+      final uniqueId = DateTime.now().millisecondsSinceEpoch.toString();
+
+      final profileController = ProfileController();
+      _packageImageControllers[uniqueId] = profileController;
+
       _addedJobItemToDeliver.add(
         DeliverJobItem(
           deliveryJob: DeliveryJob(
-            deliveryId: "",
+            deliveryId: uniqueId,
             status: StatusType.pending,
-            pickupPkgImagesUrl: [
-              "https://fastly.picsum.photos/id/1065/536/354.jpg?hmac=YpQt2hGki455-miiae0o7ZNcDNiEJXHxN7117b7qmBA",
-            ],
+            pickupPkgImagesUrl: [],
             pickupAddress: AddressInfo(
               addressId: "",
               detail: "",
@@ -452,6 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
             sender: UserInfo(userId: "", name: "", imagesUrl: ""),
             reciver: UserInfo(userId: "", name: "", imagesUrl: ""),
           ),
+          profileController: profileController,
         ),
       );
     });
@@ -553,10 +558,24 @@ class _HomeScreenState extends State<HomeScreen> {
     log(
       "Removing job item at index: $index. Current count: ${_addedJobItemToDeliver.length}",
     );
-    setState(() {
-      _addedJobItemToDeliver.removeAt(index);
-    });
-    log("After removal, count: ${_addedJobItemToDeliver.length}");
+
+    if (index >= 0 && index < _addedJobItemToDeliver.length) {
+      final jobItem = _addedJobItemToDeliver[index];
+      final deliveryId = jobItem.deliveryJob.deliveryId;
+
+      // Dispose of the ProfileController for this item
+      final controller = _packageImageControllers[deliveryId];
+      if (controller != null) {
+        controller.dispose();
+        _packageImageControllers.remove(deliveryId);
+        log("Disposed ProfileController for delivery ID: $deliveryId");
+      }
+
+      setState(() {
+        _addedJobItemToDeliver.removeAt(index);
+      });
+      log("After removal, count: ${_addedJobItemToDeliver.length}");
+    }
   }
 
   Future<void> _confirmToCreateDeliveryJob() async {
@@ -621,6 +640,12 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       setState(() {
+        // Dispose all ProfileControllers before clearing the list
+        for (final controller in _packageImageControllers.values) {
+          controller.dispose();
+        }
+        _packageImageControllers.clear();
+
         _addedJobItemToDeliver.clear();
         _selectedReciver = null;
         _currentSenderStep = 0;
@@ -646,5 +671,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildReceiverContent() {
     return Column(children: [Text("Receiver test")]);
+  }
+
+  @override
+  void dispose() {
+    // Dispose all ProfileControllers to prevent memory leaks
+    for (final controller in _packageImageControllers.values) {
+      controller.dispose();
+    }
+    _packageImageControllers.clear();
+    super.dispose();
   }
 }

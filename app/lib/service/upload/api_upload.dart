@@ -78,7 +78,10 @@ class ApiUploadService {
             return null;
           }
 
-          final payload = JwtHelper.decodeTokenWithLogging(jwtToken, context: 'Upload API');
+          final payload = JwtHelper.decodeTokenWithLogging(
+            jwtToken,
+            context: 'Upload API',
+          );
 
           if (payload == null) {
             log('Failed to decode JWT token');
@@ -104,7 +107,9 @@ class ApiUploadService {
           try {
             final responseData = json.decode(response.body);
             if (responseData['data'] is Map) {
-              final uploadResponse = UploadRespone.fromJson(responseData['data']);
+              final uploadResponse = UploadRespone.fromJson(
+                responseData['data'],
+              );
               if (uploadResponse.message.contains('successfully')) {
                 final imageUrl = uploadResponse.data.url;
                 log('Upload successful (fallback)! Image URL: $imageUrl');
@@ -159,4 +164,6 @@ class ApiUploadService {
       return false;
     }
   }
+
+  static Future<void> delteImageByUid() async {}
 }

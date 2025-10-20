@@ -10,7 +10,13 @@ import 'package:flutter/material.dart';
 class DeliverJobItem extends StatelessWidget {
   final DeliveryJob deliveryJob;
 
-  const DeliverJobItem({super.key, required this.deliveryJob});
+  final ProfileController? profileController;
+
+  const DeliverJobItem({
+    super.key,
+    required this.deliveryJob,
+    this.profileController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,12 +77,18 @@ class DeliverJobItem extends StatelessWidget {
       // ),
       child: Row(
         children: [
-          ProfileWidgets.avatar(
-            isEdited: false,
-            size: ProfileSize.md,
-            imageUrl: deliveryJob.pickupPkgImagesUrl.first,
-            shape: ProfileShape.rectangle,
-          ),
+          profileController != null
+              ? ProfileWidgets.managed(
+                  controller: profileController!,
+                  isEdited: true,
+                  shape: ProfileShape.rectangle,
+                )
+              : ProfileWidgets.avatar(
+                  isEdited: false,
+                  size: ProfileSize.md,
+                  imageUrl: deliveryJob.pickupPkgImagesUrl.first,
+                  shape: ProfileShape.rectangle,
+                ),
           SizedBox(width: 12),
           Expanded(
             child: Column(
