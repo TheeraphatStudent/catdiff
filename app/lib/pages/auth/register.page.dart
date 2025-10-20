@@ -8,16 +8,15 @@ import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map.widget.dart';
 import 'package:app/widget/stepper.widget.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' hide Actions;
 import 'package:app/widget/header_card.widget.dart';
 import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:app/service/auth/user.dart' as UserService;
-import 'package:app/types/user/type.dart';
 import 'package:app/config/share/app_data.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:app/service/upload/api_upload.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -66,11 +65,7 @@ class _RegisterPageState extends State<RegisterPage>
   // Vehicle (for riders)
   final _vehicleTypeController = TextEditingController();
   final _licensePlateController = TextEditingController();
-  var vehicleImage = Rxn<File>();
   final ProfileController _vehicleController = ProfileController();
-
-  // Image picker
-  final ImagePicker _picker = ImagePicker();
 
   int _currentStep = 0;
 
@@ -138,15 +133,20 @@ class _RegisterPageState extends State<RegisterPage>
                 child: LayoutBuilder(
                   builder: (BuildContext context, BoxConstraints constraints) {
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           minHeight: constraints.maxHeight,
                         ),
                         child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: _buildStepContent(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32.0,
+                              vertical: 16,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: _buildStepContent(),
+                            ),
                           ),
                         ),
                       ),
@@ -185,8 +185,11 @@ class _RegisterPageState extends State<RegisterPage>
           ),
           SizedBox(height: 8),
           InputField(
-            label: 'ที่อยู่เริ่มต้น(สำหรับสินค้า)',
+            label: _selectedRole == UserRole.user
+                ? 'ที่อยู่เริ่มต้น(สำหรับสินค้า)'
+                : 'ที่อยู่ปัจจุบัน',
             type: InputType.line,
+            suffixIcon: Icon(Icons.location_on),
             hintText: 'เลือกตำแหน่งจากแผนที่',
             validate: false,
             controller: _addressLocationController,
@@ -275,35 +278,9 @@ class _RegisterPageState extends State<RegisterPage>
           Spacer(),
           _buildNavigationButtons(),
         ];
-      case 2: // Vehicle (for riders) or Final step (for users)
+      case 2: // Vehicle
         if (_selectedRole == UserRole.rider) {
           return [
-            Text(
-              'ข้อมูลยานพาหนะ',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary1,
-              ),
-            ),
-            SizedBox(height: 20),
-            InputField(
-              label: 'ประเภทยานพาหนะ',
-              type: InputType.line,
-              hintText: 'เช่น มอเตอร์ไซค์, รถยนต์',
-              validate: true,
-              errorText: 'กรุณากรอกประเภทยานพาหนะ',
-              controller: _vehicleTypeController,
-            ),
-            InputField(
-              label: 'ทะเบียนรถ',
-              type: InputType.line,
-              hintText: 'กรอกทะเบียนรถ',
-              validate: true,
-              errorText: 'กรุณากรอกทะเบียนรถ',
-              controller: _licensePlateController,
-            ),
-            SizedBox(height: 20),
             Text(
               'รูปภาพยานพาหนะ',
               style: TextStyle(
@@ -313,107 +290,35 @@ class _RegisterPageState extends State<RegisterPage>
               ),
             ),
             SizedBox(height: 10),
-            GestureDetector(
-              onTap: () {
-                // Show image picker options
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  builder: (BuildContext context) {
-                    return SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ListTile(
-                              leading: const Icon(Icons.photo_library),
-                              title: const Text('Gallery'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _pickVehicleImage(ImageSource.gallery);
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.photo_camera),
-                              title: const Text('Camera'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _pickVehicleImage(ImageSource.camera);
-                              },
-                            ),
-                            if (vehicleImage.value != null) ...[
-                              const Divider(),
-                              ListTile(
-                                leading: Icon(
-                                  Icons.delete,
-                                  color: Colors.red[600],
-                                ),
-                                title: Text(
-                                  'Remove Image',
-                                  style: TextStyle(color: Colors.red[600]),
-                                ),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    vehicleImage.value = null;
-                                    _vehicleController.clearImage();
-                                  });
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: AppColors.grayLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.grayMedium, width: 2),
+            Center(
+              child: ProfileWidgets.managed(
+                controller: _vehicleController,
+                isEdited: true,
+                size: ProfileSize.xl,
+                shape: ProfileShape.rectangle,
+                config: ProfileWidgetConfig(
+                  placeholderIcon: Icons.directions_car,
+                  editIcon: Icons.add_a_photo,
                 ),
-                child: vehicleImage.value != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          vehicleImage.value!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_a_photo,
-                            size: 40,
-                            color: AppColors.grayMedium,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'แตะเพื่อเลือกรูปภาพยานพาหนะ',
-                            style: TextStyle(color: AppColors.grayMedium),
-                          ),
-                        ],
-                      ),
               ),
+            ),
+            SizedBox(height: 24),
+            InputField(
+              label: 'ประเภทยานพาหนะ',
+              type: InputType.line,
+              hintText: 'เช่น มอเตอร์ไซค์, รถยนต์',
+              validate: true,
+              errorText: 'กรุณากรอกประเภทยานพาหนะ',
+              controller: _vehicleTypeController,
+            ),
+            SizedBox(height: 16),
+            InputField(
+              label: 'ทะเบียนรถ',
+              type: InputType.line,
+              hintText: 'กรอกทะเบียนรถ',
+              validate: true,
+              errorText: 'กรุณากรอกทะเบียนรถ',
+              controller: _licensePlateController,
             ),
             Spacer(),
             _buildNavigationButtons(),
@@ -457,92 +362,64 @@ class _RegisterPageState extends State<RegisterPage>
 
   Widget _buildSummaryCard() {
     return Container(
-      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.grayLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.grayMedium),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ProfileWidgets.managed(
-                controller: _profileController,
-                isEdited: false,
-                size: ProfileSize.sm,
-                shape: ProfileShape.circular,
-                config: ProfileWidgetConfig.light,
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ชื่อ-นามสกุล: ${_nameController.text}',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: 4),
-                    Text('เบอร์โทร: ${_phoneController.text}'),
-                    SizedBox(height: 4),
-                    Text(
-                      'ประเภท: ${_selectedRole == UserRole.user ? "ผู้ใช้ทั่วไป" : "ไรเดอร์"}',
-                    ),
-                  ],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ProfileWidgets.managed(
+                  controller: _profileController,
+                  isEdited: false,
+                  size: ProfileSize.sm,
+                  shape: ProfileShape.circular,
+                  config: ProfileWidgetConfig.light,
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                _profileController.hasImage
-                    ? Icons.check_circle
-                    : Icons.error_outline,
-                color: _profileController.hasImage
-                    ? Colors.green
-                    : Colors.orange,
-                size: 16,
-              ),
-              SizedBox(width: 8),
-              Text(
-                _profileController.hasImage
-                    ? 'รูปโปรไฟล์: เลือกแล้ว'
-                    : 'รูปโปรไฟล์: ยังไม่ได้เลือก',
-                style: TextStyle(
-                  color: _profileController.hasImage
-                      ? Colors.green
-                      : Colors.orange,
-                  fontSize: 14,
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ชื่อ-นามสกุล: ${_nameController.text}',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 4),
+                      Text('เบอร์โทร: ${_phoneController.text}'),
+                      SizedBox(height: 4),
+                      Text(
+                        'ประเภท: ${_selectedRole == UserRole.user ? "ผู้ใช้ทั่วไป" : "ไรเดอร์"}',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          if (_selectedRole == UserRole.rider) ...[
-            SizedBox(height: 8),
-            Text('ประเภทยานพาหนะ: ${_vehicleTypeController.text}'),
-            Text('ทะเบียนรถ: ${_licensePlateController.text}'),
+              ],
+            ),
+            SizedBox(height: 12),
             Row(
               children: [
                 Icon(
-                  vehicleImage.value != null
+                  _profileController.hasImage
                       ? Icons.check_circle
                       : Icons.error_outline,
-                  color: vehicleImage.value != null
+                  color: _profileController.hasImage
                       ? Colors.green
                       : Colors.orange,
                   size: 16,
                 ),
                 SizedBox(width: 8),
                 Text(
-                  vehicleImage.value != null
-                      ? 'รูปยานพาหนะ: เลือกแล้ว'
-                      : 'รูปยานพาหนะ: ยังไม่ได้เลือก',
+                  _profileController.hasImage
+                      ? 'รูปโปรไฟล์: เลือกแล้ว'
+                      : 'รูปโปรไฟล์: ยังไม่ได้เลือก',
                   style: TextStyle(
-                    color: vehicleImage.value != null
+                    color: _profileController.hasImage
                         ? Colors.green
                         : Colors.orange,
                     fontSize: 14,
@@ -550,8 +427,59 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
               ],
             ),
+            if (_selectedRole == UserRole.rider) ...[
+              Divider(),
+              Row(
+                children: [
+                  ProfileWidgets.managed(
+                    controller: _vehicleController,
+                    isEdited: false,
+                    size: ProfileSize.sm,
+                    shape: ProfileShape.circular,
+                    config: ProfileWidgetConfig.light,
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ประเภทยานพาหนะ: ${_vehicleTypeController.text}'),
+                        SizedBox(height: 4),
+                        Text('ทะเบียนรถ: ${_licensePlateController.text}'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    _profileController.hasImage
+                        ? Icons.check_circle
+                        : Icons.error_outline,
+                    color: _profileController.hasImage
+                        ? Colors.green
+                        : Colors.orange,
+                    size: 16,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    _profileController.hasImage
+                        ? 'รูปยานพาหนะ: เลือกแล้ว'
+                        : 'รูปยานพาหนะ: ยังไม่ได้เลือก',
+                    style: TextStyle(
+                      color: _profileController.hasImage
+                          ? Colors.green
+                          : Colors.orange,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -592,30 +520,6 @@ class _RegisterPageState extends State<RegisterPage>
   void _handleNextStep() {
     if (_currentStep < _maxSteps - 1) {
       setState(() => _currentStep++);
-    }
-  }
-
-  Future<void> _pickVehicleImage(ImageSource source) async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        maxWidth: 1024,
-        maxHeight: 1024,
-      );
-
-      if (image != null) {
-        final File imageFile = File(image.path);
-        setState(() {
-          vehicleImage.value = imageFile;
-        });
-        _vehicleController.setSelectedFile(imageFile);
-      }
-    } catch (e) {
-      log('Error picking vehicle image: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -687,7 +591,41 @@ class _RegisterPageState extends State<RegisterPage>
             children: [
               CircularProgressIndicator(),
               SizedBox(width: 16),
-              Text('กำลังสมัครสมาชิก...'),
+              Text('กำลังตรวจสอบข้อมูล...'),
+            ],
+          ),
+        ),
+      );
+
+      final userCheckResult = await UserService.AuthService.checkUserById(
+        userId: _phoneController.text.trim(),
+        role: _selectedRole,
+      );
+
+      if (!userCheckResult['success'] && userCheckResult['exists'] == true) {
+        Get.back();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userCheckResult['message'] ?? 'หมายเลขโทรศัพท์นี้มีผู้ใช้งานแล้ว',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      Get.back();
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('กำลังอัปโหลดรูปภาพ...'),
             ],
           ),
         ),
@@ -722,6 +660,21 @@ class _RegisterPageState extends State<RegisterPage>
         }
       }
 
+      Get.back();
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('กำลังสร้างบัญชีผู้ใช้...'),
+            ],
+          ),
+        ),
+      );
+
       // Create address document
       final addressDetail = _addressDetailController.text.trim();
       final addressRecord = await AddressService.createAddress(
@@ -739,6 +692,8 @@ class _RegisterPageState extends State<RegisterPage>
         role: _selectedRole,
         profileImageUrl: profileImageUrl,
         vehicleImageUrl: vehicleImageUrl,
+        licencePlate: _vehicleTypeController.text.trim(),
+        vehicleType: _vehicleTypeController.text.trim(),
       );
 
       if (result['success']) {
@@ -746,7 +701,7 @@ class _RegisterPageState extends State<RegisterPage>
         log('User created successfully with ID: $userId');
 
         // Close loading dialog
-        Navigator.of(context).pop();
+        Get.back();
 
         // Show success dialog
         showDialog(
@@ -759,35 +714,7 @@ class _RegisterPageState extends State<RegisterPage>
                 Text('สำเร็จ!'),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('สมัครสมาชิกเรียบร้อยแล้ว'),
-                if (profileImageUrl != null)
-                  Text('✓ อัปโหลดรูปโปรไฟล์สำเร็จ')
-                else if (_profileController.hasImage)
-                  Text('⚠ อัปโหลดรูปโปรไฟล์ไม่สำเร็จ'),
-                if (_selectedRole == UserRole.rider) ...[
-                  if (vehicleImageUrl != null)
-                    Text('✓ อัปโหลดรูปยานพาหนะสำเร็จ')
-                  else if (_vehicleController.hasImage)
-                    Text('⚠ อัปโหลดรูปยานพาหนะไม่สำเร็จ'),
-                ],
-              ],
-            ),
             actions: [
-              // TextButton(
-              //   onPressed: () {
-              //     Navigator.of(context).pop();
-              //     if (_selectedRole == UserRole.user) {
-              //       Get.offAllNamed('/user');
-              //     } else {
-              //       Get.offAllNamed('/rider');
-              //     }
-              //   },
-              //   child: Text('เข้าสู่ระบบ'),
-              // ),
               ButtonActions(
                 onPressed: () {
                   Get.offAllNamed('/login');
@@ -800,7 +727,7 @@ class _RegisterPageState extends State<RegisterPage>
         );
       } else {
         // Close loading dialog
-        Navigator.of(context).pop();
+        Get.back();
 
         // Show error dialog
         showDialog(
@@ -815,18 +742,15 @@ class _RegisterPageState extends State<RegisterPage>
             ),
             content: Text(result['message'] ?? 'ไม่สามารถสมัครสมาชิกได้'),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('ตกลง'),
-              ),
+              TextButton(onPressed: () => Get.back(), child: Text('ตกลง')),
             ],
           ),
         );
       }
     } catch (e) {
       // Close loading dialog if open
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
+      if (Get.isRegistered<MapLocationController>()) {
+        Get.back();
       }
 
       log('Registration error: $e');
@@ -844,10 +768,7 @@ class _RegisterPageState extends State<RegisterPage>
           ),
           content: Text('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('ตกลง'),
-            ),
+            TextButton(onPressed: () => Get.back(), child: Text('ตกลง')),
           ],
         ),
       );

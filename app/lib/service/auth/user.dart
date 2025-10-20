@@ -46,7 +46,10 @@ class AuthService {
     required String password,
     required UserRole role, // Use UserRole enum instead of string
     String? profileImageUrl,
+
     String? vehicleImageUrl,
+    String? licencePlate,
+    String? vehicleType,
   }) async {
     try {
       // Format phone number as email for Firebase Auth compatibility
@@ -75,8 +78,8 @@ class AuthService {
           'images_url': profileImageUrl ?? '',
           'verhicle': {
             'drive_image_url': vehicleImageUrl ?? '',
-            'licence_plate': '',
-            'type': '',
+            'licence_plate': licencePlate ?? '',
+            'type': vehicleType ?? '',
           },
           'createdAt': FieldValue.serverTimestamp(),
         };
@@ -101,9 +104,8 @@ class AuthService {
       }
 
       // บันทึกลง Firestore
-      final String collectionName = role == UserRole.rider ? 'rider' : 'user';
       await FirebaseHelper().setDocument(
-        collection: collectionName,
+        collection: 'user',
         documentId: userCredential.user!.uid,
         data: userData,
       );
@@ -137,6 +139,59 @@ class AuthService {
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> checkUserById({
+    required String userId,
+    UserRole? role,
+  }) async {
+    try {
+      final phoneEmail =
+          "${userId.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
+
+      try {
+        final signInMethods = await FirebaseAuth.FirebaseAuth.instance
+            .fetchSignInMethodsForEmail(phoneEmail);
+
+        if (signInMethods.isNotEmpty) {
+          final userQuery = await FirebaseHelper().getDocumentsQuery(
+            collection: 'user',
+            where: {'phone': userId},
+          );
+
+          bool existsInUser = userQuery.isNotEmpty;
+
+          if (existsInUser) {
+            return {
+              'success': false,
+              'exists': true,
+              'message': 'หมายเลขโทรศัพท์นี้มีผู้ใช้งานแล้ว',
+            };
+          }
+        }
+      } on FirebaseAuth.FirebaseAuthException catch (e) {
+        if (e.code != 'invalid-email') {
+          log(
+            'Firebase Auth error during user check: ${e.code} - ${e.message}',
+          );
+        }
+      }
+
+      // User doesn't exist
+      return {
+        'success': true,
+        'exists': false,
+        'message': 'หมายเลขโทรศัพท์สามารถใช้งานได้',
+      };
+    } catch (e) {
+      log('Error checking user ID: $e');
+      return {
+        'success': false,
+        'exists': false,
+        'message': 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล',
         'error': e.toString(),
       };
     }
