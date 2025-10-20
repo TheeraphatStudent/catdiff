@@ -18,6 +18,8 @@ import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map.widget.dart';
+import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
@@ -281,6 +283,85 @@ class _HomeScreenState extends State<HomeScreen> {
                   : Column(children: [Text("เลือกประเภทการจัดส่ง")]),
             ],
           ),
+          MapsLocationSelector(
+            isOpened: _isMapOpen,
+            isShowingAction: true,
+            onLocationSelected: (selectedLatLng) {
+              log(
+                "Location selected: ${selectedLatLng.latitude}, ${selectedLatLng.longitude}",
+              );
+
+              if (_selectedDeliveryIdForLocation != null) {
+                final newAddress = AddressInfo(
+                  addressId: DateTime.now().millisecondsSinceEpoch.toString(),
+                  detail:
+                      "Selected location: ${selectedLatLng.latitude.toStringAsFixed(6)}, ${selectedLatLng.longitude.toStringAsFixed(6)}",
+                  latitude: selectedLatLng.latitude,
+                  longtitude: selectedLatLng.longitude,
+                  createdAt: DateTime.now().toIso8601String(),
+                  updatedAt: DateTime.now().toIso8601String(),
+                );
+
+                final index = _addedJobItemToDeliver.indexWhere(
+                  (item) =>
+                      item.deliveryJob.deliveryId ==
+                      _selectedDeliveryIdForLocation,
+                );
+
+                if (index != -1) {
+                  setState(() {
+                    _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
+                        newAddress;
+                  });
+
+                  log(
+                    "Updated delivery address for delivery: $_selectedDeliveryIdForLocation",
+                  );
+                }
+              }
+
+              setState(() {
+                _isMapOpen = false;
+                _selectedDeliveryIdForLocation = null;
+              });
+
+              if (_shouldRestoreDeliveryModal) {
+                Future.delayed(Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    setState(() {
+                      _isSliderOpen = true;
+                      _currentContentType =
+                          _savedContentType ??
+                          _currentContentType; // Restore content type
+                      _shouldRestoreDeliveryModal = false;
+                      _savedContentType = null; // Clear saved state
+                    });
+                  }
+                });
+              }
+            },
+            onModalClosed: () {
+              setState(() {
+                _isMapOpen = false;
+                _selectedDeliveryIdForLocation = null;
+              });
+
+              if (_shouldRestoreDeliveryModal) {
+                Future.delayed(Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    setState(() {
+                      _isSliderOpen = true;
+                      _currentContentType =
+                          _savedContentType ??
+                          _currentContentType; // Restore content type
+                      _shouldRestoreDeliveryModal = false;
+                      _savedContentType = null; // Clear saved state
+                    });
+                  }
+                });
+              }
+            },
+          ),
         ],
       ),
     );
@@ -423,43 +504,156 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<DeliverJobItem> _addedJobItemToDeliver = [];
   final Map<String, ProfileController> _packageImageControllers = {};
 
-  void addedJobItemToDeliver() {
+  bool _isMapOpen = false;
+  String? _selectedDeliveryIdForLocation;
+
+  bool _shouldRestoreDeliveryModal = false;
+  String? _savedContentType;
+
+  AddressInfo? _getDeliveryAddress(String deliveryId) {
+    final index = _addedJobItemToDeliver.indexWhere(
+      (item) => item.deliveryJob.deliveryId == deliveryId,
+    );
+    return index != -1
+        ? _addedJobItemToDeliver[index].deliveryJob.deliveryAddress
+        : null;
+  }
+
+  Future<void> addedJobItemToDeliver() async {
+    if (_selectedReciver == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกผู้รับก่อน')));
+      return;
+    }
+
     log("Adding job item. Current count: ${_addedJobItemToDeliver.length}");
-    setState(() {
-      final uniqueId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    try {
+      final appData = Provider.of<AppData>(context, listen: false);
+
+      final delivery = Delivery(
+        deliveryId: '',
+        profileImageUrl: appData.currentUser!.imagesUrl,
+        name: 'Package ${_addedJobItemToDeliver.length + 1}',
+        status: StatusType.pending,
+        sendedId: appData.currentUser!.id,
+        receivedId: _selectedReciver!.userId,
+        pickupAddressId: appData.currentUser!.addressId,
+        deliveryAddressId: _selectedReciver!.address.addressId,
+        pickupPkgImagesUrl: [],
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+        deliveredAt: null,
+        pickupAt: null,
+        sendedPkgDetail: 'Package ${_addedJobItemToDeliver.length + 1}',
+        sendedPkgImgUrl: '',
+      );
+
+      final createdDelivery = await DeliveryService.createDelivery(delivery);
+      if (createdDelivery == null) {
+        throw Exception('Failed to create delivery');
+      }
 
       final profileController = ProfileController();
-      _packageImageControllers[uniqueId] = profileController;
 
-      _addedJobItemToDeliver.add(
-        DeliverJobItem(
-          deliveryJob: DeliveryJob(
-            deliveryId: uniqueId,
-            status: StatusType.pending,
-            pickupPkgImagesUrl: [],
-            pickupAddress: AddressInfo(
-              addressId: "",
-              detail: "",
-              latitude: 0,
-              longtitude: 0,
-              createdAt: '',
-              updatedAt: '',
+      profileController.addListener(() {
+        if (profileController.uploadedUrl != null) {
+          log(
+            "Image uploaded for delivery ${createdDelivery.deliveryId}: ${profileController.uploadedUrl}",
+          );
+
+          final index = _addedJobItemToDeliver.indexWhere(
+            (item) => item.deliveryJob.deliveryId == createdDelivery.deliveryId,
+          );
+
+          if (index != -1) {
+            setState(() {
+              _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl = [
+                profileController.uploadedUrl!,
+              ];
+            });
+
+            log(
+              "Updated pickupPkgImagesUrl for delivery ${createdDelivery.deliveryId}",
+            );
+          }
+        }
+      });
+
+      _packageImageControllers[createdDelivery.deliveryId] = profileController;
+
+      setState(() {
+        _addedJobItemToDeliver.add(
+          DeliverJobItem(
+            deliveryJob: DeliveryJob(
+              deliveryId: createdDelivery.deliveryId,
+              status: StatusType.pending,
+              pickupPkgImagesUrl: [],
+              pickupAddress: AddressInfo(
+                addressId: appData.currentUser!.addressId,
+                detail: "",
+                latitude: 0,
+                longtitude: 0,
+                createdAt: '',
+                updatedAt: '',
+              ),
+              deliveryAddress: AddressInfo(
+                addressId: _selectedReciver!.address.addressId,
+                detail: _selectedReciver!.address.detail,
+                latitude: _selectedReciver!.address.latitude,
+                longtitude: _selectedReciver!.address.longtitude,
+                createdAt: '',
+                updatedAt: '',
+              ),
+              sender: UserInfo(
+                userId: appData.currentUser!.id,
+                name: appData.currentUser!.name,
+                imagesUrl: appData.currentUser!.imagesUrl,
+              ),
+              reciver: UserInfo(
+                userId: _selectedReciver!.userId,
+                name: _selectedReciver!.name,
+                imagesUrl: _selectedReciver!.imageUrl,
+              ),
             ),
-            deliveryAddress: AddressInfo(
-              addressId: "",
-              detail: "",
-              latitude: 0,
-              longtitude: 0,
-              createdAt: '',
-              updatedAt: '',
-            ),
-            sender: UserInfo(userId: "", name: "", imagesUrl: ""),
-            reciver: UserInfo(userId: "", name: "", imagesUrl: ""),
+            profileController: profileController,
+            userId: appData.currentUser!.id,
+            onLocationTap: (AddressInfo address) {
+              log("Location tap for delivery: ${createdDelivery.deliveryId}");
+              log("Current address: ${address.detail}");
+              log(address.latitude.toString());
+              log(address.longtitude.toString());
+
+              setState(() {
+                _selectedDeliveryIdForLocation = createdDelivery.deliveryId;
+                _shouldRestoreDeliveryModal = _isSliderOpen;
+                _savedContentType = _currentContentType;
+                _isSliderOpen = false;
+              });
+
+              Future.delayed(Duration(milliseconds: 300), () {
+                if (mounted) {
+                  setState(() {
+                    _isMapOpen = true;
+                  });
+                }
+              });
+            },
           ),
-          profileController: profileController,
+        );
+      });
+
+      log("Successfully created delivery: ${createdDelivery.deliveryId}");
+    } catch (e) {
+      log("Error creating delivery: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการสร้างพัสดุ: $e'),
+          backgroundColor: AppColors.lightDanger,
         ),
       );
-    });
+    }
   }
 
   Widget _buildPreparePackageContent() {
@@ -490,7 +684,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(width: 8),
             ButtonActions(
               variant: ButtonVariant.primary,
-              icon: Icons.arrow_forward,
+              icon: Icons.check,
               width: ButtonWidth.fit,
               onPressed: _addedJobItemToDeliver.isNotEmpty
                   ? () {
@@ -554,7 +748,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _removeJobItem(int index) {
+  Future<void> _removeJobItem(int index) async {
     log(
       "Removing job item at index: $index. Current count: ${_addedJobItemToDeliver.length}",
     );
@@ -563,18 +757,34 @@ class _HomeScreenState extends State<HomeScreen> {
       final jobItem = _addedJobItemToDeliver[index];
       final deliveryId = jobItem.deliveryJob.deliveryId;
 
-      // Dispose of the ProfileController for this item
-      final controller = _packageImageControllers[deliveryId];
-      if (controller != null) {
-        controller.dispose();
-        _packageImageControllers.remove(deliveryId);
-        log("Disposed ProfileController for delivery ID: $deliveryId");
-      }
+      try {
+        final success = await DeliveryService.deleteDelivery(deliveryId);
+        if (!success) {
+          throw Exception('Failed to delete delivery from Firebase');
+        }
 
-      setState(() {
-        _addedJobItemToDeliver.removeAt(index);
-      });
-      log("After removal, count: ${_addedJobItemToDeliver.length}");
+        final controller = _packageImageControllers[deliveryId];
+        if (controller != null) {
+          controller.dispose();
+          _packageImageControllers.remove(deliveryId);
+          log("Disposed ProfileController for delivery ID: $deliveryId");
+        }
+
+        setState(() {
+          _addedJobItemToDeliver.removeAt(index);
+        });
+
+        log("Successfully deleted delivery: $deliveryId");
+        log("After removal, count: ${_addedJobItemToDeliver.length}");
+      } catch (e) {
+        log("Error deleting delivery $deliveryId: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการลบพัสดุ: $e'),
+            backgroundColor: AppColors.lightDanger,
+          ),
+        );
+      }
     }
   }
 
@@ -586,83 +796,26 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('กำลังสร้างงานส่งของ...'),
-            ],
-          ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'ยืนยันการส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
         ),
-      );
+        backgroundColor: AppColors.primary3,
+      ),
+    );
 
-      final appData = Provider.of<AppData>(context, listen: false);
-
-      for (int i = 0; i < _addedJobItemToDeliver.length; i++) {
-        final delivery = Delivery(
-          deliveryId: '',
-          profileImageUrl: appData.currentUser!.imagesUrl,
-          name: 'Package ${i + 1}',
-          status: StatusType.pending,
-          sendedId: appData.currentUser!.id,
-          receivedId: _selectedReciver!.userId,
-          pickupAddressId: appData.currentUser!.addressId,
-          deliveryAddressId: _selectedReciver!.address.addressId,
-          pickupPkgImagesUrl: [],
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-          deliveredAt: null,
-          pickupAt: null,
-          sendedPkgDetail: 'Package ${i + 1}',
-          sendedPkgImgUrl: '',
-        );
-
-        final result = await DeliveryService.createDelivery(delivery);
-        if (result == null) {
-          throw Exception('Failed to create delivery ${i + 1}');
-        }
+    setState(() {
+      for (final controller in _packageImageControllers.values) {
+        controller.dispose();
       }
+      _packageImageControllers.clear();
 
-      Get.back();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'สร้างงานส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
-          ),
-          backgroundColor: AppColors.primary3,
-        ),
-      );
-
-      setState(() {
-        // Dispose all ProfileControllers before clearing the list
-        for (final controller in _packageImageControllers.values) {
-          controller.dispose();
-        }
-        _packageImageControllers.clear();
-
-        _addedJobItemToDeliver.clear();
-        _selectedReciver = null;
-        _currentSenderStep = 0;
-      });
-      onClosedModal();
-    } catch (e) {
-      if (Get.isRegistered<GetMaterialApp>()) {
-        Get.back();
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
-          backgroundColor: AppColors.lightDanger,
-        ),
-      );
-    }
+      _addedJobItemToDeliver.clear();
+      _selectedReciver = null;
+      _currentSenderStep = 0;
+    });
+    onClosedModal();
   }
 
   // Receiver content
@@ -675,7 +828,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    // Dispose all ProfileControllers to prevent memory leaks
     for (final controller in _packageImageControllers.values) {
       controller.dispose();
     }
