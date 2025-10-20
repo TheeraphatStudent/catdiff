@@ -34,31 +34,26 @@ class _DebugRiderState extends State<DebugRider> {
       scrollable: false,
       body: Column(
         children: [
-          Container(
+          SizedBox(
             width: MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
+            height: 128,
+            child: Stack(
               children: [
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 6,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 8,
+                          vertical: 4,
                         ),
                         decoration: ShapeDecoration(
                           color: AppColors.primary5,
@@ -74,40 +69,57 @@ class _DebugRiderState extends State<DebugRider> {
                             ),
                           ],
                         ),
-                        child: Text(
-                          appData.currentUser?.name ?? '???',
-                          style: TextStyle(
-                            color: AppColors.black,
-                            fontSize: 14,
-                            fontFamily: 'Mali',
-                            fontWeight: FontWeight.w400,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 4.0,
+                              ),
+                              child: Text(
+                                appData.currentUser?.name ?? '???',
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'Mali',
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Text(
-                          'ไม่มีสลิปรอชื่อรับอยู่',
-                          style: TextStyle(
-                            color: const Color(0xFF819067),
-                            fontSize: 10,
-                            fontFamily: 'Mali',
-                            fontWeight: FontWeight.w400,
-                          ),
+                      SizedBox(height: 2),
+                      Text(
+                        'ไม่มีพัสดุจัดส่งหรือรอรับ',
+                        style: TextStyle(
+                          color: const Color(0xFF819067) /* Primary-Green2 */,
+                          fontSize: 10,
+                          fontFamily: 'Mali',
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Profile Avatar
-                ProfileWidgets.avatar(
-                  isEdited: false,
-                  size: ProfileSize.md,
-                  imageUrl: appData.currentUser?.imagesUrl,
-                  onPressed: () {
-                    log("On pressed work");
-                    Get.offNamed('/profile');
-                  },
+                Positioned(
+                  right: -22,
+                  top: -22,
+                  // child: ProfileWidget(isEdited: false, size: ProfileSize.md),
+                  child: ProfileWidgets.avatar(
+                    isEdited: false,
+                    size: ProfileSize.md,
+                    // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
+                    imageUrl: appData.currentUser?.imagesUrl,
+                    onPressed: () {
+                      // log("On preseed work");
+
+                      Get.offNamed('/profile');
+                    },
+                  ),
                 ),
               ],
             ),
@@ -181,17 +193,14 @@ class _DebugRiderState extends State<DebugRider> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 16,
-                    children: deliveryJobs
-                        .where((job) => job.pickupPkgImagesUrl.isNotEmpty)
-                        .map((job) {
-                          return DeliverJobItem(
-                            deliveryJob: job,
-                            onLocationTap: (address) {
-                              log('Location tapped: ${address.detail}');
-                            },
-                          );
-                        })
-                        .toList(),
+                    children: deliveryJobs.map((job) {
+                      return DeliverJobItem(
+                        deliveryJob: job,
+                        onLocationTap: (address) {
+                          log('Location tapped: ${address.detail}');
+                        },
+                      );
+                    }).toList(),
                   ),
                 );
               },

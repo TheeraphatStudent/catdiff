@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
@@ -10,6 +11,7 @@ import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +24,27 @@ class RiderListProd extends StatefulWidget {
 }
 
 class _RiderListProdState extends State<RiderListProd> {
+  // Map state management
+  bool _isMapOpen = false;
+  String _selectedDestinationLabel = "ปลายทาง";
+  double _selectedLat = 13.7563;
+  double _selectedLng = 100.5231;
+
+  void _openMapForDelivery(AddressInfo address) {
+    setState(() {
+      _isMapOpen = true;
+      _selectedDestinationLabel = "ปลายทาง: ${address.detail}";
+      _selectedLat = address.latitude;
+      _selectedLng = address.longtitude;
+    });
+  }
+
+  void _closeMap() {
+    setState(() {
+      _isMapOpen = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
@@ -120,16 +143,94 @@ class _RiderListProdState extends State<RiderListProd> {
             ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 24,
-                children: [],
-              ),
+            child: StreamBuilder<List<DeliveryJob>>(
+              stream: DeliveryRiderJob.getDeliveryJobsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  log('StreamBuilder error: ${snapshot.error}');
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.exclamationmark_triangle,
+                          size: 48,
+                          color: AppColors.black,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+                          style: TextStyle(
+                            fontFamily: 'Mali',
+                            fontSize: 16,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CupertinoActivityIndicator());
+                }
+
+                final deliveryJobs = snapshot.data ?? [];
+
+                if (deliveryJobs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.cube_box,
+                          size: 64,
+                          color: AppColors.black,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'ไม่มีงานส่งของในขณะนี้',
+                          style: TextStyle(
+                            fontFamily: 'Mali',
+                            fontSize: 16,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 32,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 16,
+                    children: deliveryJobs.map((job) {
+                      return DeliverJobItem(
+                        deliveryJob: job,
+                        onLocationTap: (address) {
+                          log('Location tapped: ${address.detail}');
+                          _openMapForDelivery(address);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
             ),
+          ),
+
+          MapViewerSinglePoint(
+            destLabel: _selectedDestinationLabel,
+            lat: _selectedLat,
+            lng: _selectedLng,
+            isOpened: _isMapOpen,
+            onModalClosed: _closeMap,
           ),
         ],
       ),

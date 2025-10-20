@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:app/service/address/address_service.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
@@ -14,24 +15,32 @@ class DeliveryRiderJob {
   static Stream<List<DeliveryJob>> getDeliveryJobsStream() {
     _deliveryJobsController ??= StreamController<List<DeliveryJob>>.broadcast();
 
-    // Listen to real-time updates from Firebase
     _deliveryJobsSubscription = FirebaseFirestore.instance
         .collection('delivery')
         .where('status', isEqualTo: 'pending')
-        .orderBy('created_at', descending: true)
         .snapshots()
         .listen(
-          (QuerySnapshot snapshot) {
+          (QuerySnapshot snapshot) async {
             try {
               log(
                 'Received ${snapshot.docs.length} pending delivery jobs from Firebase',
               );
 
-              final deliveryJobs = snapshot.docs.map((doc) {
+              final deliveryJobs = snapshot.docs.map((doc) async {
                 final data = doc.data() as Map<String, dynamic>;
                 data['delivery_id'] = doc.id;
 
                 final delivery = Delivery.fromJson(data);
+
+                final AddressInfo pickupAddress =
+                    await AddressService.getAddressById(
+                      delivery.pickupAddressId,
+                    );
+
+                final AddressInfo deliveryAddress =
+                    await AddressService.getAddressById(
+                      delivery.deliveryAddressId,
+                    );
 
                 return DeliveryJob(
                   deliveryId: delivery.deliveryId,
@@ -46,27 +55,15 @@ class DeliveryRiderJob {
                     name: delivery.name,
                     imagesUrl: delivery.profileImageUrl,
                   ),
-                  pickupAddress: AddressInfo(
-                    addressId: delivery.pickupAddressId,
-                    detail: "Pickup Address",
-                    latitude: 0.0,
-                    longtitude: 0.0,
-                    createdAt: delivery.createdAt,
-                    updatedAt: delivery.updatedAt,
-                  ),
-                  deliveryAddress: AddressInfo(
-                    addressId: delivery.deliveryAddressId,
-                    detail: "Delivery Address",
-                    latitude: 0.0,
-                    longtitude: 0.0,
-                    createdAt: delivery.createdAt,
-                    updatedAt: delivery.updatedAt,
-                  ),
+                  pickupAddress: pickupAddress,
+                  deliveryAddress: deliveryAddress,
                   pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
                 );
               }).toList();
 
-              _deliveryJobsController?.add(deliveryJobs);
+              final response = await Future.wait(deliveryJobs);
+
+              _deliveryJobsController?.add(response);
             } catch (e) {
               log('Error processing delivery jobs stream: $e');
               _deliveryJobsController?.addError(e);

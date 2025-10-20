@@ -8,6 +8,7 @@ class MapViewerSinglePoint extends StatefulWidget {
   final double lng;
   final String destLabel;
   final bool isOpened;
+  final VoidCallback? onModalClosed;
 
   const MapViewerSinglePoint({
     super.key,
@@ -15,6 +16,7 @@ class MapViewerSinglePoint extends StatefulWidget {
     required this.lng,
     required this.isOpened,
     required this.destLabel,
+    this.onModalClosed,
   });
 
   @override
@@ -26,6 +28,7 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePoint> {
   Widget build(BuildContext context) {
     return SlidingTemplate(
       isOpened: widget.isOpened,
+      onModalClosed: widget.onModalClosed,
       children: [
         AspectRatio(
           aspectRatio: 1.4,

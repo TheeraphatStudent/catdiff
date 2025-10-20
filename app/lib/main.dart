@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
           // initialRoute: ,
           initialRoute: '/debug-rider',
           getPages: <GetPage<dynamic>>[
-            GetPage(name: '/', page: () => const _RootLoadingChecker()),
+            // GetPage(name: '/', page: () => const _RootLoadingChecker()),
             GetPage(name: '/onboarding', page: () => const OnBoardingPage()),
             GetPage(name: '/login', page: () => const LoginPage()),
             GetPage(name: '/register', page: () => const RegisterPage()),
@@ -74,6 +74,7 @@ class MyApp extends StatelessWidget {
             // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
             // GetPage(name: '/multi-tracking', page: () => const MultiTracking()),
             GetPage(name: '/debug', page: () => const DebugPage()),
+            GetPage(name: '/debug-rider', page: () => const DebugRider()),
             GetPage(name: '/slider-debug', page: () => const SilderDebug()),
             GetPage(name: '/map-debug', page: () => const MapDebugPage()),
           ],
