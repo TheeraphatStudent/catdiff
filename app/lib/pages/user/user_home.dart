@@ -7,11 +7,14 @@ import 'package:app/service/auth/reciver.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
-import 'package:app/types/user/sender/sender_showcard.dart';
+import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/delivery/delivery.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/reciver/reciver.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/reciver_job.widget.dart';
+import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
@@ -226,10 +229,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
+                        log(
+                          'StatusContainer onTap: Setting sender mode and opening slider',
+                        );
                         setState(() {
                           _currentContentType = "sender";
                           _isSliderOpen = true;
                         });
+                        log(
+                          'StatusContainer onTap: _isSliderOpen = $_isSliderOpen, _currentContentType = $_currentContentType',
+                        );
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -288,7 +297,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _nextSenderStep() {
-    if (_currentSenderStep < 2) {
+    log("Next step work!");
+
+    if (_currentSenderStep < 1) {
       setState(() {
         _currentSenderStep++;
       });
@@ -304,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToSenderStep(int step) {
-    if (step >= 0 && step <= 2) {
+    if (step >= 0 && step <= 1) {
       setState(() {
         _currentSenderStep = step;
       });
@@ -312,13 +323,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getCurrentSenderStepContent() {
+    log("Building step content for step: $_currentSenderStep");
     switch (_currentSenderStep) {
       case 0:
         return _buildSelectReceiverContent();
       case 1:
         return _buildPreparePackageContent();
-      case 2:
-        return _buildConfirmDeliveryContent();
       default:
         return _buildSelectReceiverContent();
     }
@@ -332,7 +342,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         spacing: 12,
         children: [
-          Expanded(child: _getCurrentSenderStepContent()),
+          Expanded(
+            key: ValueKey('sender_step_$_currentSenderStep'),
+            child: _getCurrentSenderStepContent(),
+          ),
           StepperWidget(
             steps: [
               StepData(
@@ -345,11 +358,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 active: _currentSenderStep == 1,
                 icon: Icon(Icons.inbox),
               ),
-              StepData(
-                label: "ยืนยันการส่ง",
-                active: _currentSenderStep == 2,
-                icon: Icon(Icons.check),
-              ),
             ],
           ),
         ],
@@ -358,6 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 1. Select receiver -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  ReciverList? _selectedReciver;
 
   Widget _buildSelectReceiverContent() {
     return Column(
@@ -389,15 +399,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 8,
                     children: filteredReciverItems.map((receiver) {
                       return ReciverJobItem(
-                        reciver: ReciverList(
-                          userId: receiver.userId,
-                          imageUrl: receiver.imageUrl,
-                          name: receiver.name,
-                          address: receiver.address,
-                        ),
+                        reciver: receiver,
                         onTap: () {
                           log(receiver.address.addressId);
                           log(receiver.address.addressId);
+
+                          _selectedReciver = receiver;
+
+                          _nextSenderStep();
                         },
                       );
                     }).toList(),
@@ -411,65 +420,224 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 2. Prepare package -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+  final List<DeliverJobItem> _addedJobItemToDeliver = [];
+
+  void addedJobItemToDeliver() {
+    log("Adding job item. Current count: ${_addedJobItemToDeliver.length}");
+    setState(() {
+      _addedJobItemToDeliver.add(
+        DeliverJobItem(
+          deliveryJob: DeliveryJob(
+            deliveryId: "",
+            status: StatusType.pending,
+            pickupPkgImagesUrl: [
+              "https://fastly.picsum.photos/id/1065/536/354.jpg?hmac=YpQt2hGki455-miiae0o7ZNcDNiEJXHxN7117b7qmBA",
+            ],
+            pickupAddress: AddressInfo(
+              addressId: "",
+              detail: "",
+              latitude: 0,
+              longtitude: 0,
+              createdAt: '',
+              updatedAt: '',
+            ),
+            deliveryAddress: AddressInfo(
+              addressId: "",
+              detail: "",
+              latitude: 0,
+              longtitude: 0,
+              createdAt: '',
+              updatedAt: '',
+            ),
+            sender: UserInfo(userId: "", name: "", imagesUrl: ""),
+            reciver: UserInfo(userId: "", name: "", imagesUrl: ""),
+          ),
+        ),
+      );
+    });
+  }
+
   Widget _buildPreparePackageContent() {
     return Column(
       children: [
-        // Expanded(child: Center(child: Text("Prepare package content"))),
-        // Padding(
-        //   padding: const EdgeInsets.all(16.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       ButtonActions(
-        //         variant: ButtonVariant.secondary,
-        //         icon: Icons.arrow_back,
-        //         onPressed: _previousSenderStep,
-        //         text: "ย้อนกลับ",
-        //       ),
-        //       ButtonActions(
-        //         variant: ButtonVariant.primary,
-        //         icon: Icons.arrow_forward,
-        //         onPressed: _nextSenderStep,
-        //         text: "ถัดไป",
-        //       ),
-        //     ],
-        //   ),
-        // ),
+        // Action buttons row
+        Row(
+          children: [
+            ButtonActions(
+              variant: ButtonVariant.danger,
+              icon: Icons.arrow_back,
+              width: ButtonWidth.fit,
+              onPressed: () => onClosedModal(),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ButtonActions(
+                variant: ButtonVariant.outline,
+                icon: Icons.add,
+                iconPosition: IconPosition.right,
+                width: ButtonWidth.full,
+                text: "เพิ่มพัสดุ",
+                onPressed: () {
+                  addedJobItemToDeliver();
+                },
+              ),
+            ),
+            SizedBox(width: 8),
+            ButtonActions(
+              variant: ButtonVariant.primary,
+              icon: Icons.arrow_forward,
+              width: ButtonWidth.fit,
+              onPressed: _addedJobItemToDeliver.isNotEmpty
+                  ? () {
+                      _confirmToCreateDeliveryJob();
+                    }
+                  : null,
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        // Package items list
+        Expanded(
+          child: _addedJobItemToDeliver.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        "ต้องการส่งอะไร เพิ่มได้เลย",
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  key: ValueKey(
+                    'package_list_${_addedJobItemToDeliver.length}',
+                  ),
+                  child: Column(
+                    spacing: 8,
+                    children: _addedJobItemToDeliver.asMap().entries.map((
+                      entry,
+                    ) {
+                      final index = entry.key;
+                      final jobItem = entry.value;
+                      return Dismissible(
+                        key: Key('job_item_$index'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20),
+                          color: Colors.red,
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          _removeJobItem(index);
+                        },
+                        child: jobItem,
+                      );
+                    }).toList(),
+                  ),
+                ),
+        ),
       ],
     );
   }
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 3. Confirm delivery -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-  Widget _buildConfirmDeliveryContent() {
-    return Column(
-      children: [
-        // Expanded(child: Center(child: Text("Confirm delivery content"))),
-        // Padding(
-        //   padding: const EdgeInsets.all(16.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       ButtonActions(
-        //         variant: ButtonVariant.secondary,
-        //         icon: Icons.arrow_back,
-        //         onPressed: _previousSenderStep,
-        //         text: "ย้อนกลับ",
-        //       ),
-        //       ButtonActions(
-        //         variant: ButtonVariant.primary,
-        //         icon: Icons.check,
-        //         onPressed: () {
-        //           // Handle final confirmation
-        //           onClosedModal();
-        //         },
-        //         text: "ยืนยัน",
-        //       ),
-        //     ],
-        //   ),
-        // ),
-      ],
+  void _removeJobItem(int index) {
+    log(
+      "Removing job item at index: $index. Current count: ${_addedJobItemToDeliver.length}",
     );
+    setState(() {
+      _addedJobItemToDeliver.removeAt(index);
+    });
+    log("After removal, count: ${_addedJobItemToDeliver.length}");
+  }
+
+  Future<void> _confirmToCreateDeliveryJob() async {
+    if (_selectedReciver == null || _addedJobItemToDeliver.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกผู้รับและเพิ่มพัสดุ')));
+      return;
+    }
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('กำลังสร้างงานส่งของ...'),
+            ],
+          ),
+        ),
+      );
+
+      final appData = Provider.of<AppData>(context, listen: false);
+
+      for (int i = 0; i < _addedJobItemToDeliver.length; i++) {
+        final delivery = Delivery(
+          deliveryId: '',
+          profileImageUrl: appData.currentUser!.imagesUrl,
+          name: 'Package ${i + 1}',
+          status: StatusType.pending,
+          sendedId: appData.currentUser!.id,
+          receivedId: _selectedReciver!.userId,
+          pickupAddressId: appData.currentUser!.addressId,
+          deliveryAddressId: _selectedReciver!.address.addressId,
+          pickupPkgImagesUrl: [],
+          createdAt: DateTime.now().toIso8601String(),
+          updatedAt: DateTime.now().toIso8601String(),
+          deliveredAt: null,
+          pickupAt: null,
+          sendedPkgDetail: 'Package ${i + 1}',
+          sendedPkgImgUrl: '',
+        );
+
+        final result = await DeliveryService.createDelivery(delivery);
+        if (result == null) {
+          throw Exception('Failed to create delivery ${i + 1}');
+        }
+      }
+
+      Get.back();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'สร้างงานส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
+          ),
+          backgroundColor: AppColors.primary3,
+        ),
+      );
+
+      setState(() {
+        _addedJobItemToDeliver.clear();
+        _selectedReciver = null;
+        _currentSenderStep = 0;
+      });
+      onClosedModal();
+    } catch (e) {
+      if (Get.isRegistered<GetMaterialApp>()) {
+        Get.back();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'),
+          backgroundColor: AppColors.lightDanger,
+        ),
+      );
+    }
   }
 
   // Receiver content

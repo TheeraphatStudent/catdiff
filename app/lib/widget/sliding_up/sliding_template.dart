@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -72,17 +73,49 @@ class SlidingTemplate extends StatefulWidget {
 class _SlidingTemplateState extends State<SlidingTemplate> {
   bool _isModalCurrentlyOpen = false;
   bool _hasProcessedOpenRequest = false;
+  final ValueNotifier<int> _rebuildNotifier = ValueNotifier<int>(0);
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void didUpdateWidget(SlidingTemplate oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (_isModalCurrentlyOpen) {
+      bool childrenChanged =
+          oldWidget.children.length != widget.children.length;
+      if (!childrenChanged) {
+        for (int i = 0; i < widget.children.length; i++) {
+          if (oldWidget.children[i].runtimeType !=
+              widget.children[i].runtimeType) {
+            childrenChanged = true;
+            break;
+          }
+        }
+      }
+
+      if (childrenChanged || oldWidget.customTopBar != widget.customTopBar) {
+        log('SlidingTemplate: Scheduling modal content rebuild');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            log('SlidingTemplate: Executing modal content rebuild');
+            _rebuildNotifier.value++;
+          }
+        });
+      }
+    }
+
     if (widget.isOpened &&
         !oldWidget.isOpened &&
         !_isModalCurrentlyOpen &&
         !_hasProcessedOpenRequest) {
+      log('SlidingTemplate: Scheduling modal open');
       _hasProcessedOpenRequest = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        log('SlidingTemplate: Opening modal');
         _openModal();
       });
     }
@@ -99,10 +132,15 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
   }
 
   void _openModal() {
+    log(
+      'SlidingTemplate: _openModal called, _isModalCurrentlyOpen: $_isModalCurrentlyOpen',
+    );
     if (_isModalCurrentlyOpen) {
+      log('SlidingTemplate: Modal already open, returning');
       return;
     }
 
+    log('SlidingTemplate: Setting modal as open and showing WoltModalSheet');
     _isModalCurrentlyOpen = true;
 
     WoltModalSheet.show<void>(
@@ -153,22 +191,32 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
     return SliverWoltModalSheetPage(
       isTopBarLayerAlwaysVisible: true,
       topBar: widget.customTopBar != null
-          // ? Container(
-          //     height: widget.topBarHeight,
-          //     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          //     child: widget.customTopBar,
-          //   )
-          ? SizedBox(height: widget.topBarHeight, child: widget.customTopBar)
+          ? SizedBox(
+              height: widget.topBarHeight,
+              child: ValueListenableBuilder<int>(
+                valueListenable: _rebuildNotifier,
+                builder: (context, _, __) => widget.customTopBar!,
+              ),
+            )
           : null,
       mainContentSliversBuilder: (context) => [
         SliverPadding(
           padding: widget.contentPadding,
           sliver: SliverToBoxAdapter(
-            child: Column(
-              children: widget.children.map((child) => Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: child,
-              )).toList(),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _rebuildNotifier,
+              builder: (context, _, __) {
+                return Column(
+                  children: widget.children
+                      .map(
+                        (child) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: child,
+                        ),
+                      )
+                      .toList(),
+                );
+              },
             ),
           ),
         ),
@@ -177,7 +225,16 @@ class _SlidingTemplateState extends State<SlidingTemplate> {
   }
 
   @override
+  void dispose() {
+    _rebuildNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    log(
+      'SlidingTemplate build: isOpened=${widget.isOpened}, isShowingAction=${widget.isShowingAction}, _isModalCurrentlyOpen=$_isModalCurrentlyOpen',
+    );
     if (widget.isShowingAction) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
