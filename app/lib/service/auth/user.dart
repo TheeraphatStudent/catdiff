@@ -347,4 +347,25 @@ class AuthService {
       };
     }
   }
+
+  static Future<User?> getUserById({required String userId}) async {
+    try {
+      final doc = await FirebaseHelper().getDocumentById(
+        collection: 'user',
+        documentId: userId,
+      );
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      final userData = doc.data()!;
+      final userObject = User.fromJson(userData);
+
+      return userObject;
+    } catch (e) {
+      log('Error fetching user by ID: $e');
+      return null;
+    }
+  }
 }

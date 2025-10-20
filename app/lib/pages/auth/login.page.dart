@@ -182,16 +182,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final newPassword = _newPasswordController.text.trim();
 
     if (phone.isEmpty || newPassword.isEmpty) {
-      _showErrorDialog('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกเบอร์โทรศัพท์และรหัสผ่านใหม่');
+      _showErrorDialog(
+        'ข้อมูลไม่ครบถ้วน',
+        'กรุณากรอกเบอร์โทรศัพท์และรหัสผ่านใหม่',
+      );
       return;
     }
 
     if (newPassword.length < 6) {
-      _showErrorDialog('รหัสผ่านไม่ปลอดภัย', 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      _showErrorDialog(
+        'รหัสผ่านไม่ปลอดภัย',
+        'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+      );
       return;
     }
 
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -212,20 +217,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         newPassword: newPassword,
       );
 
-      // Close loading dialog
       Get.back();
 
       if (result['success']) {
-        // Close reset modal
         setState(() {
           _isResetPasswordModalOpen = false;
         });
 
-        // Clear form
         _resetPhoneController.clear();
         _newPasswordController.clear();
 
-        // Show success dialog
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -237,17 +238,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               ],
             ),
             content: Text(result['message'] ?? 'รีเซ็ตรหัสผ่านสำเร็จ'),
-            actions: [TextButton(onPressed: () => Get.back(), child: Text('ตกลง'))],
+            actions: [
+              TextButton(onPressed: () => Get.back(), child: Text('ตกลง')),
+            ],
           ),
         );
       } else {
-        _showErrorDialog('เกิดข้อผิดพลาด', result['message'] ?? 'ไม่สามารถรีเซ็ตรหัสผ่านได้');
+        _showErrorDialog(
+          'เกิดข้อผิดพลาด',
+          result['message'] ?? 'ไม่สามารถรีเซ็ตรหัสผ่านได้',
+        );
       }
     } catch (e) {
       // Close loading dialog
       Get.back();
       log('Password reset error: $e');
-      _showErrorDialog('เกิดข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+      _showErrorDialog(
+        'เกิดข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
+      );
     }
   }
 
@@ -337,11 +346,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               },
             ),
             GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isResetPasswordModalOpen = true;
-                });
-              },
+              onTap: () => {log("On reset password work")},
               child: Text(
                 'จำรหัสผ่านไม่ได้?',
                 style: TextStyle(
@@ -362,41 +367,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
 
             SlidingTemplate(
-              isOpened: _isResetPasswordModalOpen,
-              onModalClosed: () {
-                setState(() {
-                  _isResetPasswordModalOpen = false;
-                });
-              },
               children: [
-                Text(
-                  'รีเซ็ตรหัสผ่าน',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Mali',
-                  ),
-                ),
-                SizedBox(height: 16),
-                InputField(
-                  hintText: "เบอร์โทรศัพท์",
-                  label: "เบอร์โทรศัพท์",
-                  controller: _resetPhoneController,
-                  keyboardType: TextInputType.phone,
-                ),
-                SizedBox(height: 16),
-                InputField(
-                  hintText: "รหัสผ่านใหม่",
-                  label: "รหัสผ่านใหม่",
-                  controller: _newPasswordController,
-                  keyboardType: TextInputType.visiblePassword,
-                  obscureText: true,
-                ),
-                SizedBox(height: 24),
+                InputField(hintText: "เบอร์โทรศัพท์"),
+                InputField(hintText: "รหัสผ่านใหม่"),
                 ButtonActions(
                   variant: ButtonVariant.primary,
-                  text: "รีเซ็ตรหัสผ่าน",
-                  onPressed: _handlePasswordReset,
+                  text: "",
+                  onPressed: () {},
                 ),
               ],
             ),

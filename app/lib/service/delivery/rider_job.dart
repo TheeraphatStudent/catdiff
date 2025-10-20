@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:app/service/address/address_service.dart';
+import 'package:app/service/auth/user.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
@@ -42,17 +43,29 @@ class DeliveryRiderJob {
                       delivery.deliveryAddressId,
                     );
 
+                // ==========================
+
+                final senderUser = await AuthService.getUserById(
+                  userId: delivery.sendedId,
+                );
+
+                final receiverUser = await AuthService.getUserById(
+                  userId: delivery.receivedId,
+                );
+
+                // ==========================
+
                 return DeliveryJob(
                   deliveryId: delivery.deliveryId,
                   status: delivery.status,
                   sender: UserInfo(
                     userId: delivery.sendedId,
-                    name: delivery.name,
-                    imagesUrl: delivery.profileImageUrl,
+                    name: senderUser?.name ?? '???',
+                    imagesUrl: senderUser?.imagesUrl ?? '???',
                   ),
                   reciver: UserInfo(
                     userId: delivery.receivedId,
-                    name: delivery.name,
+                    name: receiverUser?.name ?? '???',
                     imagesUrl: delivery.profileImageUrl,
                   ),
                   pickupAddress: pickupAddress,

@@ -11,6 +11,7 @@ import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -27,8 +28,32 @@ class _RiderListProdState extends State<RiderListProd> {
   // Map state management
   bool _isMapOpen = false;
   String _selectedDestinationLabel = "ปลายทาง";
-  double _selectedLat = 13.7563;
-  double _selectedLng = 100.5231;
+  DeliveryJob _deliveryJob = DeliveryJob(
+    deliveryId: '???',
+    status: StatusType.pending,
+    pickupPkgImagesUrl: [],
+    pickupAddress: AddressInfo(
+      addressId: '???',
+      detail: '???',
+      latitude: 0,
+      longtitude: 0,
+      createdAt: '???',
+      updatedAt: '???',
+    ),
+    deliveryAddress: AddressInfo(
+      addressId: '???',
+      detail: '???',
+      latitude: 0,
+      longtitude: 0,
+      createdAt: '???',
+      updatedAt: '???',
+    ),
+    sender: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
+    reciver: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
+  );
+
+  double _selectedLat = 16.1872;
+  double _selectedLng = 103.3045;
 
   void _openMapForDelivery(AddressInfo address) {
     setState(() {
@@ -111,14 +136,28 @@ class _RiderListProdState extends State<RiderListProd> {
                         ),
                       ),
                       SizedBox(height: 2),
-                      Text(
-                        'ว่างงาน',
-                        style: TextStyle(
-                          color: const Color(0xFF819067) /* Primary-Green2 */,
-                          fontSize: 10,
-                          fontFamily: 'Mali',
-                          fontWeight: FontWeight.w400,
-                        ),
+                      Row(
+                        spacing: 8,
+                        children: [
+                          Text(
+                            'ทะเบียนรถ:',
+                            style: TextStyle(
+                              color: AppColors.primary2 /* Primary-Green2 */,
+                              fontSize: 12,
+                              fontFamily: 'Mali',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          Text(
+                            appData.currentUser?.verhicle?.licencePlate ?? '-',
+                            style: TextStyle(
+                              color: AppColors.primary2,
+                              fontSize: 12,
+                              fontFamily: 'Mali',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -215,6 +254,9 @@ class _RiderListProdState extends State<RiderListProd> {
                         deliveryJob: job,
                         onLocationTap: (address) {
                           log('Location tapped: ${address.detail}');
+
+                          _deliveryJob = job;
+
                           _openMapForDelivery(address);
                         },
                       );
@@ -224,13 +266,36 @@ class _RiderListProdState extends State<RiderListProd> {
               },
             ),
           ),
-
-          MapViewerSinglePoint(
-            destLabel: _selectedDestinationLabel,
+          MapViewerSinglePointPathFinder(
             lat: _selectedLat,
             lng: _selectedLng,
+            destLabel: _selectedDestinationLabel,
+            label: 'เส้นทางการจัดส่ง - #${_deliveryJob.deliveryId}',
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
+            aspectRatio: 12 / 9,
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ProfileWidgets.avatar(
+                        isEdited: false,
+                        imageUrl: _deliveryJob.sender.imagesUrl,
+                        size: ProfileSize.sm,
+                      ),
+                      SizedBox(height: 4),
+                      Text("ผู้ส่ง #${_deliveryJob.sender.name}"),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  DeliverJobItem(deliveryJob: _deliveryJob),
+                  SizedBox(height: 16),
+                ],
+              ),
+            ),
           ),
         ],
       ),
