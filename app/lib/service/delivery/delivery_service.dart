@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
+import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
@@ -77,11 +78,13 @@ class DeliveryService {
     }
   }
 
-  static Future<List<Delivery>> getDeliveryByUserId(String userId) async {
+  static Future<List<Delivery>> getDeliverySenderJobByUserId(
+    String userId,
+  ) async {
     try {
       final response = await FirebaseHelper().getDocumentsQuery(
         collection: 'delivery',
-        where: {'user_id': userId},
+        where: {'sendedId': userId},
       );
 
       log('Retrieved ${response.length} deliveries for user: $userId');
@@ -240,6 +243,80 @@ class DeliveryService {
     } catch (e) {
       log('Error updating delivery status $deliveryId: $e');
       return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getDeliveryQueryByDate(
+    DateTime targetDate,
+  ) async {
+    try {
+      final startTime = targetDate.subtract(Duration(minutes: 1));
+      final endTime = targetDate.add(Duration(minutes: 1));
+
+      log(
+        'Querying deliveries between ${startTime.toIso8601String()} and ${endTime.toIso8601String()}',
+      );
+
+      final response = await FirebaseHelper().getDocumentsQuery(
+        collection: 'delivery',
+        where: {
+          'created_at': {
+            '>=': startTime.toIso8601String(),
+            '<=': endTime.toIso8601String(),
+          },
+        },
+      );
+
+      final deliveries = response.map((doc) {
+        final data = doc.data();
+        if (data != null) {
+          data['delivery_id'] = doc.id;
+          return Delivery.fromJson(data);
+        }
+        throw Exception('Document data is null for delivery: ${doc.id}');
+      }).toList();
+
+      // Convert Delivery objects to DeliveryJob objects
+      final deliveryJobs = deliveries.map((delivery) {
+        return DeliveryJob(
+          deliveryId: delivery.deliveryId,
+          status: delivery.status,
+          sender: UserInfo(
+            userId: delivery.sendedId,
+            name: delivery.name,
+            imagesUrl: delivery.profileImageUrl,
+          ),
+          reciver: UserInfo(
+            userId: delivery.receivedId,
+            name: delivery.name,
+            imagesUrl: delivery.profileImageUrl,
+          ),
+          pickupAddress: AddressInfo(
+            addressId: delivery.pickupAddressId,
+            detail: "Pickup Address",
+            latitude: 0.0,
+            longtitude: 0.0,
+            createdAt: delivery.createdAt,
+            updatedAt: delivery.updatedAt,
+          ),
+          deliveryAddress: AddressInfo(
+            addressId: delivery.deliveryAddressId,
+            detail: "Delivery Address",
+            latitude: 0.0,
+            longtitude: 0.0,
+            createdAt: delivery.createdAt,
+            updatedAt: delivery.updatedAt,
+          ),
+          pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+        );
+      }).toList();
+
+      log('Found ${deliveryJobs.length} delivery jobs in date range');
+
+      return {'date': targetDate.toIso8601String(), 'jobs': deliveryJobs};
+    } catch (e) {
+      log('Error querying deliveries by date: $e');
+      return {'date': targetDate.toIso8601String(), 'jobs': <DeliveryJob>[]};
     }
   }
 

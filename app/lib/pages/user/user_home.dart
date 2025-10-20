@@ -19,7 +19,6 @@ import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map.widget.dart';
-import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
@@ -229,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _currentContentType = "sender";
                           _isSliderOpen = true;
                         });
+                        _loadExistingPrepareJobs();
                       },
                       onTap: () {
                         log(
@@ -238,8 +238,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           _currentContentType = "sender";
                           _isSliderOpen = true;
                         });
+                        _loadExistingPrepareJobs();
                         log(
-                          'StatusContainer onTap: _isSliderOpen = $_isSliderOpen, _currentContentType = $_currentContentType',
+                          'StatusContainer onTap: Slider should now be open: $_isSliderOpen',
                         );
                       },
                       type: UserType.sender,
@@ -519,6 +520,77 @@ class _HomeScreenState extends State<HomeScreen> {
         : null;
   }
 
+  Future<void> _loadExistingPrepareJobs() async {
+    try {
+      final appData = Provider.of<AppData>(context, listen: false);
+      log("Loading existing prepare jobs for user: ${appData.currentUser!.id}");
+
+      final deliveries = await DeliveryService.getDeliverySenderJobByUserId(
+        appData.currentUser!.id,
+      );
+      final prepareJobs = deliveries
+          .where((delivery) => delivery.status == StatusType.prepare)
+          .toList();
+
+      log("Found ${prepareJobs.length} prepare jobs");
+
+      if (prepareJobs.isNotEmpty) {
+        setState(() {
+          _addedJobItemToDeliver.clear();
+          _packageImageControllers.clear();
+
+          for (final delivery in prepareJobs) {
+            final profileController = ProfileController();
+            _packageImageControllers[delivery.deliveryId] = profileController;
+
+            final deliveryJob = DeliveryJob(
+              deliveryId: delivery.deliveryId,
+              status: delivery.status,
+              sender: UserInfo(
+                userId: delivery.sendedId,
+                name: appData.currentUser!.name,
+                imagesUrl: appData.currentUser!.imagesUrl,
+              ),
+              reciver: UserInfo(
+                userId: delivery.receivedId,
+                name: delivery.name,
+                imagesUrl: delivery.profileImageUrl,
+              ),
+              pickupAddress: AddressInfo(
+                addressId: delivery.pickupAddressId,
+                detail: "Pickup Address",
+                latitude: 0.0,
+                longtitude: 0.0,
+                createdAt: delivery.createdAt,
+                updatedAt: delivery.updatedAt,
+              ),
+              deliveryAddress: AddressInfo(
+                addressId: delivery.deliveryAddressId,
+                detail: "Delivery Address",
+                latitude: 0.0,
+                longtitude: 0.0,
+                createdAt: delivery.createdAt,
+                updatedAt: delivery.updatedAt,
+              ),
+              pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+            );
+
+            _addedJobItemToDeliver.add(
+              DeliverJobItem(
+                deliveryJob: deliveryJob,
+                profileController: profileController,
+              ),
+            );
+          }
+        });
+
+        log("Loaded ${_addedJobItemToDeliver.length} existing prepare jobs");
+      }
+    } catch (e) {
+      log("Error loading existing prepare jobs: $e");
+    }
+  }
+
   Future<void> addedJobItemToDeliver() async {
     if (_selectedReciver == null) {
       ScaffoldMessenger.of(
@@ -536,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
         deliveryId: '',
         profileImageUrl: appData.currentUser!.imagesUrl,
         name: 'Package ${_addedJobItemToDeliver.length + 1}',
-        status: StatusType.pending,
+        status: StatusType.prepare,
         sendedId: appData.currentUser!.id,
         receivedId: _selectedReciver!.userId,
         pickupAddressId: appData.currentUser!.addressId,
@@ -796,26 +868,56 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'ยืนยันการส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
-        ),
-        backgroundColor: AppColors.primary3,
-      ),
-    );
+    try {
+      log(
+        "Updating ${_addedJobItemToDeliver.length} delivery jobs to pending status",
+      );
 
-    setState(() {
-      for (final controller in _packageImageControllers.values) {
-        controller.dispose();
+      for (final jobItem in _addedJobItemToDeliver) {
+        final deliveryId = jobItem.deliveryJob.deliveryId;
+
+        final updatedDelivery =
+            await DeliveryService.updateDeliveryStatusFromString(
+              deliveryId,
+              'pending',
+            );
+
+        if (updatedDelivery != null) {
+          log("Successfully updated delivery $deliveryId to pending status");
+        } else {
+          log("Failed to update delivery $deliveryId to pending status");
+        }
       }
-      _packageImageControllers.clear();
 
-      _addedJobItemToDeliver.clear();
-      _selectedReciver = null;
-      _currentSenderStep = 0;
-    });
-    onClosedModal();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ยืนยันการส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
+          ),
+          backgroundColor: AppColors.primary3,
+        ),
+      );
+
+      setState(() {
+        for (final controller in _packageImageControllers.values) {
+          controller.dispose();
+        }
+        _packageImageControllers.clear();
+
+        _addedJobItemToDeliver.clear();
+        _selectedReciver = null;
+        _currentSenderStep = 0;
+      });
+      onClosedModal();
+    } catch (e) {
+      log("Error updating delivery jobs to pending: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการยืนยันการส่งของ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Receiver content
