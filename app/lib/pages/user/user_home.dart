@@ -65,17 +65,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void _loadData() async {
     final appData = Provider.of<AppData>(context, listen: false);
 
-    final resposne = await DeliveryService.getDeliveryDisplayByUserId(
+    final resposneSender = await DeliveryService.getDeliveryDisplayByUserId(
       appData.currentUser!.id,
+      UserType.sender,
+    );
+
+    final resposneReceiver = await DeliveryService.getDeliveryDisplayByUserId(
+      appData.currentUser!.id,
+      UserType.receiver,
     );
 
     final reciverListRes = await ReciverService.getReciverList(
       '',
       appData.currentUser!.id,
-    );
-
-    log(
-      'Retrieved ${resposne.length} deliveries for user: ${appData.currentUser!.id}',
     );
 
     setState(() {
@@ -84,12 +86,11 @@ class _HomeScreenState extends State<HomeScreen> {
       //     .where((item) => item.status == 'receiver')
       //     .toList();
 
-      senderItems.addAll(
-        resposne.where((item) => item.sendedId == appData.currentUser!.id),
-      );
-      receiverItems.addAll(
-        resposne.where((item) => item.receiverId == appData.currentUser!.id),
-      );
+      senderItems.addAll(resposneSender);
+      receiverItems.addAll(resposneReceiver);
+
+      // log(senderItems.length.toString());
+      // log(receiverItems.length.toString());
 
       reciverItems.addAll(reciverListRes);
       filteredReciverItems = List.from(reciverItems);
@@ -200,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
                     imageUrl: appData.currentUser?.imagesUrl,
                     onPressed: () {
-                      log("On preseed work");
+                      // log("On preseed work");
 
                       Get.offNamed('/profile');
                     },
@@ -217,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   horizontal: 32,
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.max,
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -231,17 +232,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         _loadExistingPrepareJobs();
                       },
                       onTap: () {
-                        log(
-                          'StatusContainer onTap: Setting sender mode and opening slider',
-                        );
-                        setState(() {
-                          _currentContentType = "sender";
-                          _isSliderOpen = true;
-                        });
-                        _loadExistingPrepareJobs();
-                        log(
-                          'StatusContainer onTap: Slider should now be open: $_isSliderOpen',
-                        );
+                        log("on tap sender");
+
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -258,10 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        setState(() {
-                          _currentContentType = "receiver";
-                          _isSliderOpen = !_isSliderOpen;
-                        });
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,
@@ -286,11 +276,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           MapsLocationSelector(
             isOpened: _isMapOpen,
-            isShowingAction: true,
+            isShowingAction: false,
             onLocationSelected: (selectedLatLng) {
-              log(
-                "Location selected: ${selectedLatLng.latitude}, ${selectedLatLng.longitude}",
-              );
+              // log(
+              //   "Location selected: ${selectedLatLng.latitude}, ${selectedLatLng.longitude}",
+              // );
 
               if (_selectedDeliveryIdForLocation != null) {
                 final newAddress = AddressInfo(
@@ -315,9 +305,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         newAddress;
                   });
 
-                  log(
-                    "Updated delivery address for delivery: $_selectedDeliveryIdForLocation",
-                  );
+                  // log(
+                  //   "Updated delivery address for delivery: $_selectedDeliveryIdForLocation",
+                  // );
                 }
               }
 
@@ -369,8 +359,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void onClosedModal() {
-    log("On close work");
-
     setState(() {
       _isSliderOpen = false;
       _currentContentType = "";
@@ -379,8 +367,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _nextSenderStep() {
-    log("Next step work!");
-
     if (_currentSenderStep < 1) {
       setState(() {
         _currentSenderStep++;
@@ -405,7 +391,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getCurrentSenderStepContent() {
-    log("Building step content for step: $_currentSenderStep");
     switch (_currentSenderStep) {
       case 0:
         return _buildSelectReceiverContent();
@@ -483,9 +468,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       return ReciverJobItem(
                         reciver: receiver,
                         onTap: () {
-                          log(receiver.address.addressId);
-                          log(receiver.address.addressId);
-
                           _selectedReciver = receiver;
 
                           _nextSenderStep();
@@ -523,16 +505,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadExistingPrepareJobs() async {
     try {
       final appData = Provider.of<AppData>(context, listen: false);
-      log("Loading existing prepare jobs for user: ${appData.currentUser!.id}");
 
       final deliveries = await DeliveryService.getDeliverySenderJobByUserId(
         appData.currentUser!.id,
+        _selectedReciver!.userId,
       );
       final prepareJobs = deliveries
           .where((delivery) => delivery.status == StatusType.prepare)
           .toList();
-
-      log("Found ${prepareJobs.length} prepare jobs");
 
       if (prepareJobs.isNotEmpty) {
         setState(() {
@@ -583,8 +563,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
         });
-
-        log("Loaded ${_addedJobItemToDeliver.length} existing prepare jobs");
       }
     } catch (e) {
       log("Error loading existing prepare jobs: $e");
@@ -598,8 +576,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ).showSnackBar(SnackBar(content: Text('กรุณาเลือกผู้รับก่อน')));
       return;
     }
-
-    log("Adding job item. Current count: ${_addedJobItemToDeliver.length}");
 
     try {
       final appData = Provider.of<AppData>(context, listen: false);
@@ -631,10 +607,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       profileController.addListener(() {
         if (profileController.uploadedUrl != null) {
-          log(
-            "Image uploaded for delivery ${createdDelivery.deliveryId}: ${profileController.uploadedUrl}",
-          );
-
           final index = _addedJobItemToDeliver.indexWhere(
             (item) => item.deliveryJob.deliveryId == createdDelivery.deliveryId,
           );
@@ -645,10 +617,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 profileController.uploadedUrl!,
               ];
             });
-
-            log(
-              "Updated pickupPkgImagesUrl for delivery ${createdDelivery.deliveryId}",
-            );
           }
         }
       });
@@ -692,11 +660,6 @@ class _HomeScreenState extends State<HomeScreen> {
             profileController: profileController,
             userId: appData.currentUser!.id,
             onLocationTap: (AddressInfo address) {
-              log("Location tap for delivery: ${createdDelivery.deliveryId}");
-              log("Current address: ${address.detail}");
-              log(address.latitude.toString());
-              log(address.longtitude.toString());
-
               setState(() {
                 _selectedDeliveryIdForLocation = createdDelivery.deliveryId;
                 _shouldRestoreDeliveryModal = _isSliderOpen;
@@ -715,8 +678,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       });
-
-      log("Successfully created delivery: ${createdDelivery.deliveryId}");
     } catch (e) {
       log("Error creating delivery: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -821,10 +782,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _removeJobItem(int index) async {
-    log(
-      "Removing job item at index: $index. Current count: ${_addedJobItemToDeliver.length}",
-    );
-
     if (index >= 0 && index < _addedJobItemToDeliver.length) {
       final jobItem = _addedJobItemToDeliver[index];
       final deliveryId = jobItem.deliveryJob.deliveryId;
@@ -839,15 +796,11 @@ class _HomeScreenState extends State<HomeScreen> {
         if (controller != null) {
           controller.dispose();
           _packageImageControllers.remove(deliveryId);
-          log("Disposed ProfileController for delivery ID: $deliveryId");
         }
 
         setState(() {
           _addedJobItemToDeliver.removeAt(index);
         });
-
-        log("Successfully deleted delivery: $deliveryId");
-        log("After removal, count: ${_addedJobItemToDeliver.length}");
       } catch (e) {
         log("Error deleting delivery $deliveryId: $e");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -869,10 +822,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      log(
-        "Updating ${_addedJobItemToDeliver.length} delivery jobs to pending status",
-      );
-
       for (final jobItem in _addedJobItemToDeliver) {
         final deliveryId = jobItem.deliveryJob.deliveryId;
 

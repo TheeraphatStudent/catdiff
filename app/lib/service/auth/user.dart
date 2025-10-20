@@ -46,7 +46,10 @@ class AuthService {
     required String password,
     required UserRole role, // Use UserRole enum instead of string
     String? profileImageUrl,
+
     String? vehicleImageUrl,
+    String? licencePlate,
+    String? vehicleType,
   }) async {
     try {
       // Format phone number as email for Firebase Auth compatibility
@@ -64,25 +67,9 @@ class AuthService {
 
       // ข้อมูลพื้นฐาน - different structure for User vs Raider
       final Map<String, dynamic> userData;
+      final hashedPassword = _hashPassword(password);
 
       if (role == UserRole.rider) {
-        userData = {
-          'user_id': userCredential.user!.uid,
-          'name': userId,
-          'phone': phone,
-          'address_id': address,
-          'role': role.name,
-          'images_url': profileImageUrl ?? '',
-          'verhicle': {
-            'drive_image_url': vehicleImageUrl ?? '',
-            'licence_plate': '',
-            'type': '',
-          },
-          'createdAt': FieldValue.serverTimestamp(),
-        };
-      } else {
-        final hashedPassword = _hashPassword(password);
-
         userData = {
           'user_id': userCredential.user!.uid,
           'name': userId,
@@ -93,20 +80,40 @@ class AuthService {
           'images_url': profileImageUrl ?? '',
           'verhicle': {
             'drive_image_url': vehicleImageUrl ?? '',
-            'licence_plate': '',
-            'type': '',
+            'licence_plate': licencePlate ?? '',
+            'type': vehicleType ?? '',
           },
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+      } else {
+        userData = {
+          'user_id': userCredential.user!.uid,
+          'name': userId,
+          'phone': phone,
+          'password': hashedPassword,
+          'address_id': address,
+          'role': role.name,
+          'images_url': profileImageUrl ?? '',
+          'verhicle': {'drive_image_url': '', 'licence_plate': '', 'type': ''},
           'createdAt': FieldValue.serverTimestamp(),
         };
       }
 
+      log("Attempting to save user data to Firestore: $userData");
+      log("User ID: ${userCredential.user!.uid}");
+      log("Address ID: $address");
+      log("Profile Image URL: $profileImageUrl");
+      log("Vehicle Image URL: $vehicleImageUrl");
+      log("License Plate: $licencePlate");
+      log("Vehicle Type: $vehicleType");
+
       // บันทึกลง Firestore
-      final String collectionName = role == UserRole.rider ? 'rider' : 'user';
       await FirebaseHelper().setDocument(
-        collection: collectionName,
+        collection: 'user',
         documentId: userCredential.user!.uid,
         data: userData,
       );
+      log("Successfully saved user data to Firestore");
 
       // แปลงเป็น object
       final userObject = User.fromJson(userData);
@@ -134,9 +141,120 @@ class AuthService {
       }
       return {'success': false, 'message': message, 'error': e.code};
     } catch (e) {
+      print(e);
+
+      log("Error to create user: ${e.toString()}");
+
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String phone,
+    required String newPassword,
+  }) async {
+    try {
+      final phoneEmail =
+          "${phone.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
+
+      final signInMethods = await FirebaseAuth.FirebaseAuth.instance
+          .fetchSignInMethodsForEmail(phoneEmail);
+
+      if (signInMethods.isEmpty) {
+        return {
+          'success': false,
+          'message': 'ไม่พบผู้ใช้งานด้วยเบอร์โทรศัพท์นี้',
+        };
+      }
+
+      final userQuery = await FirebaseHelper().getDocumentsQuery(
+        collection: 'user',
+        where: {'phone': phone},
+      );
+
+      if (userQuery.isEmpty) {
+        return {'success': false, 'message': 'ไม่พบข้อมูลผู้ใช้งาน'};
+      }
+
+      final userDoc = userQuery.first;
+      final userId = userDoc.id;
+
+      final hashedPassword = _hashPassword(newPassword);
+
+      await FirebaseHelper().updateDocument(
+        collection: 'user',
+        documentId: userId,
+        data: {
+          'password': hashedPassword,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      log('Password reset successful for user: $userId');
+
+      return {'success': true, 'message': 'รีเซ็ตรหัสผ่านสำเร็จ'};
+    } catch (e) {
+      log('Error resetting password: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> checkUserById({
+    required String userId,
+    UserRole? role,
+  }) async {
+    try {
+      final phoneEmail =
+          "${userId.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
+
+      try {
+        final signInMethods = await FirebaseAuth.FirebaseAuth.instance
+            .fetchSignInMethodsForEmail(phoneEmail);
+
+        if (signInMethods.isNotEmpty) {
+          final userQuery = await FirebaseHelper().getDocumentsQuery(
+            collection: 'user',
+            where: {'phone': userId},
+          );
+
+          bool existsInUser = userQuery.isNotEmpty;
+
+          if (existsInUser) {
+            return {
+              'success': false,
+              'exists': true,
+              'message': 'หมายเลขโทรศัพท์นี้มีผู้ใช้งานแล้ว',
+            };
+          }
+        }
+      } on FirebaseAuth.FirebaseAuthException catch (e) {
+        if (e.code != 'invalid-email') {
+          log(
+            'Firebase Auth error during user check: ${e.code} - ${e.message}',
+          );
+        }
+      }
+
+      // User doesn't exist
+      return {
+        'success': true,
+        'exists': false,
+        'message': 'หมายเลขโทรศัพท์สามารถใช้งานได้',
+      };
+    } catch (e) {
+      log('Error checking user ID: $e');
+      return {
+        'success': false,
+        'exists': false,
+        'message': 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล',
         'error': e.toString(),
       };
     }
@@ -227,6 +345,27 @@ class AuthService {
         'message': 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
         'error': e.toString(),
       };
+    }
+  }
+
+  static Future<User?> getUserById({required String userId}) async {
+    try {
+      final doc = await FirebaseHelper().getDocumentById(
+        collection: 'user',
+        documentId: userId,
+      );
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      final userData = doc.data()!;
+      final userObject = User.fromJson(userData);
+
+      return userObject;
+    } catch (e) {
+      log('Error fetching user by ID: $e');
+      return null;
     }
   }
 }

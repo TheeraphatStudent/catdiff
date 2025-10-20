@@ -5,6 +5,7 @@ import 'package:app/layout/MainLayout.dart';
 import 'package:app/types/user/role.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
+import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:flutter/material.dart' hide Actions;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -30,6 +31,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
+  bool _isResetPasswordModalOpen = false;
+  final TextEditingController _resetPhoneController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +53,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _animationController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _resetPhoneController.dispose();
+    _newPasswordController.dispose();
     super.dispose();
   }
 
@@ -170,6 +177,89 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
+  Future<void> _handlePasswordReset() async {
+    final phone = _resetPhoneController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+
+    if (phone.isEmpty || newPassword.isEmpty) {
+      _showErrorDialog(
+        'ข้อมูลไม่ครบถ้วน',
+        'กรุณากรอกเบอร์โทรศัพท์และรหัสผ่านใหม่',
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      _showErrorDialog(
+        'รหัสผ่านไม่ปลอดภัย',
+        'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('กำลังรีเซ็ตรหัสผ่าน...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result = await UserService.AuthService.resetPassword(
+        phone: phone,
+        newPassword: newPassword,
+      );
+
+      Get.back();
+
+      if (result['success']) {
+        setState(() {
+          _isResetPasswordModalOpen = false;
+        });
+
+        _resetPhoneController.clear();
+        _newPasswordController.clear();
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('สำเร็จ'),
+              ],
+            ),
+            content: Text(result['message'] ?? 'รีเซ็ตรหัสผ่านสำเร็จ'),
+            actions: [
+              TextButton(onPressed: () => Get.back(), child: Text('ตกลง')),
+            ],
+          ),
+        );
+      } else {
+        _showErrorDialog(
+          'เกิดข้อผิดพลาด',
+          result['message'] ?? 'ไม่สามารถรีเซ็ตรหัสผ่านได้',
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Get.back();
+      log('Password reset error: $e');
+      _showErrorDialog(
+        'เกิดข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
+      );
+    }
+  }
+
   void _handleRegister() {
     String roleText = _selectedRole == UserRole.user
         ? "ผู้ใช้ทั่วไป"
@@ -274,6 +364,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               text: "เข้าสู่ระบบ",
               variant: ButtonVariant.primary,
               onPressed: _handleLogin,
+            ),
+
+            SlidingTemplate(
+              children: [
+                InputField(hintText: "เบอร์โทรศัพท์"),
+                InputField(hintText: "รหัสผ่านใหม่"),
+                ButtonActions(
+                  variant: ButtonVariant.primary,
+                  text: "",
+                  onPressed: () {},
+                ),
+              ],
             ),
           ],
         ),

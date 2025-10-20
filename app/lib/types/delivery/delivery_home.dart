@@ -1,8 +1,10 @@
+import '../status.dart';
+
 class DeliveryStatDisplayItem {
   String deliveryId;
   String sendedId;
   String receiverId;
-  String status;
+  StatusType status;
 
   DeliveryStatDisplayItem({
     required this.deliveryId,
@@ -12,11 +14,13 @@ class DeliveryStatDisplayItem {
   });
 
   factory DeliveryStatDisplayItem.fromJson(Map<String, dynamic> json) {
+    final statusTypes = StatusTypes();
+    
     return DeliveryStatDisplayItem(
-      sendedId: json['sended_id'] as String,
-      receiverId: json['receiver_id'] as String,
-      deliveryId: json['delivery_id'] as String,
-      status: json['status'] as String,
+      sendedId: json['sended_id'] as String? ?? '',
+      receiverId: json['receiver_id'] as String? ?? '',
+      deliveryId: json['delivery_id'] as String? ?? '',
+      status: statusTypes.getStatusTypeEnum(json['status'] as String? ?? 'pending'),
     );
   }
 }

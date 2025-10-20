@@ -11,7 +11,7 @@ extension FontSizeExtension on FontSize {
   double get value {
     switch (this) {
       case FontSize.xs:
-        return 8;
+        return 10;
       case FontSize.sm:
         return 12;
       case FontSize.md:
@@ -163,7 +163,7 @@ class _InputFieldState extends State<InputField> {
               color: AppColors.primary1.withOpacity(_isFocused ? 1.0 : 0.7),
             ),
           ),
-          const SizedBox(height: 8),
+          // const SizedBox(height: 2),
         ],
 
         Stack(

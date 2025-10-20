@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:math' as math;
 
+import 'package:app/config/secret/api_data.dart';
+import 'package:app/service/map/map_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -53,39 +55,45 @@ class MapPlaceholder extends StatefulWidget {
     this.showMyLocation = true,
     this.showMyLocationButton = true,
     this.mapPadding = EdgeInsets.zero,
-    this.routesApiKey,
     this.routesClientConfig,
     this.onRouteChanged,
     this.routeTravelMode = MapRouteTravelMode.driving,
     this.distanceStrategy = MapRouteDistanceStrategy.routesApiOnly,
     this.enableLiveLocation = true,
+    this.showViewerOverlay = false,
   });
 
   final MapPlaceholderMode mode;
   final MapViewerType? viewerType;
+
   final List<MapDestination> destinations;
   final List<MapPathSegment> multiPathSegments;
   final List<List<MapDestination>> multiPathChains;
-  final bool showMultiPathOrigins;
+
   final LatLng? initialPosition;
   final LatLng? initialUserLocation;
   final LatLng? initialSelection;
-  final double initialZoom;
+
   final ValueChanged<MapSelectionResult>? onSelectionChanged;
-  final bool fetchGeocodeOnSelection;
   final ValueChanged<MapSelectionResult>? onMarkerTapped;
+
+  final double initialZoom;
+
+  final bool showMultiPathOrigins;
+  final bool fetchGeocodeOnSelection;
   final bool fetchGeocodeOnMarkerTap;
   final bool zoomGesturesEnabled;
   final bool scrollGesturesEnabled;
   final bool showMyLocation;
   final bool showMyLocationButton;
+  final bool enableLiveLocation;
+  final bool showViewerOverlay;
+
   final EdgeInsets mapPadding;
-  final String? routesApiKey;
   final MapRoutesClientConfig? routesClientConfig;
   final ValueChanged<MapRouteInfo>? onRouteChanged;
   final MapRouteTravelMode routeTravelMode;
   final MapRouteDistanceStrategy distanceStrategy;
-  final bool enableLiveLocation;
 
   @override
   State<MapPlaceholder> createState() => _MapPlaceholderState();
@@ -118,6 +126,8 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   int? _activeRouteParamsHash;
   int? _queuedRouteParamsHash;
   Timer? _routeUpdateTimer;
+
+  final ApiData _apiData = ApiData();
 
   final Map<int, List<LatLng>> _multiRoutePoints = <int, List<LatLng>>{};
   final Map<int, MapRouteInfo> _multiRouteInfos = <int, MapRouteInfo>{};
@@ -190,7 +200,6 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       final bool shouldRefreshRoute =
           destinationsChanged ||
           viewerTypeChanged ||
-          oldWidget.routesApiKey != widget.routesApiKey ||
           oldWidget.routeTravelMode != widget.routeTravelMode ||
           oldWidget.initialUserLocation != widget.initialUserLocation ||
           oldWidget.distanceStrategy != widget.distanceStrategy ||
@@ -203,7 +212,6 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       final bool shouldRefreshMultiRoutes =
           multiPathChanged ||
           viewerTypeChanged ||
-          oldWidget.routesApiKey != widget.routesApiKey ||
           oldWidget.routeTravelMode != widget.routeTravelMode ||
           oldWidget.distanceStrategy != widget.distanceStrategy ||
           oldWidget.routesClientConfig != widget.routesClientConfig;
@@ -263,23 +271,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     });
 
     try {
-      final bool permissionGranted = await _grentLocationPermission();
-      if (!permissionGranted) {
-        setState(() {
-          _isLoadingLocation = false;
-          _locationDenied = true;
-        });
-        return;
-      }
-
-      final Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      final LatLng current = LatLng(position.latitude, position.longitude);
+      final LatLng current = await MapService.getCurrentLocation();
       setState(() {
         _currentLocation = current;
         _locationDenied = false;
@@ -421,8 +413,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     );
     String? errorMessage;
 
-    final String? apiKey = widget.routesApiKey;
-    if (apiKey == null || apiKey.isEmpty) {
+    if (_apiData.apiKey == null || _apiData.apiKey!.isEmpty) {
       setState(() {
         _routePoints = resolvedPoints;
         _routeInfo = resolvedInfo;
@@ -448,7 +439,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
         origin: origin,
         destination: destination,
         intermediates: intermediates,
-        apiKey: apiKey,
+        apiKey: _apiData.apiKey,
         travelMode: widget.routeTravelMode,
         routingPreference: MapRouteRoutingPreference.trafficAware,
         distanceStrategy: widget.distanceStrategy,
@@ -592,8 +583,8 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     bool anyDistanceMatrix = false;
     bool anyRoutesApi = false;
 
-    final String? apiKey = widget.routesApiKey;
-    final bool hasApiKey = apiKey != null && apiKey.isNotEmpty;
+    final bool hasApiKey =
+        _apiData.apiKey != null && _apiData.apiKey!.isNotEmpty;
 
     for (int i = 0; i < segments.length; i++) {
       if (!mounted || _activeMultiRouteParamsHash != paramsHash) {
@@ -605,12 +596,11 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       final LatLng destination = segment.destination.latLng;
 
       Future<MapRouteResult>? routeFuture;
-      if (apiKey != null && apiKey.isNotEmpty) {
-        final String key = apiKey;
+      if (hasApiKey) {
         routeFuture = _routesService.computeRoute(
           origin: origin,
           destination: destination,
-          apiKey: key,
+          apiKey: _apiData.apiKey!,
           travelMode: widget.routeTravelMode,
           routingPreference: MapRouteRoutingPreference.trafficAware,
           distanceStrategy: widget.distanceStrategy,
@@ -1323,7 +1313,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       destinationsHash,
       widget.routeTravelMode,
       widget.distanceStrategy,
-      widget.routesApiKey,
+      _apiData.apiKey,
       widget.routesClientConfig?.androidPackageName,
       widget.routesClientConfig?.androidCertificateSha1,
       widget.routesClientConfig?.iosBundleId,
@@ -1345,7 +1335,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     final List<Object?> values = <Object?>[
       widget.routeTravelMode,
       widget.distanceStrategy,
-      widget.routesApiKey,
+      _apiData.apiKey,
       widget.routesClientConfig?.androidPackageName,
       widget.routesClientConfig?.androidCertificateSha1,
       widget.routesClientConfig?.iosBundleId,
@@ -1516,18 +1506,18 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
                   )
                 else if (_routeInfo != null) ...[
                   Text(
-                    'Distance: ${_formatDistance(_routeInfo!.distanceMeters)}',
+                    'ระยะทาง: ${_formatDistance(_routeInfo!.distanceMeters)}',
                     style: theme.textTheme.bodyMedium,
                   ),
                   if (_routeInfo!.duration != null)
                     Text(
-                      'ETA: ${_formatDuration(_routeInfo!.duration!)}',
+                      'เวลาโดยประมาณ: ${_formatDuration(_routeInfo!.duration!)}',
                       style: theme.textTheme.bodySmall,
                     ),
-                  Text(
-                    'Source: ${_distanceSourceLabel(_routeInfo!.distanceSource)}',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  // Text(
+                  //   'Source: ${_distanceSourceLabel(_routeInfo!.distanceSource)}',
+                  //   style: theme.textTheme.bodySmall,
+                  // ),
                 ],
                 if (_routeError != null)
                   Padding(
@@ -1888,7 +1878,8 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
         if (statusBanner != null) statusBanner,
         if (widget.mode == MapPlaceholderMode.selector)
           _buildSelectorOverlay(context),
-        if (widget.mode == MapPlaceholderMode.viewer)
+        if (widget.mode == MapPlaceholderMode.viewer &&
+            widget.showViewerOverlay)
           _buildViewerOverlay(context),
       ],
     );
