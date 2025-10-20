@@ -153,6 +153,60 @@ class AuthService {
     }
   }
 
+  static Future<Map<String, dynamic>> resetPassword({
+    required String phone,
+    required String newPassword,
+  }) async {
+    try {
+      final phoneEmail =
+          "${phone.replaceAll(RegExp(r'[^\d]'), '')}@catdiff.app";
+
+      final signInMethods = await FirebaseAuth.FirebaseAuth.instance
+          .fetchSignInMethodsForEmail(phoneEmail);
+
+      if (signInMethods.isEmpty) {
+        return {
+          'success': false,
+          'message': 'ไม่พบผู้ใช้งานด้วยเบอร์โทรศัพท์นี้',
+        };
+      }
+
+      final userQuery = await FirebaseHelper().getDocumentsQuery(
+        collection: 'user',
+        where: {'phone': phone},
+      );
+
+      if (userQuery.isEmpty) {
+        return {'success': false, 'message': 'ไม่พบข้อมูลผู้ใช้งาน'};
+      }
+
+      final userDoc = userQuery.first;
+      final userId = userDoc.id;
+
+      final hashedPassword = _hashPassword(newPassword);
+
+      await FirebaseHelper().updateDocument(
+        collection: 'user',
+        documentId: userId,
+        data: {
+          'password': hashedPassword,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      log('Password reset successful for user: $userId');
+
+      return {'success': true, 'message': 'รีเซ็ตรหัสผ่านสำเร็จ'};
+    } catch (e) {
+      log('Error resetting password: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน',
+        'error': e.toString(),
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> checkUserById({
     required String userId,
     UserRole? role,
