@@ -1,13 +1,12 @@
 import 'dart:developer';
-
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
-import 'package:app/types/address/address.dart';
-import 'package:app/types/delivery/delivery_home.dart';
+// import 'package:app/types/address/address.dart';
+// import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
-import 'package:app/types/status.dart';
-import 'package:app/types/user/type.dart';
+// import 'package:app/types/status.dart';
+// import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/service/delivery/rider_job.dart';
@@ -17,7 +16,6 @@ import 'package:provider/provider.dart';
 
 class DebugRider extends StatefulWidget {
   const DebugRider({super.key});
-
   @override
   State<DebugRider> createState() => _DebugRiderState();
 }
@@ -36,7 +34,6 @@ class _DebugRiderState extends State<DebugRider> {
       scrollable: false,
       body: Column(
         children: [
-          // Header Section with Profile
           Container(
             width: MediaQuery.of(context).size.width,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -52,7 +49,6 @@ class _DebugRiderState extends State<DebugRider> {
             ),
             child: Row(
               children: [
-                // Name and Status
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -175,7 +171,6 @@ class _DebugRiderState extends State<DebugRider> {
                     ),
                   );
                 }
-
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
                     vertical: 24,
@@ -187,16 +182,12 @@ class _DebugRiderState extends State<DebugRider> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 16,
                     children: deliveryJobs
-                        .where(
-                          (job) => job.pickupPkgImagesUrl.isNotEmpty,
-                        ) // filter out empty images
+                        .where((job) => job.pickupPkgImagesUrl.isNotEmpty)
                         .map((job) {
                           return DeliverJobItem(
                             deliveryJob: job,
                             onLocationTap: (address) {
                               log('Location tapped: ${address.detail}');
-                              // Handle location tap - navigate to map
-                              // Get.toNamed('/map', arguments: address);
                             },
                           );
                         })
