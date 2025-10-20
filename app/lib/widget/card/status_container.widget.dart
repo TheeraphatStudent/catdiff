@@ -1,7 +1,9 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/delivery/delivery_home.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
+import 'package:app/widget/status/status_tag.widget.dart';
 import 'package:flutter/material.dart';
 
 class StatusContainer extends StatelessWidget {
@@ -37,7 +39,7 @@ class StatusContainer extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -83,7 +85,7 @@ class StatusContainer extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  spacing: 48,
+                  spacing: 16,
                   children: [
                     Expanded(
                       child: ConstrainedBox(
@@ -102,7 +104,7 @@ class StatusContainer extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: SizedBox(
-                              height: 74,
+                              height: 96,
                               child: SingleChildScrollView(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -145,6 +147,7 @@ class StatusContainer extends StatelessWidget {
                                           ),
                                         ]
                                       : deliveryStatDisplayItems.map((item) {
+                                          final statusTypes = StatusTypes();
                                           return Container(
                                             width: double.infinity,
                                             padding: const EdgeInsets.symmetric(
@@ -166,20 +169,30 @@ class StatusContainer extends StatelessWidget {
                                                   MainAxisAlignment.start,
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.center,
-                                              spacing: 8,
+                                              spacing: 4,
                                               children: [
-                                                Text(
-                                                  'ID: ${item.deliveryId}',
-                                                  style: TextStyle(
-                                                    color: AppColors
-                                                        .primary2 /* Primary-Green2 */,
-                                                    fontSize: 12,
-                                                    fontFamily: 'Mali',
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                Row(
+                                                  spacing: 4,
+                                                  children: [
+                                                    StatusTag(
+                                                      statusType: item.status,
+                                                      size: 12,
+                                                    ),
+                                                    Text(
+                                                      item.deliveryId,
+                                                      style: TextStyle(
+                                                        color: AppColors
+                                                            .primary2 /* Primary-Green2 */,
+                                                        fontSize: 12,
+                                                        fontFamily: 'Mali',
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                                 Text(
-                                                  '- ${item.status}',
+                                                  '- ${statusTypes.getStatusMeaning(item.status)}',
                                                   style: TextStyle(
                                                     color: AppColors
                                                         .primary2 /* Primary-Green2 */,

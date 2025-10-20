@@ -6,6 +6,7 @@ import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
+import 'package:app/types/user/type.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DeliveryService {
@@ -80,14 +81,13 @@ class DeliveryService {
 
   static Future<List<Delivery>> getDeliverySenderJobByUserId(
     String userId,
+    String reciverId,
   ) async {
     try {
       final response = await FirebaseHelper().getDocumentsQuery(
         collection: 'delivery',
-        where: {'sendedId': userId},
+        where: {'sended_id': userId, 'received_id': reciverId},
       );
-
-      log('Retrieved ${response.length} deliveries for user: $userId');
 
       return response.map((doc) {
         final data = doc.data();
@@ -105,23 +105,41 @@ class DeliveryService {
 
   static Future<List<DeliveryStatDisplayItem>> getDeliveryDisplayByUserId(
     String userId,
+    UserType displayType,
   ) async {
     try {
       final response = await FirebaseHelper().getDocumentsQuery(
         collection: 'delivery',
-        where: {'sendedId': userId, 'receivedId': userId},
+        where: {
+          if (displayType == UserType.sender) 'sended_id': userId,
+          if (displayType == UserType.receiver) 'received_id': userId,
+        },
       );
 
       log('Retrieved ${response.length} deliveries for user: $userId');
 
-      return response.map((doc) {
-        final data = doc.data();
-        if (data != null) {
-          data['delivery_id'] = doc.id;
-          return DeliveryStatDisplayItem.fromJson(data);
-        }
-        throw Exception('Document data is null for delivery: ${doc.id}');
-      }).toList();
+      return response
+          .where((doc) {
+            final data = doc.data();
+            return data != null;
+          })
+          .map((doc) {
+            try {
+              final data = doc.data()!;
+              data['delivery_id'] = doc.id;
+
+              log('Processing delivery ${doc.id}: $data');
+
+              return DeliveryStatDisplayItem.fromJson(data);
+            } catch (e) {
+              log('Error parsing delivery ${doc.id}: $e');
+              log('Document data: ${doc.data()}');
+              return null;
+            }
+          })
+          .where((item) => item != null)
+          .cast<DeliveryStatDisplayItem>()
+          .toList();
     } catch (e) {
       log('Error getting deliveries for user $userId: $e');
       return [];
