@@ -38,6 +38,8 @@ class ReciverService {
           final String addressId = userData['address_id'] ?? '';
           AddressInfo address;
 
+          log("Address: $addressId");
+
           if (addressId.isNotEmpty) {
             address = await AddressService.getAddressById(addressId);
           } else {

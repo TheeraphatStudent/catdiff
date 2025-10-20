@@ -7,7 +7,7 @@ import 'package:app/service/auth/reciver.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
-import 'package:app/types/delivery/sender_showcard.dart';
+import 'package:app/types/user/sender/sender_showcard.dart';
 import 'package:app/types/user/reciver/reciver.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
@@ -389,24 +389,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 8,
                     children: filteredReciverItems.map((receiver) {
                       return ReciverJobItem(
-                        senderJob: SenderJob(
-                          sendedName: receiver.name,
-                          pickupPkgImagesUrl: [
-                            receiver.imageUrl.isNotEmpty
-                                ? receiver.imageUrl
-                                : "https://fastly.picsum.photos/id/798/536/354.jpg?hmac=G7WN49OaaiBgJFNQzJSajzPX1H_eOGD8eTuvWQlhzVI",
-                          ],
-                          pickupAddressId: receiver.address.addressId,
-                          deliveryAddressId: receiver.address.addressId,
-                          sendedPkgImgUrl: receiver.imageUrl,
-                          sendedPkgDetail: receiver.address.detail,
-                          pickupAddress: receiver.address,
-                          deliveryAddress: receiver.address,
+                        reciver: ReciverList(
+                          userId: receiver.userId,
+                          imageUrl: receiver.imageUrl,
+                          name: receiver.name,
+                          address: receiver.address,
                         ),
                         onTap: () {
-                          log(
-                            "Selected receiver: ${receiver.name} (${receiver.userId})",
-                          );
+                          log(receiver.address.addressId);
+                          log(receiver.address.addressId);
                         },
                       );
                     }).toList(),
