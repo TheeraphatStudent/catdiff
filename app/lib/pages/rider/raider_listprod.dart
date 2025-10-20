@@ -9,11 +9,13 @@ import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
+import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
@@ -252,11 +254,16 @@ class _RiderListProdState extends State<RiderListProd> {
                     children: deliveryJobs.map((job) {
                       return DeliverJobItem(
                         deliveryJob: job,
+                        isEditableField: false,
+                        onCardTap: () {
+                          log('Card tapped: ${job.deliveryId}');
+                          _deliveryJob = job;
+                          _openMapForDelivery(job.deliveryAddress);
+                        },
                         onLocationTap: (address) {
                           log('Location tapped: ${address.detail}');
 
                           _deliveryJob = job;
-
                           _openMapForDelivery(address);
                         },
                       );
@@ -291,8 +298,38 @@ class _RiderListProdState extends State<RiderListProd> {
                     ],
                   ),
                   SizedBox(height: 16),
-                  DeliverJobItem(deliveryJob: _deliveryJob),
+                  DeliverJobItem(
+                    deliveryJob: _deliveryJob,
+                    isShowingMap: false,
+                  ),
                   SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ButtonActions(
+                          variant: ButtonVariant.danger,
+                          text: 'ปิด',
+                          icon: Icons.close,
+                          iconPosition: IconPosition.left,
+                          onPressed: () {
+                            _closeMap();
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: ButtonActions(
+                          variant: ButtonVariant.primary,
+                          text: 'ยืนยัน',
+                          iconPosition: IconPosition.right,
+                          icon: Icons.check,
+                          onPressed: () {
+                            _closeMap();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
