@@ -67,12 +67,14 @@ class AuthService {
 
       // ข้อมูลพื้นฐาน - different structure for User vs Raider
       final Map<String, dynamic> userData;
+      final hashedPassword = _hashPassword(password);
 
       if (role == UserRole.rider) {
         userData = {
           'user_id': userCredential.user!.uid,
           'name': userId,
           'phone': phone,
+          'password': hashedPassword,
           'address_id': address,
           'role': role.name,
           'images_url': profileImageUrl ?? '',
@@ -84,8 +86,6 @@ class AuthService {
           'createdAt': FieldValue.serverTimestamp(),
         };
       } else {
-        final hashedPassword = _hashPassword(password);
-
         userData = {
           'user_id': userCredential.user!.uid,
           'name': userId,
@@ -94,14 +94,18 @@ class AuthService {
           'address_id': address,
           'role': role.name,
           'images_url': profileImageUrl ?? '',
-          'verhicle': {
-            'drive_image_url': vehicleImageUrl ?? '',
-            'licence_plate': '',
-            'type': '',
-          },
+          'verhicle': {'drive_image_url': '', 'licence_plate': '', 'type': ''},
           'createdAt': FieldValue.serverTimestamp(),
         };
       }
+
+      log("Attempting to save user data to Firestore: $userData");
+      log("User ID: ${userCredential.user!.uid}");
+      log("Address ID: $address");
+      log("Profile Image URL: $profileImageUrl");
+      log("Vehicle Image URL: $vehicleImageUrl");
+      log("License Plate: $licencePlate");
+      log("Vehicle Type: $vehicleType");
 
       // บันทึกลง Firestore
       await FirebaseHelper().setDocument(
@@ -109,6 +113,7 @@ class AuthService {
         documentId: userCredential.user!.uid,
         data: userData,
       );
+      log("Successfully saved user data to Firestore");
 
       // แปลงเป็น object
       final userObject = User.fromJson(userData);
@@ -136,6 +141,10 @@ class AuthService {
       }
       return {'success': false, 'message': message, 'error': e.code};
     } catch (e) {
+      print(e);
+
+      log("Error to create user: ${e.toString()}");
+
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการเชื่อมต่อ',

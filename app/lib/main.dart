@@ -73,7 +73,7 @@ class MyApp extends StatelessWidget {
 
             // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
             // GetPage(name: '/multi-tracking', page: () => const MultiTracking()),
-            GetPage(name: '/debug', page: () => const DebugPage()),
+            // GetPage(name: '/debug', page: () => const DebugPage()),
             GetPage(name: '/debug-rider', page: () => const DebugRider()),
             GetPage(name: '/slider-debug', page: () => const SilderDebug()),
             GetPage(name: '/map-debug', page: () => const MapDebugPage()),

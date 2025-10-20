@@ -692,7 +692,7 @@ class _RegisterPageState extends State<RegisterPage>
         role: _selectedRole,
         profileImageUrl: profileImageUrl,
         vehicleImageUrl: vehicleImageUrl,
-        licencePlate: _vehicleTypeController.text.trim(),
+        licencePlate: _licensePlateController.text.trim(),
         vehicleType: _vehicleTypeController.text.trim(),
       );
 
