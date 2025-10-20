@@ -7,14 +7,18 @@ import 'package:app/service/auth/reciver.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_home.dart';
-import 'package:app/types/delivery/sender_showcard.dart';
+import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/delivery/delivery.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/reciver/reciver.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/reciver_job.widget.dart';
+import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/card/status_container.widget.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
+import 'package:app/widget/sliding_up/map.widget.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:app/widget/stepper.widget.dart';
 import 'package:flutter/material.dart';
@@ -224,12 +228,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           _currentContentType = "sender";
                           _isSliderOpen = true;
                         });
+                        _loadExistingPrepareJobs();
                       },
                       onTap: () {
+                        log(
+                          'StatusContainer onTap: Setting sender mode and opening slider',
+                        );
                         setState(() {
                           _currentContentType = "sender";
                           _isSliderOpen = true;
                         });
+                        _loadExistingPrepareJobs();
+                        log(
+                          'StatusContainer onTap: Slider should now be open: $_isSliderOpen',
+                        );
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -272,6 +284,85 @@ class _HomeScreenState extends State<HomeScreen> {
                   : Column(children: [Text("เลือกประเภทการจัดส่ง")]),
             ],
           ),
+          MapsLocationSelector(
+            isOpened: _isMapOpen,
+            isShowingAction: true,
+            onLocationSelected: (selectedLatLng) {
+              log(
+                "Location selected: ${selectedLatLng.latitude}, ${selectedLatLng.longitude}",
+              );
+
+              if (_selectedDeliveryIdForLocation != null) {
+                final newAddress = AddressInfo(
+                  addressId: DateTime.now().millisecondsSinceEpoch.toString(),
+                  detail:
+                      "Selected location: ${selectedLatLng.latitude.toStringAsFixed(6)}, ${selectedLatLng.longitude.toStringAsFixed(6)}",
+                  latitude: selectedLatLng.latitude,
+                  longtitude: selectedLatLng.longitude,
+                  createdAt: DateTime.now().toIso8601String(),
+                  updatedAt: DateTime.now().toIso8601String(),
+                );
+
+                final index = _addedJobItemToDeliver.indexWhere(
+                  (item) =>
+                      item.deliveryJob.deliveryId ==
+                      _selectedDeliveryIdForLocation,
+                );
+
+                if (index != -1) {
+                  setState(() {
+                    _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
+                        newAddress;
+                  });
+
+                  log(
+                    "Updated delivery address for delivery: $_selectedDeliveryIdForLocation",
+                  );
+                }
+              }
+
+              setState(() {
+                _isMapOpen = false;
+                _selectedDeliveryIdForLocation = null;
+              });
+
+              if (_shouldRestoreDeliveryModal) {
+                Future.delayed(Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    setState(() {
+                      _isSliderOpen = true;
+                      _currentContentType =
+                          _savedContentType ??
+                          _currentContentType; // Restore content type
+                      _shouldRestoreDeliveryModal = false;
+                      _savedContentType = null; // Clear saved state
+                    });
+                  }
+                });
+              }
+            },
+            onModalClosed: () {
+              setState(() {
+                _isMapOpen = false;
+                _selectedDeliveryIdForLocation = null;
+              });
+
+              if (_shouldRestoreDeliveryModal) {
+                Future.delayed(Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    setState(() {
+                      _isSliderOpen = true;
+                      _currentContentType =
+                          _savedContentType ??
+                          _currentContentType; // Restore content type
+                      _shouldRestoreDeliveryModal = false;
+                      _savedContentType = null; // Clear saved state
+                    });
+                  }
+                });
+              }
+            },
+          ),
         ],
       ),
     );
@@ -288,7 +379,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _nextSenderStep() {
-    if (_currentSenderStep < 2) {
+    log("Next step work!");
+
+    if (_currentSenderStep < 1) {
       setState(() {
         _currentSenderStep++;
       });
@@ -304,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToSenderStep(int step) {
-    if (step >= 0 && step <= 2) {
+    if (step >= 0 && step <= 1) {
       setState(() {
         _currentSenderStep = step;
       });
@@ -312,13 +405,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getCurrentSenderStepContent() {
+    log("Building step content for step: $_currentSenderStep");
     switch (_currentSenderStep) {
       case 0:
         return _buildSelectReceiverContent();
       case 1:
         return _buildPreparePackageContent();
-      case 2:
-        return _buildConfirmDeliveryContent();
       default:
         return _buildSelectReceiverContent();
     }
@@ -332,7 +424,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         spacing: 12,
         children: [
-          Expanded(child: _getCurrentSenderStepContent()),
+          Expanded(
+            key: ValueKey('sender_step_$_currentSenderStep'),
+            child: _getCurrentSenderStepContent(),
+          ),
           StepperWidget(
             steps: [
               StepData(
@@ -345,11 +440,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 active: _currentSenderStep == 1,
                 icon: Icon(Icons.inbox),
               ),
-              StepData(
-                label: "ยืนยันการส่ง",
-                active: _currentSenderStep == 2,
-                icon: Icon(Icons.check),
-              ),
             ],
           ),
         ],
@@ -358,6 +448,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 1. Select receiver -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  ReciverList? _selectedReciver;
 
   Widget _buildSelectReceiverContent() {
     return Column(
@@ -389,24 +481,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 8,
                     children: filteredReciverItems.map((receiver) {
                       return ReciverJobItem(
-                        senderJob: SenderJob(
-                          sendedName: receiver.name,
-                          pickupPkgImagesUrl: [
-                            receiver.imageUrl.isNotEmpty
-                                ? receiver.imageUrl
-                                : "https://fastly.picsum.photos/id/798/536/354.jpg?hmac=G7WN49OaaiBgJFNQzJSajzPX1H_eOGD8eTuvWQlhzVI",
-                          ],
-                          pickupAddressId: receiver.address.addressId,
-                          deliveryAddressId: receiver.address.addressId,
-                          sendedPkgImgUrl: receiver.imageUrl,
-                          sendedPkgDetail: receiver.address.detail,
-                          pickupAddress: receiver.address,
-                          deliveryAddress: receiver.address,
-                        ),
+                        reciver: receiver,
                         onTap: () {
-                          log(
-                            "Selected receiver: ${receiver.name} (${receiver.userId})",
-                          );
+                          log(receiver.address.addressId);
+                          log(receiver.address.addressId);
+
+                          _selectedReciver = receiver;
+
+                          _nextSenderStep();
                         },
                       );
                     }).toList(),
@@ -420,65 +502,422 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 2. Prepare package -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+  final List<DeliverJobItem> _addedJobItemToDeliver = [];
+  final Map<String, ProfileController> _packageImageControllers = {};
+
+  bool _isMapOpen = false;
+  String? _selectedDeliveryIdForLocation;
+
+  bool _shouldRestoreDeliveryModal = false;
+  String? _savedContentType;
+
+  AddressInfo? _getDeliveryAddress(String deliveryId) {
+    final index = _addedJobItemToDeliver.indexWhere(
+      (item) => item.deliveryJob.deliveryId == deliveryId,
+    );
+    return index != -1
+        ? _addedJobItemToDeliver[index].deliveryJob.deliveryAddress
+        : null;
+  }
+
+  Future<void> _loadExistingPrepareJobs() async {
+    try {
+      final appData = Provider.of<AppData>(context, listen: false);
+      log("Loading existing prepare jobs for user: ${appData.currentUser!.id}");
+
+      final deliveries = await DeliveryService.getDeliverySenderJobByUserId(
+        appData.currentUser!.id,
+      );
+      final prepareJobs = deliveries
+          .where((delivery) => delivery.status == StatusType.prepare)
+          .toList();
+
+      log("Found ${prepareJobs.length} prepare jobs");
+
+      if (prepareJobs.isNotEmpty) {
+        setState(() {
+          _addedJobItemToDeliver.clear();
+          _packageImageControllers.clear();
+
+          for (final delivery in prepareJobs) {
+            final profileController = ProfileController();
+            _packageImageControllers[delivery.deliveryId] = profileController;
+
+            final deliveryJob = DeliveryJob(
+              deliveryId: delivery.deliveryId,
+              status: delivery.status,
+              sender: UserInfo(
+                userId: delivery.sendedId,
+                name: appData.currentUser!.name,
+                imagesUrl: appData.currentUser!.imagesUrl,
+              ),
+              reciver: UserInfo(
+                userId: delivery.receivedId,
+                name: delivery.name,
+                imagesUrl: delivery.profileImageUrl,
+              ),
+              pickupAddress: AddressInfo(
+                addressId: delivery.pickupAddressId,
+                detail: "Pickup Address",
+                latitude: 0.0,
+                longtitude: 0.0,
+                createdAt: delivery.createdAt,
+                updatedAt: delivery.updatedAt,
+              ),
+              deliveryAddress: AddressInfo(
+                addressId: delivery.deliveryAddressId,
+                detail: "Delivery Address",
+                latitude: 0.0,
+                longtitude: 0.0,
+                createdAt: delivery.createdAt,
+                updatedAt: delivery.updatedAt,
+              ),
+              pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+            );
+
+            _addedJobItemToDeliver.add(
+              DeliverJobItem(
+                deliveryJob: deliveryJob,
+                profileController: profileController,
+              ),
+            );
+          }
+        });
+
+        log("Loaded ${_addedJobItemToDeliver.length} existing prepare jobs");
+      }
+    } catch (e) {
+      log("Error loading existing prepare jobs: $e");
+    }
+  }
+
+  Future<void> addedJobItemToDeliver() async {
+    if (_selectedReciver == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกผู้รับก่อน')));
+      return;
+    }
+
+    log("Adding job item. Current count: ${_addedJobItemToDeliver.length}");
+
+    try {
+      final appData = Provider.of<AppData>(context, listen: false);
+
+      final delivery = Delivery(
+        deliveryId: '',
+        profileImageUrl: appData.currentUser!.imagesUrl,
+        name: 'Package ${_addedJobItemToDeliver.length + 1}',
+        status: StatusType.prepare,
+        sendedId: appData.currentUser!.id,
+        receivedId: _selectedReciver!.userId,
+        pickupAddressId: appData.currentUser!.addressId,
+        deliveryAddressId: _selectedReciver!.address.addressId,
+        pickupPkgImagesUrl: [],
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+        deliveredAt: null,
+        pickupAt: null,
+        sendedPkgDetail: 'Package ${_addedJobItemToDeliver.length + 1}',
+        sendedPkgImgUrl: '',
+      );
+
+      final createdDelivery = await DeliveryService.createDelivery(delivery);
+      if (createdDelivery == null) {
+        throw Exception('Failed to create delivery');
+      }
+
+      final profileController = ProfileController();
+
+      profileController.addListener(() {
+        if (profileController.uploadedUrl != null) {
+          log(
+            "Image uploaded for delivery ${createdDelivery.deliveryId}: ${profileController.uploadedUrl}",
+          );
+
+          final index = _addedJobItemToDeliver.indexWhere(
+            (item) => item.deliveryJob.deliveryId == createdDelivery.deliveryId,
+          );
+
+          if (index != -1) {
+            setState(() {
+              _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl = [
+                profileController.uploadedUrl!,
+              ];
+            });
+
+            log(
+              "Updated pickupPkgImagesUrl for delivery ${createdDelivery.deliveryId}",
+            );
+          }
+        }
+      });
+
+      _packageImageControllers[createdDelivery.deliveryId] = profileController;
+
+      setState(() {
+        _addedJobItemToDeliver.add(
+          DeliverJobItem(
+            deliveryJob: DeliveryJob(
+              deliveryId: createdDelivery.deliveryId,
+              status: StatusType.pending,
+              pickupPkgImagesUrl: [],
+              pickupAddress: AddressInfo(
+                addressId: appData.currentUser!.addressId,
+                detail: "",
+                latitude: 0,
+                longtitude: 0,
+                createdAt: '',
+                updatedAt: '',
+              ),
+              deliveryAddress: AddressInfo(
+                addressId: _selectedReciver!.address.addressId,
+                detail: _selectedReciver!.address.detail,
+                latitude: _selectedReciver!.address.latitude,
+                longtitude: _selectedReciver!.address.longtitude,
+                createdAt: '',
+                updatedAt: '',
+              ),
+              sender: UserInfo(
+                userId: appData.currentUser!.id,
+                name: appData.currentUser!.name,
+                imagesUrl: appData.currentUser!.imagesUrl,
+              ),
+              reciver: UserInfo(
+                userId: _selectedReciver!.userId,
+                name: _selectedReciver!.name,
+                imagesUrl: _selectedReciver!.imageUrl,
+              ),
+            ),
+            profileController: profileController,
+            userId: appData.currentUser!.id,
+            onLocationTap: (AddressInfo address) {
+              log("Location tap for delivery: ${createdDelivery.deliveryId}");
+              log("Current address: ${address.detail}");
+              log(address.latitude.toString());
+              log(address.longtitude.toString());
+
+              setState(() {
+                _selectedDeliveryIdForLocation = createdDelivery.deliveryId;
+                _shouldRestoreDeliveryModal = _isSliderOpen;
+                _savedContentType = _currentContentType;
+                _isSliderOpen = false;
+              });
+
+              Future.delayed(Duration(milliseconds: 300), () {
+                if (mounted) {
+                  setState(() {
+                    _isMapOpen = true;
+                  });
+                }
+              });
+            },
+          ),
+        );
+      });
+
+      log("Successfully created delivery: ${createdDelivery.deliveryId}");
+    } catch (e) {
+      log("Error creating delivery: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการสร้างพัสดุ: $e'),
+          backgroundColor: AppColors.lightDanger,
+        ),
+      );
+    }
+  }
+
   Widget _buildPreparePackageContent() {
     return Column(
       children: [
-        // Expanded(child: Center(child: Text("Prepare package content"))),
-        // Padding(
-        //   padding: const EdgeInsets.all(16.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       ButtonActions(
-        //         variant: ButtonVariant.secondary,
-        //         icon: Icons.arrow_back,
-        //         onPressed: _previousSenderStep,
-        //         text: "ย้อนกลับ",
-        //       ),
-        //       ButtonActions(
-        //         variant: ButtonVariant.primary,
-        //         icon: Icons.arrow_forward,
-        //         onPressed: _nextSenderStep,
-        //         text: "ถัดไป",
-        //       ),
-        //     ],
-        //   ),
-        // ),
+        // Action buttons row
+        Row(
+          children: [
+            ButtonActions(
+              variant: ButtonVariant.danger,
+              icon: Icons.arrow_back,
+              width: ButtonWidth.fit,
+              onPressed: () => onClosedModal(),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ButtonActions(
+                variant: ButtonVariant.outline,
+                icon: Icons.add,
+                iconPosition: IconPosition.right,
+                width: ButtonWidth.full,
+                text: "เพิ่มพัสดุ",
+                onPressed: () {
+                  addedJobItemToDeliver();
+                },
+              ),
+            ),
+            SizedBox(width: 8),
+            ButtonActions(
+              variant: ButtonVariant.primary,
+              icon: Icons.check,
+              width: ButtonWidth.fit,
+              onPressed: _addedJobItemToDeliver.isNotEmpty
+                  ? () {
+                      _confirmToCreateDeliveryJob();
+                    }
+                  : null,
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        // Package items list
+        Expanded(
+          child: _addedJobItemToDeliver.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        "ต้องการส่งอะไร เพิ่มได้เลย",
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  key: ValueKey(
+                    'package_list_${_addedJobItemToDeliver.length}',
+                  ),
+                  child: Column(
+                    spacing: 8,
+                    children: _addedJobItemToDeliver.asMap().entries.map((
+                      entry,
+                    ) {
+                      final index = entry.key;
+                      final jobItem = entry.value;
+                      return Dismissible(
+                        key: Key('job_item_$index'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20),
+                          color: Colors.red,
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          _removeJobItem(index);
+                        },
+                        child: jobItem,
+                      );
+                    }).toList(),
+                  ),
+                ),
+        ),
       ],
     );
   }
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=- 3. Confirm delivery -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-  Widget _buildConfirmDeliveryContent() {
-    return Column(
-      children: [
-        // Expanded(child: Center(child: Text("Confirm delivery content"))),
-        // Padding(
-        //   padding: const EdgeInsets.all(16.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       ButtonActions(
-        //         variant: ButtonVariant.secondary,
-        //         icon: Icons.arrow_back,
-        //         onPressed: _previousSenderStep,
-        //         text: "ย้อนกลับ",
-        //       ),
-        //       ButtonActions(
-        //         variant: ButtonVariant.primary,
-        //         icon: Icons.check,
-        //         onPressed: () {
-        //           // Handle final confirmation
-        //           onClosedModal();
-        //         },
-        //         text: "ยืนยัน",
-        //       ),
-        //     ],
-        //   ),
-        // ),
-      ],
+  Future<void> _removeJobItem(int index) async {
+    log(
+      "Removing job item at index: $index. Current count: ${_addedJobItemToDeliver.length}",
     );
+
+    if (index >= 0 && index < _addedJobItemToDeliver.length) {
+      final jobItem = _addedJobItemToDeliver[index];
+      final deliveryId = jobItem.deliveryJob.deliveryId;
+
+      try {
+        final success = await DeliveryService.deleteDelivery(deliveryId);
+        if (!success) {
+          throw Exception('Failed to delete delivery from Firebase');
+        }
+
+        final controller = _packageImageControllers[deliveryId];
+        if (controller != null) {
+          controller.dispose();
+          _packageImageControllers.remove(deliveryId);
+          log("Disposed ProfileController for delivery ID: $deliveryId");
+        }
+
+        setState(() {
+          _addedJobItemToDeliver.removeAt(index);
+        });
+
+        log("Successfully deleted delivery: $deliveryId");
+        log("After removal, count: ${_addedJobItemToDeliver.length}");
+      } catch (e) {
+        log("Error deleting delivery $deliveryId: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการลบพัสดุ: $e'),
+            backgroundColor: AppColors.lightDanger,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmToCreateDeliveryJob() async {
+    if (_selectedReciver == null || _addedJobItemToDeliver.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกผู้รับและเพิ่มพัสดุ')));
+      return;
+    }
+
+    try {
+      log(
+        "Updating ${_addedJobItemToDeliver.length} delivery jobs to pending status",
+      );
+
+      for (final jobItem in _addedJobItemToDeliver) {
+        final deliveryId = jobItem.deliveryJob.deliveryId;
+
+        final updatedDelivery =
+            await DeliveryService.updateDeliveryStatusFromString(
+              deliveryId,
+              'pending',
+            );
+
+        if (updatedDelivery != null) {
+          log("Successfully updated delivery $deliveryId to pending status");
+        } else {
+          log("Failed to update delivery $deliveryId to pending status");
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ยืนยันการส่งของสำเร็จ ${_addedJobItemToDeliver.length} รายการ',
+          ),
+          backgroundColor: AppColors.primary3,
+        ),
+      );
+
+      setState(() {
+        for (final controller in _packageImageControllers.values) {
+          controller.dispose();
+        }
+        _packageImageControllers.clear();
+
+        _addedJobItemToDeliver.clear();
+        _selectedReciver = null;
+        _currentSenderStep = 0;
+      });
+      onClosedModal();
+    } catch (e) {
+      log("Error updating delivery jobs to pending: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการยืนยันการส่งของ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Receiver content
@@ -487,5 +926,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildReceiverContent() {
     return Column(children: [Text("Receiver test")]);
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _packageImageControllers.values) {
+      controller.dispose();
+    }
+    _packageImageControllers.clear();
+    super.dispose();
   }
 }

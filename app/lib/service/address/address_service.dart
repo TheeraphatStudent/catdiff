@@ -2,7 +2,6 @@ import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/address/address.dart';
 
 class AddressService {
-
   static Future<AddressInfo> createAddress({
     required double latitude,
     required double longitude,
@@ -37,14 +36,18 @@ class AddressService {
 
   static Future<AddressInfo> getAddressById(String id) async {
     try {
-      final response = await FirebaseHelper().getDocumentsQuery(
+      final response = await FirebaseHelper().getDocumentById(
         collection: 'address',
-        where: {'id': id},
+        documentId: id,
       );
 
-      final data = response.first.data()!;
+      if (!response.exists) {
+        throw Exception('Address document not found');
+      }
+
+      final data = response.data()!;
       return AddressInfo(
-        addressId: response.first.id,
+        addressId: response.id,
         latitude: data['latitude']?.toDouble() ?? 0.0,
         longtitude: data['longtitude']?.toDouble() ?? 0.0,
         detail: data['detail'] ?? '',

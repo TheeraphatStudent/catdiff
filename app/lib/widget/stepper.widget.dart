@@ -20,6 +20,7 @@ class StepperWidget extends StatelessWidget {
   final double stepRadius;
   final double lineLength;
   final EdgeInsets? padding;
+  final ValueChanged<int>? onStepTapped;
 
   const StepperWidget({
     Key? key,
@@ -32,6 +33,7 @@ class StepperWidget extends StatelessWidget {
     this.stepRadius = 16,
     this.lineLength = 100,
     this.padding,
+    this.onStepTapped,
   }) : super(key: key);
 
   @override
@@ -51,6 +53,8 @@ class StepperWidget extends StatelessWidget {
           padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: EasyStepper(
         activeStep: activeStep,
+        enableStepTapping: onStepTapped != null,
+        onStepReached: onStepTapped,
         direction: Axis.horizontal,
         unreachedStepIconColor: inactiveColor,
         unreachedStepBorderColor: inactiveColor,

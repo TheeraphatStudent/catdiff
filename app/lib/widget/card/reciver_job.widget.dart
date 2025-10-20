@@ -1,21 +1,18 @@
 import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
-import 'package:app/types/delivery/sender_showcard.dart';
+import 'package:app/types/user/reciver/reciver.dart';
+import 'package:app/types/user/sender/sender_showcard.dart';
 import 'package:app/widget/input.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/tag.widget.dart';
 import 'package:flutter/material.dart';
 
 class ReciverJobItem extends StatelessWidget {
-  final SenderJob senderJob;
+  final ReciverList reciver;
   final VoidCallback onTap;
 
-  const ReciverJobItem({
-    super.key,
-    required this.senderJob,
-    required this.onTap,
-  });
+  const ReciverJobItem({super.key, required this.reciver, required this.onTap});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -40,7 +37,7 @@ class ReciverJobItem extends StatelessWidget {
               ProfileWidgets.avatar(
                 isEdited: false,
                 size: ProfileSize.sm,
-                imageUrl: senderJob.pickupPkgImagesUrl.first,
+                imageUrl: reciver.imageUrl,
                 shape: ProfileShape.circular,
               ),
               SizedBox(width: 12),
@@ -50,16 +47,13 @@ class ReciverJobItem extends StatelessWidget {
                   children: [
                     Align(
                       alignment: Alignment.centerRight,
-                      child: Tag(
-                        color: AppColors.primary5,
-                        text: senderJob.sendedName,
-                      ),
+                      child: Tag(color: AppColors.primary5, text: reciver.name),
                     ),
                     SizedBox(height: 8),
                     InputField(
                       enabled: false,
                       controller: TextEditingController(
-                        text: senderJob.deliveryAddress.detail,
+                        text: reciver.address.detail,
                       ),
                       hintText: "ที่อยู่ปลายทางเริ่มต้น",
                       label: "ที่อยู่ปลายทางเริ่มต้น",
