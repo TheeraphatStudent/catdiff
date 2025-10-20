@@ -77,10 +77,6 @@ class DeliveryService {
     }
   }
 
-  static Future<List<DeliveryJob>> getDeliveryJobs() async {
-    return [];
-  }
-
   static Future<List<Delivery>> getDeliveryByUserId(String userId) async {
     try {
       final response = await FirebaseHelper().getDocumentsQuery(
