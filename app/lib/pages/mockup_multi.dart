@@ -11,14 +11,14 @@ import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 
-class DebugMulti extends StatefulWidget {
-  const DebugMulti({super.key});
+class MockupMulti extends StatefulWidget {
+  const MockupMulti({super.key});
 
   @override
-  State<DebugMulti> createState() => _DebugMultiState();
+  State<MockupMulti> createState() => _MockupMultiState();
 }
 
-class _DebugMultiState extends State<DebugMulti> {
+class _MockupMultiState extends State<MockupMulti> {
   final List<DeliveryJob> _mockJobs = [
     DeliveryJob(
       deliveryId: 'CF-001',
