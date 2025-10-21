@@ -246,6 +246,7 @@ class _RiderListProdState extends State<RiderListProd> {
                     vertical: 24,
                     horizontal: 32,
                   ),
+
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.start,

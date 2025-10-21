@@ -1,9 +1,11 @@
 import 'package:app/config/share/app_data.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
+import 'package:app/pages/debug-multi-one.dart';
 import 'package:app/pages/debug-rider.dart';
 import 'package:app/pages/debug.dart';
 import 'package:app/pages/map_debug.dart';
+import 'package:app/pages/mockup_multi.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
 import 'package:app/pages/profile/profile.page.dart';
 import 'package:app/pages/rider/raider_listprod.dart';
@@ -54,7 +56,7 @@ class MyApp extends StatelessWidget {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
           theme: theme,
-          initialRoute: '/',
+          initialRoute: '/rider',
           // initialRoute: '/debug-rider',
           getPages: <GetPage<dynamic>>[
             GetPage(name: '/', page: () => const _RootLoadingChecker()),
@@ -72,7 +74,7 @@ class MyApp extends StatelessWidget {
             ),
 
             // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
-            // GetPage(name: '/multi-tracking', page: () => const MultiTracking()),
+            GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
             // GetPage(name: '/debug', page: () => const DebugPage()),
             GetPage(name: '/debug-rider', page: () => const DebugRider()),
             GetPage(name: '/slider-debug', page: () => const SilderDebug()),
