@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:app/service/address/address_service.dart';
 import 'package:app/service/auth/user.dart';
 import 'package:app/service/helper/firebase_connection.dart';
+import 'package:app/service/helper/time.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_job.dart';
@@ -71,6 +72,7 @@ class DeliveryRiderJob {
                   pickupAddress: pickupAddress,
                   deliveryAddress: deliveryAddress,
                   pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+                  sendedPkgDetail: delivery.sendedPkgDetail,
                 );
               }).toList();
 
@@ -126,7 +128,7 @@ class DeliveryRiderJob {
               detail: "Pickup Address",
               latitude: 0.0,
               longtitude: 0.0,
-              createdAt: delivery.createdAt,
+              createdAt: delivery.createdAt ?? "",
               updatedAt: delivery.updatedAt,
             ),
             deliveryAddress: AddressInfo(
@@ -134,10 +136,11 @@ class DeliveryRiderJob {
               detail: "Delivery Address",
               latitude: 0.0,
               longtitude: 0.0,
-              createdAt: delivery.createdAt,
+              createdAt: delivery.createdAt ?? "",
               updatedAt: delivery.updatedAt,
             ),
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+            sendedPkgDetail: delivery.sendedPkgDetail,
           );
         }
         throw Exception('Document data is null for delivery: ${doc.id}');
@@ -147,6 +150,36 @@ class DeliveryRiderJob {
     } catch (e) {
       log('Error getting delivery jobs: $e');
       return [];
+    }
+  }
+
+  static Future<void> acceptDeliveryJob(DeliveryJob job) async {
+    try {
+      final delivery = Delivery(
+        deliveryId: job.deliveryId,
+        status: job.status,
+        sendedId: job.sender.userId,
+        receivedId: job.reciver.userId,
+        pickupPkgImagesUrl: job.pickupPkgImagesUrl,
+        updatedAt: TimeHelper.getDateNow(),
+        riderInfo: null,
+        profileImageUrl: '',
+        name: '',
+        pickupAddressId: '',
+        deliveryAddressId: '',
+        deliveredAt: '',
+        pickupAt: '',
+        sendedPkgDetail: '',
+        sendedPkgImgUrl: '',
+      );
+
+      await FirebaseHelper().updateDocument(
+        collection: 'delivery',
+        documentId: job.deliveryId,
+        data: delivery.toJson(),
+      );
+    } catch (e) {
+      log("Accept delivery job error: ${e.toString()}");
     }
   }
 

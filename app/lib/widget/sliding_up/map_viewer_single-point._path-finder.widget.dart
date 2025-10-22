@@ -1,3 +1,5 @@
+import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
+
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/service/map/map_service.dart';
 import 'package:app/service/map/routes_service.dart';
@@ -15,7 +17,10 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
   final String? destLabel;
   final String? label;
   final bool isOpened;
+
   final VoidCallback? onModalClosed;
+  final Function(MapRouteInfo)? getPathRouteInfo;
+
   final double? aspectRatio;
   final Widget? content;
 
@@ -29,6 +34,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
     this.destLabel,
     this.label,
     this.onModalClosed,
+    this.getPathRouteInfo,
   });
 
   @override
@@ -39,7 +45,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
 class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   LatLng? _currentLocation;
   LatLng? _destinationLocation;
-  List<MapDestination> _pathDestinations = [];
+  final List<MapDestination> _pathDestinations = [];
   MapRouteInfo? _pathRouteInfo;
   bool _isLoadingLocation = false;
 
@@ -199,6 +205,8 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                 onRouteChanged: (info) {
                   setState(() {
                     _pathRouteInfo = info;
+
+                    widget.getPathRouteInfo?.call(info);
                   });
                 },
               ),
@@ -228,10 +236,14 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('ระยะทาง:', style: TextStyle(fontFamily: 'Mali')),
+                      Text(
+                        'ระยะทาง:',
+                        style: TextStyle(fontSize: 12, fontFamily: 'Mali'),
+                      ),
                       Text(
                         _formatDistance(_pathRouteInfo!.distanceMeters),
                         style: TextStyle(
+                          fontSize: 12,
                           fontFamily: 'Mali',
                           fontWeight: FontWeight.w600,
                         ),
@@ -243,12 +255,12 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                     children: [
                       Text(
                         'เวลาโดยประมาณ:',
-                        style: TextStyle(fontFamily: 'Mali'),
+                        style: TextStyle(fontSize: 12, fontFamily: 'Mali'),
                       ),
                       Text(
                         _formatDuration(_pathRouteInfo!.duration),
                         style: TextStyle(
-                          fontFamily: 'Mali',
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

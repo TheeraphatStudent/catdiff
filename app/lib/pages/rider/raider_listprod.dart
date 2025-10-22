@@ -11,6 +11,7 @@ import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
+import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
@@ -29,7 +30,14 @@ class RiderListProd extends StatefulWidget {
 class _RiderListProdState extends State<RiderListProd> {
   // Map state management
   bool _isMapOpen = false;
+  final MapRouteInfo routeInfo = MapRouteInfo(
+    points: [],
+    distanceMeters: 0,
+    duration: null,
+    distanceSource: MapRouteDistanceSource.api,
+  );
   String _selectedDestinationLabel = "ปลายทาง";
+
   DeliveryJob _deliveryJob = DeliveryJob(
     deliveryId: '???',
     status: StatusType.pending,
@@ -52,6 +60,7 @@ class _RiderListProdState extends State<RiderListProd> {
     ),
     sender: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
     reciver: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
+    sendedPkgDetail: '???',
   );
 
   double _selectedLat = 16.1872;
@@ -70,6 +79,10 @@ class _RiderListProdState extends State<RiderListProd> {
     setState(() {
       _isMapOpen = false;
     });
+  }
+
+  void _riderAcceptAnJob(DeliveryJob job) {
+    Get.offNamed("/rider-job");
   }
 
   @override
@@ -282,6 +295,7 @@ class _RiderListProdState extends State<RiderListProd> {
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
             aspectRatio: 12 / 9,
+            getPathRouteInfo: (routeInfo) {},
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -321,11 +335,14 @@ class _RiderListProdState extends State<RiderListProd> {
                       Expanded(
                         child: ButtonActions(
                           variant: ButtonVariant.primary,
-                          text: 'ยืนยัน',
+                          text: 'รับงานนนี้',
+                          disable: routeInfo.distanceMeters > 20,
                           iconPosition: IconPosition.right,
                           icon: Icons.check,
                           onPressed: () {
                             _closeMap();
+
+                            _riderAcceptAnJob(_deliveryJob);
                           },
                         ),
                       ),

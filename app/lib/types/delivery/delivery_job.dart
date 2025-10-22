@@ -4,9 +4,12 @@ import 'package:app/types/status.dart';
 class DeliveryJob {
   String deliveryId;
   StatusType status;
+
   List<String> pickupPkgImagesUrl;
   AddressInfo pickupAddress;
   AddressInfo deliveryAddress;
+  String sendedPkgDetail;
+
   UserInfo sender;
   UserInfo reciver;
 
@@ -18,6 +21,7 @@ class DeliveryJob {
     required this.deliveryAddress,
     required this.sender,
     required this.reciver,
+    required this.sendedPkgDetail,
   });
 }
 

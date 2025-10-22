@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
+import 'package:app/service/helper/time.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_home.dart';
@@ -170,7 +171,7 @@ class DeliveryService {
 
   static Future<Delivery?> createDelivery(Delivery delivery) async {
     try {
-      final now = DateTime.now().toIso8601String();
+      final now = TimeHelper.getDateNow();
       final deliveryData = delivery.toJson();
 
       // Set timestamps
@@ -314,7 +315,7 @@ class DeliveryService {
             detail: "Pickup Address",
             latitude: 0.0,
             longtitude: 0.0,
-            createdAt: delivery.createdAt,
+            createdAt: delivery.createdAt ?? "",
             updatedAt: delivery.updatedAt,
           ),
           deliveryAddress: AddressInfo(
@@ -322,10 +323,11 @@ class DeliveryService {
             detail: "Delivery Address",
             latitude: 0.0,
             longtitude: 0.0,
-            createdAt: delivery.createdAt,
+            createdAt: delivery.createdAt ?? "",
             updatedAt: delivery.updatedAt,
           ),
           pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+          sendedPkgDetail: delivery.sendedPkgDetail,
         );
       }).toList();
 
