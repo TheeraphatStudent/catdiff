@@ -3,18 +3,16 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/address/address.dart';
-import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
-import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
 import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
-import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -81,8 +79,20 @@ class _RiderListProdState extends State<RiderListProd> {
     });
   }
 
-  void _riderAcceptAnJob(DeliveryJob job) {
-    Get.offNamed("/rider-job");
+  void _riderAcceptAnJob(DeliveryJob job) async {
+    try {
+      await DeliveryRiderJob.onWorkingDeliveryJob(job);
+
+      Get.off(() => RiderJobPage(deliveryJob: job));
+    } catch (e) {
+      log('Error accepting job: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการรับงาน'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

@@ -3,11 +3,10 @@ import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/debug-rider.dart';
 import 'package:app/pages/map_debug.dart';
-import 'package:app/pages/mockup_multi.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
 import 'package:app/pages/profile/profile.page.dart';
 import 'package:app/pages/rider/raider_listprod.dart';
-import 'package:app/pages/rider/rider_job..dart';
+import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/sender_state_have_prod.dart';
 import 'package:app/pages/user/user_home.dart';
@@ -75,7 +74,7 @@ class MyApp extends StatelessWidget {
             ),
 
             // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
-            GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
+            // GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
 
             // GetPage(name: '/debug', page: () => const DebugPage()),
             GetPage(name: '/debug-rider', page: () => const DebugRider()),

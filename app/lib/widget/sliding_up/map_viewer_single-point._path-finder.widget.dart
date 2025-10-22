@@ -1,5 +1,3 @@
-import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
-
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/service/map/map_service.dart';
 import 'package:app/service/map/routes_service.dart';
