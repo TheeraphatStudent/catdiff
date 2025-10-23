@@ -64,6 +64,9 @@ class MapsLocationSelector extends StatefulWidget {
   final MapRouteDistanceStrategy distanceStrategy;
   final MapRoutesClientConfig? routesClientConfig;
 
+  final double? latitude;
+  final double? longitude;
+
   const MapsLocationSelector({
     super.key,
 
@@ -78,6 +81,9 @@ class MapsLocationSelector extends StatefulWidget {
     this.onConfirmLocation,
     this.distanceStrategy = MapRouteDistanceStrategy.distanceMatrixPreferred,
     this.routesClientConfig,
+
+    this.latitude,
+    this.longitude,
   });
 
   @override
@@ -126,6 +132,17 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       (_) => unawaited(_refreshRoutePreview()),
     );
 
+    // Initialize with provided coordinates if available
+    if (widget.latitude != null && widget.longitude != null) {
+      final providedLocation = LatLng(widget.latitude!, widget.longitude!);
+      controller.selectedLocation.value = providedLocation;
+      controller.currentLocation.value = providedLocation;
+      controller.updateSelectedLocation(providedLocation);
+      log(
+        "Initialized map with provided coordinates: ${widget.latitude}, ${widget.longitude}",
+      );
+    }
+
     if (widget.isOpened) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_refreshRoutePreview());
@@ -142,6 +159,20 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   @override
   void didUpdateWidget(MapsLocationSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // Update map location if coordinates changed
+    if ((widget.latitude != oldWidget.latitude ||
+            widget.longitude != oldWidget.longitude) &&
+        widget.latitude != null &&
+        widget.longitude != null) {
+      final newLocation = LatLng(widget.latitude!, widget.longitude!);
+      controller.selectedLocation.value = newLocation;
+      controller.currentLocation.value = newLocation;
+      controller.updateSelectedLocation(newLocation);
+      log(
+        "Updated map coordinates to: ${widget.latitude}, ${widget.longitude}",
+      );
+    }
 
     if (widget.isOpened && !oldWidget.isOpened && !_isModalCurrentlyOpen) {
       _scheduleModalOpen();
@@ -163,7 +194,11 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
       return;
     }
     _hasRequestedLocation = true;
-    unawaited(_getCurrentLocation());
+
+    // Only request GPS location if no coordinates are provided
+    if (widget.latitude == null || widget.longitude == null) {
+      unawaited(_getCurrentLocation());
+    }
   }
 
   void _scheduleModalOpen() {
@@ -178,6 +213,19 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
   }
 
   Future<void> _getCurrentLocation() async {
+    // If coordinates are already provided, don't override with GPS
+    if (widget.latitude != null && widget.longitude != null) {
+      final providedLocation = LatLng(widget.latitude!, widget.longitude!);
+      controller.updateSelectedLocation(providedLocation);
+      controller.locationStatus.value = 'ใช้ตำแหน่งที่กำหนด';
+      controller.isLoading.value = false;
+      widget.onLocationSelected?.call(providedLocation);
+      log(
+        'Using provided coordinates: ${widget.latitude}, ${widget.longitude}',
+      );
+      return;
+    }
+
     controller.isLoading.value = true;
     controller.locationStatus.value = 'กำลังหาตำแหน่งปัจจุบัน...';
 

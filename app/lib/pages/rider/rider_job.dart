@@ -6,6 +6,7 @@ import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/service/map/map_service.dart';
+import 'package:app/service/map/routes_service.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
@@ -17,7 +18,8 @@ import 'package:app/widget/stepper.widget.dart';
 import 'package:app/widget/tag.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
+import 'package:latlong2/latlong.dart' as latlng;
 import 'package:provider/provider.dart';
 
 class RiderJobPage extends StatefulWidget {
@@ -37,8 +39,10 @@ class _RiderJobPageState extends State<RiderJobPage> {
 
   DeliveryJob? _currentJob;
   Timer? _locationTimer;
-  LatLng? _currentLocation;
-  double _distanceToDestination = 0.0;
+  latlng.LatLng? _currentGeoLocation;
+  gmaps.LatLng? _currentMapLocation;
+
+  double _distanceToTarget = 0.0;
   bool _isUploadingImage = false;
 
   @override
@@ -66,36 +70,98 @@ class _RiderJobPageState extends State<RiderJobPage> {
   Future<void> _updateCurrentLocation() async {
     try {
       final location = await MapService.getCurrentLocation();
+      final geoLocation = latlng.LatLng(location.latitude, location.longitude);
+
       setState(() {
-        _currentLocation = location as LatLng?;
+        _currentMapLocation = location;
+        _currentGeoLocation = geoLocation;
       });
 
-      if (_currentJob != null && _currentLocation != null) {
+      if (_currentJob != null && _currentGeoLocation != null) {
         final appData = Provider.of<AppData>(context, listen: false);
         await DeliveryRiderJob.updateRiderLocation(
           _currentJob!.deliveryId,
-          _currentLocation!,
+          _currentGeoLocation!,
           appData.currentUser!.id,
         );
 
-        final destinationLocation = LatLng(
-          _currentJob!.deliveryAddress.latitude,
-          _currentJob!.deliveryAddress.longtitude,
-        );
+        final latlng.LatLng? targetLocation = _resolveTargetGeoLocation();
+        if (targetLocation != null) {
+          final distance =
+              await DeliveryRiderJob.calculateDistanceFromDestination(
+                _currentGeoLocation!,
+                targetLocation,
+              );
 
-        final distance =
-            await DeliveryRiderJob.calculateDistanceFromDestination(
-              _currentLocation!,
-              destinationLocation,
-            );
-
-        setState(() {
-          _distanceToDestination = distance;
-        });
+          _applyDistanceUpdate(distance);
+        }
       }
     } catch (e) {
       log('Error updating location: $e');
     }
+  }
+
+  latlng.LatLng? _resolveTargetGeoLocation() {
+    if (_currentJob == null) return null;
+    final targetAddress = _ridingState == RidingJobState.takeJob
+        ? _currentJob!.pickupAddress
+        : _currentJob!.deliveryAddress;
+
+    return latlng.LatLng(targetAddress.latitude, targetAddress.longtitude);
+  }
+
+  MapDestination _buildTargetDestination() {
+    final targetAddress = _ridingState == RidingJobState.takeJob
+        ? _currentJob!.pickupAddress
+        : _currentJob!.deliveryAddress;
+
+    return MapDestination(
+      latitude: targetAddress.latitude,
+      longitude: targetAddress.longtitude,
+      label: targetAddress.detail,
+      markerId: _ridingState == RidingJobState.takeJob
+          ? 'pickup_destination'
+          : 'delivery_destination',
+    );
+  }
+
+  String _distanceStatusLabel() {
+    switch (_ridingState) {
+      case RidingJobState.takeJob:
+        return 'ระยะห่างจากจุดรับสินค้า';
+      case RidingJobState.deliveringJob:
+      case RidingJobState.submitJob:
+        return 'ระยะห่างจากปลายทาง';
+    }
+  }
+
+  bool get _isWithinCompletionRange => _distanceToTarget <= 20;
+
+  Future<void> _refreshDistanceToTarget() async {
+    if (_currentGeoLocation == null) return;
+    final targetLocation = _resolveTargetGeoLocation();
+    if (targetLocation == null) return;
+
+    final distance = await DeliveryRiderJob.calculateDistanceFromDestination(
+      _currentGeoLocation!,
+      targetLocation,
+    );
+
+    _applyDistanceUpdate(distance);
+  }
+
+  void _applyDistanceUpdate(double distanceMeters) {
+    if (!mounted) return;
+
+    final shouldSubmit =
+        _ridingState == RidingJobState.deliveringJob && distanceMeters <= 20;
+
+    setState(() {
+      _distanceToTarget = distanceMeters;
+      if (shouldSubmit) {
+        _ridingState = RidingJobState.submitJob;
+      }
+    });
   }
 
   Future<void> _handleImageUpload(String imageUrl) async {
@@ -119,6 +185,8 @@ class _RiderJobPageState extends State<RiderJobPage> {
           _ridingState = RidingJobState.deliveringJob;
         });
 
+        await _refreshDistanceToTarget();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('อัพโหลดรูปรับสินค้าสำเร็จ กำลังดำเนินการส่ง'),
@@ -126,7 +194,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
           ),
         );
       } else if (_ridingState == RidingJobState.submitJob) {
-        if (_distanceToDestination > 20) {
+        if (_distanceToTarget > 20) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -182,6 +250,8 @@ class _RiderJobPageState extends State<RiderJobPage> {
       return MainLayout(body: Center(child: Text('ไม่พบข้อมูลงานจัดส่ง')));
     }
 
+    final mapDestination = _buildTargetDestination();
+
     return MainLayout(
       scrollable: false,
       body: Column(
@@ -225,12 +295,12 @@ class _RiderJobPageState extends State<RiderJobPage> {
               ],
             ),
           ),
-          if (_currentLocation != null)
+          if (_currentGeoLocation != null)
             Container(
               padding: EdgeInsets.all(12),
               margin: EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: _distanceToDestination <= 20
+                color: _isWithinCompletionRange
                     ? AppColors.primary3
                     : AppColors.primary2,
                 borderRadius: BorderRadius.circular(8),
@@ -240,7 +310,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
                   Icon(Icons.location_on, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    'ระยะห่างจากปลายทาง: ${_distanceToDestination.toStringAsFixed(1)} เมตร',
+                    '${_distanceStatusLabel()}: ${_distanceToTarget.toStringAsFixed(1)} เมตร',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -250,16 +320,24 @@ class _RiderJobPageState extends State<RiderJobPage> {
               ),
             ),
 
+          // State 1 -> Rider to pickup
+          // State 2 -> Pickup to delivery
           Expanded(
             child: MapPlaceholder(
-              destinations: [
-                MapDestination(
-                  latitude: _currentJob!.deliveryAddress.latitude,
-                  longitude: _currentJob!.deliveryAddress.longtitude,
-                  label: _currentJob!.deliveryAddress.detail,
-                  markerId: 'destination',
-                ),
-              ],
+              key: ValueKey('rider_map_${_ridingState.name}'),
+              mode: MapPlaceholderMode.viewer,
+              viewerType: MapViewerType.path,
+              destinations: [mapDestination],
+              initialPosition: mapDestination.latLng,
+              initialUserLocation: _currentMapLocation,
+              showMyLocation: true,
+              showMyLocationButton: true,
+              enableLiveLocation: true,
+              distanceStrategy:
+                  MapRouteDistanceStrategy.distanceMatrixPreferred,
+              onRouteChanged: (info) {
+                _applyDistanceUpdate(info.distanceMeters);
+              },
             ),
           ),
 
@@ -330,19 +408,10 @@ class _RiderJobPageState extends State<RiderJobPage> {
       case RidingJobState.deliveringJob:
         text = "กำลังดำเนินการส่ง...";
         disable = true;
-        if (_distanceToDestination <= 20) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_ridingState == RidingJobState.deliveringJob) {
-              setState(() {
-                _ridingState = RidingJobState.submitJob;
-              });
-            }
-          });
-        }
         break;
       case RidingJobState.submitJob:
         text = "อัพโหลดรูปการจัดส่ง";
-        disable = _distanceToDestination > 20;
+        disable = !_isWithinCompletionRange;
         onPressed = disable
             ? null
             : () {

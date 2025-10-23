@@ -147,6 +147,35 @@ class DeliveryService {
     }
   }
 
+  static Stream<List<DeliveryStatDisplayItem>> watchDeliveryDisplayByUserId(
+    String userId,
+    UserType displayType,
+  ) {
+    Query<Map<String, dynamic>> query =
+        FirebaseFirestore.instance.collection('delivery');
+
+    if (displayType == UserType.sender) {
+      query = query.where('sended_id', isEqualTo: userId);
+    } else if (displayType == UserType.receiver) {
+      query = query.where('received_id', isEqualTo: userId);
+    }
+
+    return query.snapshots().map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              final data = doc.data();
+              data['delivery_id'] = doc.id;
+              return DeliveryStatDisplayItem.fromJson(data);
+            })
+            .toList();
+      } catch (e) {
+        log('Error mapping delivery snapshots for user $userId: $e');
+        return <DeliveryStatDisplayItem>[];
+      }
+    });
+  }
+
   static Future<Delivery?> getDeliveryById(String id) async {
     try {
       final response = await FirebaseHelper().getDocumentById(

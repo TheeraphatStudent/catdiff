@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:app/config/share/app_data.dart';
@@ -48,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSliderOpen = false;
 
   int _currentSenderStep = 0;
+  bool _isRealtimeListening = false;
+
+  StreamSubscription<List<DeliveryStatDisplayItem>>? _senderSubscription;
+  StreamSubscription<List<DeliveryStatDisplayItem>>? _receiverSubscription;
 
   @override
   void initState() {
@@ -60,6 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_hasLoadedData) {
       _loadData();
       _hasLoadedData = true;
+    }
+
+    if (!_isRealtimeListening) {
+      _startRealtimeListeners();
+      _isRealtimeListening = true;
     }
   }
 
@@ -96,6 +106,36 @@ class _HomeScreenState extends State<HomeScreen> {
       reciverItems.addAll(reciverListRes);
       filteredReciverItems = List.from(reciverItems);
     });
+  }
+
+  void _startRealtimeListeners() {
+    final appData = Provider.of<AppData>(context, listen: false);
+
+    _senderSubscription ??=
+        DeliveryService.watchDeliveryDisplayByUserId(
+          appData.currentUser!.id,
+          UserType.sender,
+        ).listen((items) {
+          if (!mounted) return;
+          setState(() {
+            senderItems
+              ..clear()
+              ..addAll(items);
+          });
+        }, onError: (error) => log('Sender realtime stream error: $error'));
+
+    _receiverSubscription ??=
+        DeliveryService.watchDeliveryDisplayByUserId(
+          appData.currentUser!.id,
+          UserType.receiver,
+        ).listen((items) {
+          if (!mounted) return;
+          setState(() {
+            receiverItems
+              ..clear()
+              ..addAll(items);
+          });
+        }, onError: (error) => log('Receiver realtime stream error: $error'));
   }
 
   Future<void> _refreshDeliveryStatusData() async {
@@ -311,66 +351,86 @@ class _HomeScreenState extends State<HomeScreen> {
           MapsLocationSelector(
             isOpened: _isMapOpen,
             isShowingAction: false,
+            latitude: _selectedDeliveryIdForLocation != null
+                ? _getDeliveryAddress(_selectedDeliveryIdForLocation!)?.latitude
+                : null,
+            longitude: _selectedDeliveryIdForLocation != null
+                ? _getDeliveryAddress(
+                    _selectedDeliveryIdForLocation!,
+                  )?.longtitude
+                : null,
             onAddressSelected: (latLng, address) async {
               log(
                 "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
               );
 
-              if (_selectedDeliveryIdForLocation != null) {
-                try {
-                  final index = _addedJobItemToDeliver.indexWhere(
-                    (item) =>
-                        item.deliveryJob.deliveryId ==
-                        _selectedDeliveryIdForLocation,
-                  );
+              final currentDeliveryId = _selectedDeliveryIdForLocation;
+              if (currentDeliveryId == null) {
+                log("No delivery ID selected for location update");
+                return;
+              }
 
-                  if (index != -1) {
-                    final currentDeliveryAddress = _addedJobItemToDeliver[index]
-                        .deliveryJob
-                        .deliveryAddress;
+              try {
+                final index = _addedJobItemToDeliver.indexWhere(
+                  (item) => item.deliveryJob.deliveryId == currentDeliveryId,
+                );
 
-                    final updatedAddress = await AddressService.updateAddress(
-                      addressId: currentDeliveryAddress.addressId,
-                      latitude: latLng.latitude,
-                      longitude: latLng.longitude,
-                      detail: address,
-                    );
-
-                    log(
-                      "Updated existing address in Firebase: ${updatedAddress.addressId}",
-                    );
-
-                    setState(() {
-                      _addedJobItemToDeliver[index]
-                              .deliveryJob
-                              .deliveryAddress =
-                          updatedAddress;
-                    });
-
-                    setState(() {
-                      _isMapOpen = false;
-                      _selectedDeliveryIdForLocation = null;
-                    });
-
-                    _updateDeliveryJob(
-                      _addedJobItemToDeliver[index].deliveryJob,
-                    );
-                  }
-                } catch (e) {
-                  log("Error updating address: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('เกิดข้อผิดพลาดในการอัปเดตที่อยู่: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                if (index == -1) {
+                  log("Delivery item not found for ID: $currentDeliveryId");
+                  return;
                 }
+
+                final currentDeliveryAddress =
+                    _addedJobItemToDeliver[index].deliveryJob.deliveryAddress;
+
+                final updatedAddress = await AddressService.updateAddress(
+                  addressId: currentDeliveryAddress.addressId,
+                  latitude: latLng.latitude,
+                  longitude: latLng.longitude,
+                  detail: address,
+                );
+
+                log(
+                  "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
+                );
+
+                setState(() {
+                  _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
+                      updatedAddress;
+                });
+
+                setState(() {
+                  _isMapOpen = false;
+                  _selectedDeliveryIdForLocation = null;
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                });
+
+                _updateDeliveryJob(_addedJobItemToDeliver[index].deliveryJob);
+              } catch (e) {
+                log(
+                  "Error updating address for delivery $currentDeliveryId: $e",
+                );
+
+                setState(() {
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาดในการอัปเดตที่อยู่: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             onModalClosed: () {
+              final currentDeliveryId = _selectedDeliveryIdForLocation;
               setState(() {
                 _isMapOpen = false;
                 _selectedDeliveryIdForLocation = null;
+                if (currentDeliveryId != null) {
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                }
               });
 
               if (_shouldRestoreDeliveryModal) {
@@ -529,10 +589,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isMapOpen = false;
   String? _selectedDeliveryIdForLocation;
-
   bool _shouldRestoreDeliveryModal = false;
   String? _savedContentType;
   int? _savedSenderStep;
+
+  // Track which delivery items are pending location updates
+  final Set<String> _pendingLocationUpdates = {};
 
   AddressInfo? _getDeliveryAddress(String deliveryId) {
     final index = _addedJobItemToDeliver.indexWhere(
@@ -643,8 +705,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 profileController: profileController,
                 userId: appData.currentUser!.id,
                 onLocationTap: (AddressInfo address) {
+                  log("Location tap for delivery: ${deliveryJob.deliveryId}");
+
+                  // Prevent opening map if already updating this delivery's location
+                  if (_pendingLocationUpdates.contains(
+                    deliveryJob.deliveryId,
+                  )) {
+                    log(
+                      "Location update already in progress for delivery: ${deliveryJob.deliveryId}",
+                    );
+                    return;
+                  }
+
                   setState(() {
                     _selectedDeliveryIdForLocation = deliveryJob.deliveryId;
+                    _pendingLocationUpdates.add(deliveryJob.deliveryId);
                     _shouldRestoreDeliveryModal = _isSliderOpen;
                     _savedContentType = _currentContentType;
                     _savedSenderStep = _currentSenderStep;
@@ -761,8 +836,21 @@ class _HomeScreenState extends State<HomeScreen> {
             profileController: profileController,
             userId: appData.currentUser!.id,
             onLocationTap: (AddressInfo address) {
+              log("Location tap for delivery: ${createdDelivery.deliveryId}");
+
+              // Prevent opening map if already updating this delivery's location
+              if (_pendingLocationUpdates.contains(
+                createdDelivery.deliveryId,
+              )) {
+                log(
+                  "Location update already in progress for delivery: ${createdDelivery.deliveryId}",
+                );
+                return;
+              }
+
               setState(() {
                 _selectedDeliveryIdForLocation = createdDelivery.deliveryId;
+                _pendingLocationUpdates.add(createdDelivery.deliveryId);
                 _shouldRestoreDeliveryModal = _isSliderOpen;
                 _savedContentType = _currentContentType;
                 _savedSenderStep = _currentSenderStep;
@@ -1002,6 +1090,9 @@ class _HomeScreenState extends State<HomeScreen> {
       controller.dispose();
     }
     _packageImageControllers.clear();
+
+    _senderSubscription?.cancel();
+    _receiverSubscription?.cancel();
     super.dispose();
   }
 }
