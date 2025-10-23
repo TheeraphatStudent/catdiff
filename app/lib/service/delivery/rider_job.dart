@@ -8,6 +8,7 @@ import 'package:app/service/helper/time.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/user/user_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -36,11 +37,10 @@ class DeliveryRiderJob {
 
                   final delivery = Delivery.fromJson(data);
 
-                  // Get pickup address with validation
                   final AddressInfo pickupAddress =
-                      (delivery.pickupAddressId.isNotEmpty)
+                      (delivery.pickupAddressId != null)
                       ? await AddressService.getAddressById(
-                          delivery.pickupAddressId,
+                          delivery.pickupAddressId!,
                         )
                       : AddressInfo(
                           addressId: '',
@@ -51,11 +51,10 @@ class DeliveryRiderJob {
                           updatedAt: DateTime.now().toIso8601String(),
                         );
 
-                  // Get delivery address with validation
                   final AddressInfo deliveryAddress =
-                      (delivery.deliveryAddressId.isNotEmpty)
+                      (delivery.deliveryAddressId != null)
                       ? await AddressService.getAddressById(
-                          delivery.deliveryAddressId,
+                          delivery.deliveryAddressId!,
                         )
                       : AddressInfo(
                           addressId: '',
@@ -93,23 +92,21 @@ class DeliveryRiderJob {
                     reciver: UserInfo(
                       userId: delivery.receivedId,
                       name: receiverUser?.name ?? '???',
-                      imagesUrl: delivery.profileImageUrl,
+                      imagesUrl: delivery.profileImageUrl ?? '???',
                     ),
                     pickupAddress: pickupAddress,
                     deliveryAddress: deliveryAddress,
                     pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
-                    sendedPkgDetail: delivery.sendedPkgDetail,
+                    sendedPkgDetail: delivery.sendedPkgDetail ?? '???',
                   );
                 } catch (e) {
                   log('Error processing individual delivery job ${doc.id}: $e');
-                  // Return null for failed jobs, will be filtered out later
                   return null;
                 }
               }).toList();
 
               final response = await Future.wait(deliveryJobs);
 
-              // Filter out null values (failed jobs) and add to controller
               final validJobs = response.whereType<DeliveryJob>().toList();
               _deliveryJobsController?.add(validJobs);
             } catch (e) {
@@ -148,16 +145,16 @@ class DeliveryRiderJob {
             status: delivery.status,
             sender: UserInfo(
               userId: delivery.sendedId,
-              name: delivery.name,
-              imagesUrl: delivery.profileImageUrl,
+              name: delivery.name ?? "",
+              imagesUrl: delivery.profileImageUrl ?? "",
             ),
             reciver: UserInfo(
               userId: delivery.receivedId,
-              name: delivery.name,
-              imagesUrl: delivery.profileImageUrl,
+              name: delivery.name ?? "",
+              imagesUrl: delivery.profileImageUrl ?? "",
             ),
             pickupAddress: AddressInfo(
-              addressId: delivery.pickupAddressId,
+              addressId: delivery.pickupAddressId ?? "",
               detail: "Pickup Address",
               latitude: 0.0,
               longtitude: 0.0,
@@ -165,7 +162,7 @@ class DeliveryRiderJob {
               updatedAt: delivery.updatedAt,
             ),
             deliveryAddress: AddressInfo(
-              addressId: delivery.deliveryAddressId,
+              addressId: delivery.deliveryAddressId ?? "",
               detail: "Delivery Address",
               latitude: 0.0,
               longtitude: 0.0,
@@ -173,7 +170,7 @@ class DeliveryRiderJob {
               updatedAt: delivery.updatedAt,
             ),
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
-            sendedPkgDetail: delivery.sendedPkgDetail,
+            sendedPkgDetail: delivery.sendedPkgDetail ?? "",
           );
         }
         throw Exception('Document data is null for delivery: ${doc.id}');
@@ -186,7 +183,10 @@ class DeliveryRiderJob {
     }
   }
 
-  static Future<void> onWorkingDeliveryJob(DeliveryJob job) async {
+  static Future<void> onWorkingDeliveryJob(
+    DeliveryJob job,
+    User riderInfo,
+  ) async {
     try {
       final delivery = Delivery(
         deliveryId: job.deliveryId,
@@ -195,13 +195,7 @@ class DeliveryRiderJob {
         receivedId: job.reciver.userId,
         pickupPkgImagesUrl: job.pickupPkgImagesUrl,
         updatedAt: TimeHelper.getDateNow(),
-        riderInfo: null,
-        profileImageUrl: '',
-        name: '',
-        pickupAddressId: '',
-        deliveryAddressId: '',
-        deliveredAt: '',
-        pickupAt: '',
+        riderInfo: riderInfo,
         sendedPkgDetail: '',
         sendedPkgImgUrl: '',
       );

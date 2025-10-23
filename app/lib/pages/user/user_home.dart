@@ -533,11 +533,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               reciver: UserInfo(
                 userId: delivery.receivedId,
-                name: delivery.name,
-                imagesUrl: delivery.profileImageUrl,
+                name: delivery.name ?? "",
+                imagesUrl: delivery.profileImageUrl ?? "",
               ),
               pickupAddress: AddressInfo(
-                addressId: delivery.pickupAddressId,
+                addressId: delivery.pickupAddressId ?? "",
                 detail: "Pickup Address",
                 latitude: 0.0,
                 longtitude: 0.0,
@@ -545,7 +545,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 updatedAt: delivery.updatedAt,
               ),
               deliveryAddress: AddressInfo(
-                addressId: delivery.deliveryAddressId,
+                addressId: delivery.deliveryAddressId ?? "",
                 detail: "Delivery Address",
                 latitude: 0.0,
                 longtitude: 0.0,
@@ -553,7 +553,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 updatedAt: delivery.updatedAt,
               ),
               pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
-              sendedPkgDetail: delivery.sendedPkgDetail,
+              sendedPkgDetail: delivery.sendedPkgDetail ?? "",
             );
 
             _addedJobItemToDeliver.add(

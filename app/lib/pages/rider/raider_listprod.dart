@@ -5,6 +5,7 @@ import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/service/delivery/rider_job.dart';
+import 'package:app/service/map/map_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
@@ -16,6 +17,7 @@ import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widge
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 class RiderListProd extends StatefulWidget {
@@ -26,9 +28,11 @@ class RiderListProd extends StatefulWidget {
 }
 
 class _RiderListProdState extends State<RiderListProd> {
-  // Map state management
   bool _isMapOpen = false;
-  final MapRouteInfo routeInfo = MapRouteInfo(
+  LatLng? _currentLocation;
+  bool _isLoadingLocation = false;
+
+  MapRouteInfo _routeInfo = MapRouteInfo(
     points: [],
     distanceMeters: 0,
     duration: null,
@@ -64,13 +68,47 @@ class _RiderListProdState extends State<RiderListProd> {
   double _selectedLat = 16.1872;
   double _selectedLng = 103.3045;
 
-  void _openMapForDelivery(AddressInfo address) {
+  void _openMapForDelivery(AddressInfo address) async {
     setState(() {
-      _isMapOpen = true;
+      _isLoadingLocation = true;
       _selectedDestinationLabel = "ปลายทาง: ${address.detail}";
       _selectedLat = address.latitude;
       _selectedLng = address.longtitude;
     });
+
+    if (_isLoadingLocation) {
+      log("Loading current location for delivery map...");
+    }
+
+    try {
+      // Get current location for real-time tracking
+      final currentLoc = await MapService.getCurrentLocation();
+      log(
+        "Got current location for map: ${currentLoc.latitude}, ${currentLoc.longitude}",
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentLocation = currentLoc;
+          _isLoadingLocation = false;
+          _isMapOpen = true;
+        });
+
+        if (_currentLocation != null) {
+          log(
+            "Current location set: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}",
+          );
+        }
+      }
+    } catch (e) {
+      log('Error getting current location: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _isMapOpen = true; // Still open map without current location
+        });
+      }
+    }
   }
 
   void _closeMap() {
@@ -81,7 +119,7 @@ class _RiderListProdState extends State<RiderListProd> {
 
   void _riderAcceptAnJob(DeliveryJob job) async {
     try {
-      await DeliveryRiderJob.onWorkingDeliveryJob(job);
+      await DeliveryRiderJob.onWorkingDeliveryJob(job, _appData!.currentUser!);
 
       Get.off(() => RiderJobPage(deliveryJob: job));
     } catch (e) {
@@ -95,9 +133,33 @@ class _RiderListProdState extends State<RiderListProd> {
     }
   }
 
+  AppData? _appData;
+
+  @override
+  void initState() {
+    super.initState();
+    _appData = Provider.of<AppData>(context, listen: false);
+    _initializeCurrentLocation();
+  }
+
+  Future<void> _initializeCurrentLocation() async {
+    try {
+      final currentLoc = await MapService.getCurrentLocation();
+      if (mounted) {
+        setState(() {
+          _currentLocation = currentLoc;
+        });
+      }
+      log(
+        "Initial current location: ${currentLoc.latitude}, ${currentLoc.longitude}",
+      );
+    } catch (e) {
+      log('Error initializing current location: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final appData = Provider.of<AppData>(context);
     return MainLayout(
       scrollable: false,
       body: Column(
@@ -148,7 +210,7 @@ class _RiderListProdState extends State<RiderListProd> {
                                 vertical: 4.0,
                               ),
                               child: Text(
-                                appData.currentUser?.name ?? '???',
+                                _appData?.currentUser?.name ?? '???',
                                 style: TextStyle(
                                   color: AppColors.black,
                                   fontSize: 14,
@@ -174,7 +236,8 @@ class _RiderListProdState extends State<RiderListProd> {
                             ),
                           ),
                           Text(
-                            appData.currentUser?.verhicle?.licencePlate ?? '-',
+                            _appData?.currentUser?.verhicle?.licencePlate ??
+                                '-',
                             style: TextStyle(
                               color: AppColors.primary2,
                               fontSize: 12,
@@ -195,7 +258,7 @@ class _RiderListProdState extends State<RiderListProd> {
                     isEdited: false,
                     size: ProfileSize.md,
                     // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
-                    imageUrl: appData.currentUser?.imagesUrl,
+                    imageUrl: _appData?.currentUser?.imagesUrl,
                     onPressed: () {
                       log("On preseed work");
 
@@ -302,10 +365,18 @@ class _RiderListProdState extends State<RiderListProd> {
             lng: _selectedLng,
             destLabel: _selectedDestinationLabel,
             label: 'เส้นทางการจัดส่ง - #${_deliveryJob.deliveryId}',
+
+            mode: PathFinderMode.currentToDestination,
+            locationUpdateInterval: Duration(seconds: 5),
+
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
             aspectRatio: 12 / 9,
-            getPathRouteInfo: (routeInfo) {},
+            getPathRouteInfo: (routeInfo) {
+              setState(() {
+                _routeInfo = routeInfo;
+              });
+            },
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -345,8 +416,8 @@ class _RiderListProdState extends State<RiderListProd> {
                       Expanded(
                         child: ButtonActions(
                           variant: ButtonVariant.primary,
-                          text: 'รับงานนนี้',
-                          disable: routeInfo.distanceMeters > 20,
+                          text: 'รับงานนนี้ ${_routeInfo.distanceMeters}',
+                          disable: _routeInfo.distanceMeters > 20,
                           iconPosition: IconPosition.right,
                           icon: Icons.check,
                           onPressed: () {

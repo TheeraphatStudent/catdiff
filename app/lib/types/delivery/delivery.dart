@@ -13,16 +13,16 @@ String deliveryToJson(List<Delivery> data) =>
     json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class Delivery {
-  String profileImageUrl;
-  String name;
+  String? profileImageUrl;
+  String? name;
   StatusType status;
 
   String deliveryId;
   String sendedId;
   String receivedId;
 
-  String pickupAddressId;
-  String deliveryAddressId;
+  String? pickupAddressId;
+  String? deliveryAddressId;
   List<String> pickupPkgImagesUrl;
 
   String? createdAt;
@@ -31,25 +31,25 @@ class Delivery {
   String? deliveredAt;
   String? pickupAt;
 
-  String sendedPkgDetail;
-  String sendedPkgImgUrl;
+  String? sendedPkgDetail;
+  String? sendedPkgImgUrl;
 
   User? riderInfo;
 
   Delivery({
-    required this.profileImageUrl,
-    required this.name,
+    this.profileImageUrl,
+    this.name,
     required this.status,
     required this.deliveryId,
     required this.sendedId,
     required this.receivedId,
-    required this.pickupAddressId,
-    required this.deliveryAddressId,
+    this.pickupAddressId,
+    this.deliveryAddressId,
     required this.pickupPkgImagesUrl,
     this.createdAt,
     required this.updatedAt,
-    required this.deliveredAt,
-    required this.pickupAt,
+    this.deliveredAt,
+    this.pickupAt,
     required this.sendedPkgDetail,
     required this.sendedPkgImgUrl,
     this.riderInfo,

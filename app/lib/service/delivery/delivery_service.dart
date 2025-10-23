@@ -295,23 +295,22 @@ class DeliveryService {
         throw Exception('Document data is null for delivery: ${doc.id}');
       }).toList();
 
-      // Convert Delivery objects to DeliveryJob objects
       final deliveryJobs = deliveries.map((delivery) {
         return DeliveryJob(
           deliveryId: delivery.deliveryId,
           status: delivery.status,
           sender: UserInfo(
             userId: delivery.sendedId,
-            name: delivery.name,
-            imagesUrl: delivery.profileImageUrl,
+            name: delivery.name ?? "",
+            imagesUrl: delivery.profileImageUrl ?? "",
           ),
           reciver: UserInfo(
             userId: delivery.receivedId,
-            name: delivery.name,
-            imagesUrl: delivery.profileImageUrl,
+            name: delivery.name ?? "",
+            imagesUrl: delivery.profileImageUrl ?? "",
           ),
           pickupAddress: AddressInfo(
-            addressId: delivery.pickupAddressId,
+            addressId: delivery.pickupAddressId!,
             detail: "Pickup Address",
             latitude: 0.0,
             longtitude: 0.0,
@@ -319,7 +318,7 @@ class DeliveryService {
             updatedAt: delivery.updatedAt,
           ),
           deliveryAddress: AddressInfo(
-            addressId: delivery.deliveryAddressId,
+            addressId: delivery.deliveryAddressId!,
             detail: "Delivery Address",
             latitude: 0.0,
             longtitude: 0.0,
@@ -327,7 +326,7 @@ class DeliveryService {
             updatedAt: delivery.updatedAt,
           ),
           pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
-          sendedPkgDetail: delivery.sendedPkgDetail,
+          sendedPkgDetail: delivery.sendedPkgDetail ?? "",
         );
       }).toList();
 

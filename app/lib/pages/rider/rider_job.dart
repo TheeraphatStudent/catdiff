@@ -185,38 +185,45 @@ class _RiderJobPageState extends State<RiderJobPage> {
       scrollable: false,
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Tag(
-                color: AppColors.primary5,
-                text: "#${_currentJob!.deliveryId.substring(0, 8)}",
-              ),
-              ButtonActions(
-                variant: ButtonVariant.danger,
-                icon: Icons.close,
-                disable: _ridingState != RidingJobState.takeJob,
-                onPressed: () {},
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              spacing: 8,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Tag(
+                      color: AppColors.primary5,
+                      text: "#${_currentJob!.deliveryId.substring(0, 8)}",
+                    ),
+                    ButtonActions(
+                      variant: ButtonVariant.danger,
+                      icon: Icons.close,
+                      disable: _ridingState != RidingJobState.takeJob,
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+                StepperWidget(
+                  steps: [
+                    StepData(
+                      label: "เข้ารับสินค้า",
+                      active: _ridingState == RidingJobState.takeJob,
+                    ),
+                    StepData(
+                      label: "ดำเนินการส่ง",
+                      active: _ridingState == RidingJobState.deliveringJob,
+                    ),
+                    StepData(
+                      label: "ถึงปลายทาง",
+                      active: _ridingState == RidingJobState.submitJob,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          StepperWidget(
-            steps: [
-              StepData(
-                label: "เข้ารับสินค้า",
-                active: _ridingState == RidingJobState.takeJob,
-              ),
-              StepData(
-                label: "ดำเนินการส่ง",
-                active: _ridingState == RidingJobState.deliveringJob,
-              ),
-              StepData(
-                label: "ถึงปลายทาง",
-                active: _ridingState == RidingJobState.submitJob,
-              ),
-            ],
-          ),
-
           if (_currentLocation != null)
             Container(
               padding: EdgeInsets.all(12),
@@ -244,11 +251,16 @@ class _RiderJobPageState extends State<RiderJobPage> {
 
           Expanded(child: MapPlaceholder()),
 
-          DeliverJobItem(deliveryJob: _currentJob!),
-
           Padding(
-            padding: EdgeInsets.all(8),
-            child: _buildActions(_ridingState),
+            padding: EdgeInsetsGeometry.all(16),
+            child: Column(
+              spacing: 12,
+              children: [
+                DeliverJobItem(deliveryJob: _currentJob!),
+
+                _buildActions(_ridingState),
+              ],
+            ),
           ),
 
           SlidingTemplate(
@@ -304,8 +316,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
       case RidingJobState.deliveringJob:
         text = "กำลังดำเนินการส่ง...";
         disable = true;
-        // Auto transition to submitJob when near destination
-        if (_distanceToDestination <= 50) {
+        if (_distanceToDestination <= 20) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_ridingState == RidingJobState.deliveringJob) {
               setState(() {
