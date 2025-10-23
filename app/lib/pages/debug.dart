@@ -1,6 +1,6 @@
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
-import 'package:app/types/delivery/sended_state_card.dart';
+import 'package:app/types/user/sended-state.dart';
 import 'package:app/types/status.dart';
 import 'package:app/utils/status_helper.dart';
 import 'package:flutter/material.dart';

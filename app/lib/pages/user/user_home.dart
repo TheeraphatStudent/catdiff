@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         log("on tap sender");
 
-                        Get.offNamed('/single-tracking-test');
+                        Get.offNamed('/debug');
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -322,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        Get.offNamed('/single-tracking-test');
+                        Get.offNamed('/debug');
                       },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,

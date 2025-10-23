@@ -2,6 +2,7 @@ import 'package:app/config/share/app_data.dart';
 import 'package:app/pages/auth/login.page.dart';
 import 'package:app/pages/auth/register.page.dart';
 import 'package:app/pages/debug-rider.dart';
+import 'package:app/pages/debug.dart';
 import 'package:app/pages/map_debug.dart';
 import 'package:app/pages/onboarding/onboarding.page.dart';
 import 'package:app/pages/profile/profile.page.dart';
@@ -53,7 +54,7 @@ class MyApp extends StatelessWidget {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
           theme: theme,
-          initialRoute: '/',
+          initialRoute: '/login',
           // initialRoute: '/rider',
           // initialRoute: '/debug-rider',
           getPages: <GetPage<dynamic>>[
@@ -65,6 +66,7 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/user', page: () => const HomeScreen()),
             GetPage(name: '/rider', page: () => const RiderListProd()),
             GetPage(name: '/rider-job', page: () => const RiderJobPage()),
+            GetPage(name: '/debug', page: () => const DebugPage()),
 
             GetPage(name: '/profile', page: () => const ProfilePage()),
 
@@ -72,6 +74,7 @@ class MyApp extends StatelessWidget {
               name: '/single-tracking-test',
               page: () => const DeliveryTrackingScreen(),
             ),
+            GetPage(name: '/debug', page: () => const DebugPage()),
 
             // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
             // GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
