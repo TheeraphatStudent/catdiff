@@ -58,4 +58,49 @@ class AddressService {
       throw Exception('Failed to get address: $error');
     }
   }
+
+  static Future<AddressInfo> updateAddress({
+    required String addressId,
+    required double latitude,
+    required double longitude,
+    required String detail,
+  }) async {
+    try {
+      final String timestamp = DateTime.now().toIso8601String();
+
+      await FirebaseHelper().updateDocument(
+        collection: 'address',
+        documentId: addressId,
+        data: {
+          'latitude': latitude,
+          'longtitude': longitude,
+          'detail': detail,
+          'updated_at': timestamp,
+        },
+      );
+
+      return AddressInfo(
+        addressId: addressId,
+        latitude: latitude,
+        longtitude: longitude,
+        detail: detail,
+        createdAt: '',
+        updatedAt: timestamp,
+      );
+    } catch (error) {
+      throw Exception('Failed to update address: $error');
+    }
+  }
+
+  static Future<bool> deleteAddress(String addressId) async {
+    try {
+      await FirebaseHelper().deleteDocument(
+        collection: 'address',
+        documentId: addressId,
+      );
+      return true;
+    } catch (error) {
+      throw Exception('Failed to delete address: $error');
+    }
+  }
 }

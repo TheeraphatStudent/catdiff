@@ -3,20 +3,22 @@ import 'dart:developer';
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/service/delivery/rider_job.dart';
+import 'package:app/service/map/map_service.dart';
 import 'package:app/types/address/address.dart';
-import 'package:app/types/delivery/delivery_home.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
-import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
+import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
-import 'package:app/widget/sliding_up/map_viewer_single-point.widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as latlng;
 import 'package:provider/provider.dart';
 
 class RiderListProd extends StatefulWidget {
@@ -27,9 +29,18 @@ class RiderListProd extends StatefulWidget {
 }
 
 class _RiderListProdState extends State<RiderListProd> {
-  // Map state management
   bool _isMapOpen = false;
+  LatLng? _currentLocation;
+  bool _isLoadingLocation = false;
+
+  MapRouteInfo _routeInfo = MapRouteInfo(
+    points: [],
+    distanceMeters: 0,
+    duration: null,
+    distanceSource: MapRouteDistanceSource.api,
+  );
   String _selectedDestinationLabel = "ปลายทาง";
+
   DeliveryJob _deliveryJob = DeliveryJob(
     deliveryId: '???',
     status: StatusType.pending,
@@ -52,18 +63,85 @@ class _RiderListProdState extends State<RiderListProd> {
     ),
     sender: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
     reciver: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
+    sendedPkgDetail: '???',
   );
 
   double _selectedLat = 16.1872;
   double _selectedLng = 103.3045;
 
-  void _openMapForDelivery(AddressInfo address) {
+  void _openMapForDelivery(AddressInfo address) async {
     setState(() {
-      _isMapOpen = true;
+      _isLoadingLocation = true;
       _selectedDestinationLabel = "ปลายทาง: ${address.detail}";
       _selectedLat = address.latitude;
       _selectedLng = address.longtitude;
     });
+
+    if (_isLoadingLocation) {
+      log("Loading current location for delivery map...");
+    }
+
+    try {
+      final currentLoc = await MapService.getCurrentLocation();
+      log(
+        "Got current location for map: ${currentLoc.latitude}, ${currentLoc.longitude}",
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentLocation = currentLoc;
+          _isLoadingLocation = false;
+          _isMapOpen = true;
+        });
+
+        if (_currentLocation != null) {
+          log(
+            "Current location set: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}",
+          );
+        }
+
+        if (_currentLocation != null) {
+          await _updateRouteInfoDistance(_currentLocation!, address);
+        }
+      }
+    } catch (e) {
+      log('Error getting current location: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _isMapOpen = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _updateRouteInfoDistance(
+    LatLng origin,
+    AddressInfo address,
+  ) async {
+    try {
+      final double distance =
+          await DeliveryRiderJob.calculateDistanceFromDestination(
+            latlng.LatLng(origin.latitude, origin.longitude),
+            latlng.LatLng(address.latitude, address.longtitude),
+          );
+
+      if (!mounted) return;
+
+      setState(() {
+        _routeInfo = MapRouteInfo(
+          points: <LatLng>[
+            origin,
+            LatLng(address.latitude, address.longtitude),
+          ],
+          distanceMeters: distance,
+          duration: _routeInfo.duration,
+          distanceSource: MapRouteDistanceSource.computed,
+        );
+      });
+    } catch (e) {
+      log('Error calculating route distance: $e');
+    }
   }
 
   void _closeMap() {
@@ -72,9 +150,49 @@ class _RiderListProdState extends State<RiderListProd> {
     });
   }
 
+  void _riderAcceptAnJob(DeliveryJob job) async {
+    try {
+      await DeliveryRiderJob.onWorkingDeliveryJob(job, _appData!.currentUser!);
+
+      Get.off(() => RiderJobPage(deliveryJob: job));
+    } catch (e) {
+      log('Error accepting job: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการรับงาน'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  AppData? _appData;
+
+  @override
+  void initState() {
+    super.initState();
+    _appData = Provider.of<AppData>(context, listen: false);
+    _initializeCurrentLocation();
+  }
+
+  Future<void> _initializeCurrentLocation() async {
+    try {
+      final currentLoc = await MapService.getCurrentLocation();
+      if (mounted) {
+        setState(() {
+          _currentLocation = currentLoc;
+        });
+      }
+      log(
+        "Initial current location: ${currentLoc.latitude}, ${currentLoc.longitude}",
+      );
+    } catch (e) {
+      log('Error initializing current location: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final appData = Provider.of<AppData>(context);
     return MainLayout(
       scrollable: false,
       body: Column(
@@ -125,7 +243,7 @@ class _RiderListProdState extends State<RiderListProd> {
                                 vertical: 4.0,
                               ),
                               child: Text(
-                                appData.currentUser?.name ?? '???',
+                                _appData?.currentUser?.name ?? '???',
                                 style: TextStyle(
                                   color: AppColors.black,
                                   fontSize: 14,
@@ -151,7 +269,8 @@ class _RiderListProdState extends State<RiderListProd> {
                             ),
                           ),
                           Text(
-                            appData.currentUser?.verhicle?.licencePlate ?? '-',
+                            _appData?.currentUser?.verhicle?.licencePlate ??
+                                '-',
                             style: TextStyle(
                               color: AppColors.primary2,
                               fontSize: 12,
@@ -172,7 +291,7 @@ class _RiderListProdState extends State<RiderListProd> {
                     isEdited: false,
                     size: ProfileSize.md,
                     // imageUrl: "https://storage.googleapis.com/lottocat_bucket/uploads/2a168538-24b6-4454-bc4c-906cd49dc8a1.jpg",
-                    imageUrl: appData.currentUser?.imagesUrl,
+                    imageUrl: _appData?.currentUser?.imagesUrl,
                     onPressed: () {
                       log("On preseed work");
 
@@ -259,13 +378,13 @@ class _RiderListProdState extends State<RiderListProd> {
                         onCardTap: () {
                           log('Card tapped: ${job.deliveryId}');
                           _deliveryJob = job;
-                          _openMapForDelivery(job.deliveryAddress);
+                          _openMapForDelivery(job.pickupAddress);
                         },
                         onLocationTap: (address) {
-                          log('Location tapped: ${address.detail}');
+                          // log('Location tapped: ${address.detail}');
 
                           _deliveryJob = job;
-                          _openMapForDelivery(address);
+                          _openMapForDelivery(job.pickupAddress);
                         },
                       );
                     }).toList(),
@@ -279,9 +398,19 @@ class _RiderListProdState extends State<RiderListProd> {
             lng: _selectedLng,
             destLabel: _selectedDestinationLabel,
             label: 'เส้นทางการจัดส่ง - #${_deliveryJob.deliveryId}',
+
+            mode: PathFinderMode.currentToDestination,
+            locationUpdateInterval: Duration(seconds: 5),
+            locationUpdateDistance: 3,
+
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
             aspectRatio: 12 / 9,
+            getPathRouteInfo: (routeInfo) {
+              setState(() {
+                _routeInfo = routeInfo;
+              });
+            },
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -321,11 +450,15 @@ class _RiderListProdState extends State<RiderListProd> {
                       Expanded(
                         child: ButtonActions(
                           variant: ButtonVariant.primary,
-                          text: 'ยืนยัน',
+                          text: 'รับงานนนี้',
+                          // text: 'รับงานนนี้ ${_routeInfo.distanceMeters}',
+                          disable: _routeInfo.distanceMeters > 20,
                           iconPosition: IconPosition.right,
                           icon: Icons.check,
                           onPressed: () {
                             _closeMap();
+
+                            _riderAcceptAnJob(_deliveryJob);
                           },
                         ),
                       ),

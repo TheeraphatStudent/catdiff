@@ -85,4 +85,19 @@ class MapService {
     return permission == LocationPermission.always ||
         permission == LocationPermission.whileInUse;
   }
+
+  static Stream<LatLng> getPositionStream({
+    double distanceFilterMeters = 5,
+    LocationAccuracy accuracy = LocationAccuracy.high,
+  }) {
+    final locationSettings = LocationSettings(
+      accuracy: accuracy,
+      distanceFilter: distanceFilterMeters.round(),
+    );
+
+    return Geolocator.getPositionStream(locationSettings: locationSettings)
+        .map(
+          (position) => LatLng(position.latitude, position.longitude),
+        );
+  }
 }

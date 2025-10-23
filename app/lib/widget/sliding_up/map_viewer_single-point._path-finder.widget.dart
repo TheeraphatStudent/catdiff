@@ -7,7 +7,13 @@ import 'package:app/widget/map/map_route_info.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:async';
 import 'dart:developer';
+import 'dart:math' as math;
+
+import 'package:latlong2/latlong.dart' as latlng;
+
+enum PathFinderMode { currentToDestination, originToDestination }
 
 class MapViewerSinglePointPathFinder extends StatefulWidget {
   final double? lat;
@@ -15,7 +21,19 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
   final String? destLabel;
   final String? label;
   final bool isOpened;
+
+  final double? originLat;
+  final double? originLng;
+  final String? originLabel;
+
+  final PathFinderMode mode;
+
+  final Duration locationUpdateInterval;
+  final double locationUpdateDistance;
+
   final VoidCallback? onModalClosed;
+  final Function(MapRouteInfo)? getPathRouteInfo;
+
   final double? aspectRatio;
   final Widget? content;
 
@@ -28,7 +46,14 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
     this.isOpened = false,
     this.destLabel,
     this.label,
+    this.originLat,
+    this.originLng,
+    this.originLabel,
+    this.mode = PathFinderMode.currentToDestination,
+    this.locationUpdateInterval = const Duration(seconds: 10),
+    this.locationUpdateDistance = 5,
     this.onModalClosed,
+    this.getPathRouteInfo,
   });
 
   @override
@@ -38,23 +63,66 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
 
 class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   LatLng? _currentLocation;
+  LatLng? _originLocation;
   LatLng? _destinationLocation;
-  List<MapDestination> _pathDestinations = [];
+  MapDestination _pathDestinations = MapDestination(
+    latitude: 0,
+    longitude: 0,
+    label: 'ปลายทาง',
+    markerId: 'destination',
+  );
   MapRouteInfo? _pathRouteInfo;
   bool _isLoadingLocation = false;
+  StreamSubscription<LatLng>? _locationSubscription;
+  final latlng.Distance _distanceCalculator = const latlng.Distance();
 
   @override
   void initState() {
     super.initState();
     _initializeLocations();
+    _startLocationUpdatesIfNeeded();
   }
 
   @override
   void didUpdateWidget(MapViewerSinglePointPathFinder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.lat != widget.lat || oldWidget.lng != widget.lng) {
+    final hasDestinationChanged =
+        oldWidget.lat != widget.lat ||
+        oldWidget.lng != widget.lng ||
+        oldWidget.originLat != widget.originLat ||
+        oldWidget.originLng != widget.originLng;
+
+    final hasModeChanged = oldWidget.mode != widget.mode;
+    final hasOpenedStateChanged = oldWidget.isOpened != widget.isOpened;
+    final hasIntervalChanged =
+        oldWidget.locationUpdateInterval != widget.locationUpdateInterval;
+    final hasDistanceChanged =
+        oldWidget.locationUpdateDistance != widget.locationUpdateDistance;
+
+    final shouldReinitializeLocations =
+        hasDestinationChanged ||
+        (hasOpenedStateChanged && widget.isOpened) ||
+        hasModeChanged;
+
+    if (shouldReinitializeLocations) {
       _initializeLocations();
     }
+
+    if (hasDestinationChanged ||
+        hasModeChanged ||
+        hasOpenedStateChanged ||
+        hasIntervalChanged ||
+        hasDistanceChanged) {
+      _stopLocationUpdates();
+    }
+
+    _startLocationUpdatesIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _stopLocationUpdates();
+    super.dispose();
   }
 
   Future<void> _initializeLocations() async {
@@ -65,20 +133,40 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     });
 
     try {
-      final currentLoc = await MapService.getCurrentLocation();
+      log("Initializing locations for mode: ${widget.mode}");
 
       LatLng? destLoc;
       if (widget.lat != null && widget.lng != null) {
         destLoc = LatLng(widget.lat!, widget.lng!);
+        log("Destination: ${destLoc.latitude}, ${destLoc.longitude}");
+      }
+
+      LatLng? originLoc;
+      LatLng? currentLoc;
+
+      if (widget.mode == PathFinderMode.originToDestination) {
+        if (widget.originLat != null && widget.originLng != null) {
+          originLoc = LatLng(widget.originLat!, widget.originLng!);
+          log("Origin (fixed): ${originLoc.latitude}, ${originLoc.longitude}");
+        }
+      } else {
+        currentLoc = await MapService.getCurrentLocation();
+        log(
+          "Current location: ${currentLoc.latitude}, ${currentLoc.longitude}",
+        );
       }
 
       if (mounted) {
         setState(() {
           _currentLocation = currentLoc;
+          _originLocation = originLoc;
           _destinationLocation = destLoc;
           _updatePathDestinations();
+          _pathRouteInfo = null;
           _isLoadingLocation = false;
         });
+
+        _updateManualRouteInfo();
       }
     } catch (e) {
       log('Error initializing locations: $e');
@@ -91,29 +179,182 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   }
 
   void _updatePathDestinations() {
-    _pathDestinations.clear();
-
-    if (_currentLocation != null) {
-      _pathDestinations.add(
-        MapDestination(
-          latitude: _currentLocation!.latitude,
-          longitude: _currentLocation!.longitude,
-          label: 'ตำแหน่งปัจจุบัน',
-          markerId: 'origin',
-        ),
+    if (widget.mode == PathFinderMode.currentToDestination &&
+        _currentLocation != null) {
+      _pathDestinations = MapDestination(
+        latitude: _currentLocation!.latitude,
+        longitude: _currentLocation!.longitude,
+        label: 'ตำแหน่งปัจจุบัน',
+        markerId: 'current_origin',
+      );
+    } else if (widget.mode == PathFinderMode.originToDestination &&
+        _originLocation != null) {
+      _pathDestinations = MapDestination(
+        latitude: _originLocation!.latitude,
+        longitude: _originLocation!.longitude,
+        label: widget.originLabel ?? 'จุดเริ่มต้น',
+        markerId: 'origin',
       );
     }
 
     if (_destinationLocation != null) {
-      _pathDestinations.add(
-        MapDestination(
-          latitude: _destinationLocation!.latitude,
-          longitude: _destinationLocation!.longitude,
-          label: widget.destLabel ?? 'ปลายทาง',
-          markerId: 'destination',
-        ),
+      _pathDestinations = MapDestination(
+        latitude: _destinationLocation!.latitude,
+        longitude: _destinationLocation!.longitude,
+        label: widget.destLabel ?? 'ปลายทาง',
+        markerId: 'destination',
       );
     }
+  }
+
+  void _startLocationUpdatesIfNeeded() {
+    final shouldStart =
+        widget.mode == PathFinderMode.currentToDestination && widget.isOpened;
+
+    if (!shouldStart || _locationSubscription != null) {
+      return;
+    }
+
+    log(
+      "Starting live location updates with distance filter: ${widget.locationUpdateDistance}m",
+    );
+
+    _locationSubscription = MapService.getPositionStream(
+      distanceFilterMeters: widget.locationUpdateDistance,
+    ).listen(
+      _handleLiveLocation,
+      onError: (error) => log('Live location stream error: $error'),
+    );
+
+    unawaited(_updateCurrentLocation());
+  }
+
+  void _stopLocationUpdates() {
+    if (_locationSubscription == null) {
+      return;
+    }
+
+    log("Stopping live location updates");
+    _locationSubscription?.cancel();
+    _locationSubscription = null;
+  }
+
+  Future<void> _updateCurrentLocation() async {
+    if (!mounted || widget.mode != PathFinderMode.currentToDestination) return;
+
+    try {
+      final newLocation = await MapService.getCurrentLocation();
+      log(
+        "Updated current location: ${newLocation.latitude}, ${newLocation.longitude}",
+      );
+
+      _handleLiveLocation(newLocation, bypassThreshold: true);
+    } catch (e) {
+      log('Error updating current location: $e');
+    }
+  }
+
+  void _handleLiveLocation(
+    LatLng newLocation, {
+    bool bypassThreshold = false,
+  }) {
+    if (!mounted) {
+      return;
+    }
+
+    if (_currentLocation != null && !bypassThreshold) {
+      final double distanceDelta = _calculateDistance(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
+        newLocation.latitude,
+        newLocation.longitude,
+      );
+
+      if (distanceDelta < widget.locationUpdateDistance / 2) {
+        log(
+          "Location change below threshold (${distanceDelta.toStringAsFixed(2)}m), skipping UI update",
+        );
+        return;
+      }
+
+      log(
+        "Location changed by ${distanceDelta.toStringAsFixed(1)}m, updating route",
+      );
+    }
+
+    setState(() {
+      _currentLocation = newLocation;
+      _updatePathDestinations();
+    });
+
+    _updateManualRouteInfo();
+  }
+
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const double earthRadius = 6371000;
+    final double dLat = _toRadians(lat2 - lat1);
+    final double dLon = _toRadians(lon2 - lon1);
+    final double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(lat1)) *
+            math.cos(_toRadians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _toRadians(double degrees) {
+    return degrees * (math.pi / 180);
+  }
+
+  LatLng? get _getOriginLocation {
+    if (widget.mode == PathFinderMode.currentToDestination) {
+      return _currentLocation;
+    } else {
+      return _originLocation;
+    }
+  }
+
+  void _updateManualRouteInfo() {
+    final LatLng? origin = _getOriginLocation;
+    final LatLng? destination = _destinationLocation;
+
+    if (origin == null || destination == null) {
+      return;
+    }
+
+    if (_pathRouteInfo != null &&
+        _pathRouteInfo!.distanceSource == MapRouteDistanceSource.api) {
+      // Defer to API-driven updates when available.
+      return;
+    }
+
+    final double distanceMeters = _distanceCalculator.as(
+      latlng.LengthUnit.Meter,
+      latlng.LatLng(origin.latitude, origin.longitude),
+      latlng.LatLng(destination.latitude, destination.longitude),
+    );
+
+    final MapRouteInfo manualInfo = MapRouteInfo(
+      points: <LatLng>[origin, destination],
+      distanceMeters: distanceMeters,
+      duration: null,
+      distanceSource: MapRouteDistanceSource.computed,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _pathRouteInfo = manualInfo;
+    });
+
+    widget.getPathRouteInfo?.call(manualInfo);
   }
 
   String _formatDistance(double distanceMeters) {
@@ -170,16 +411,6 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
               ),
             ),
           )
-        else if (_pathDestinations.isEmpty)
-          SizedBox(
-            height: 200,
-            child: Center(
-              child: Text(
-                'ไม่สามารถโหลดตำแหน่งได้',
-                style: TextStyle(fontFamily: 'Mali', fontSize: 16),
-              ),
-            ),
-          )
         else
           AspectRatio(
             aspectRatio: widget.aspectRatio ?? 9 / 16,
@@ -188,17 +419,28 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
               child: MapPlaceholder(
                 mode: MapPlaceholderMode.viewer,
                 viewerType: MapViewerType.path,
-                destinations: _pathDestinations,
-                initialPosition: _pathDestinations.first.latLng,
-                initialUserLocation: _currentLocation,
-                showMyLocation: true,
-                showMyLocationButton: true,
-                enableLiveLocation: false,
+                destinations: [_pathDestinations],
+                initialPosition: _pathDestinations.latLng,
+                initialUserLocation:
+                    widget.mode == PathFinderMode.currentToDestination
+                    ? _currentLocation
+                    : null,
+                showMyLocation:
+                    widget.mode == PathFinderMode.currentToDestination,
+                showMyLocationButton:
+                    widget.mode == PathFinderMode.currentToDestination,
+                enableLiveLocation:
+                    widget.mode == PathFinderMode.currentToDestination,
                 distanceStrategy:
                     MapRouteDistanceStrategy.distanceMatrixPreferred,
                 onRouteChanged: (info) {
+                  log(
+                    "Route changed - Distance: ${info.distanceMeters}m, Duration: ${info.duration}",
+                  );
                   setState(() {
                     _pathRouteInfo = info;
+
+                    widget.getPathRouteInfo?.call(info);
                   });
                 },
               ),
@@ -228,10 +470,14 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('ระยะทาง:', style: TextStyle(fontFamily: 'Mali')),
+                      Text(
+                        'ระยะทาง:',
+                        style: TextStyle(fontSize: 12, fontFamily: 'Mali'),
+                      ),
                       Text(
                         _formatDistance(_pathRouteInfo!.distanceMeters),
                         style: TextStyle(
+                          fontSize: 12,
                           fontFamily: 'Mali',
                           fontWeight: FontWeight.w600,
                         ),
@@ -243,12 +489,12 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                     children: [
                       Text(
                         'เวลาโดยประมาณ:',
-                        style: TextStyle(fontFamily: 'Mali'),
+                        style: TextStyle(fontSize: 12, fontFamily: 'Mali'),
                       ),
                       Text(
                         _formatDuration(_pathRouteInfo!.duration),
                         style: TextStyle(
-                          fontFamily: 'Mali',
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

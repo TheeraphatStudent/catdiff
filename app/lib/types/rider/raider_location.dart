@@ -4,27 +4,29 @@
 
 import 'dart:convert';
 
-UserHome userHomeFromJson(String str) => UserHome.fromJson(json.decode(str));
+import 'package:app/types/user/user_auth.dart';
 
-String userHomeToJson(UserHome data) => json.encode(data.toJson());
+RiderJob riderJobFromJson(String str) => RiderJob.fromJson(json.decode(str));
 
-class UserHome {
-  String raiderId;
+String riderJobToJson(RiderJob data) => json.encode(data.toJson());
+
+class RiderJob {
+  User riderInfo;
   double latitude;
   double longtitude;
   String createdAt;
   String updatedAt;
 
-  UserHome({
-    required this.raiderId,
+  RiderJob({
+    required this.riderInfo,
     required this.latitude,
     required this.longtitude,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory UserHome.fromJson(Map<String, dynamic> json) => UserHome(
-    raiderId: json["raider_id"],
+  factory RiderJob.fromJson(Map<String, dynamic> json) => RiderJob(
+    riderInfo: json["rider_info"],
     latitude: json["latitude"]?.toDouble(),
     longtitude: json["longtitude"]?.toDouble(),
     createdAt: json["created_at"],
@@ -32,7 +34,7 @@ class UserHome {
   );
 
   Map<String, dynamic> toJson() => {
-    "raider_id": raiderId,
+    "rider_info": riderInfo,
     "latitude": latitude,
     "longtitude": longtitude,
     "created_at": createdAt,

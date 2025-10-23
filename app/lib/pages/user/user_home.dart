@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:app/config/share/app_data.dart';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/address/address_service.dart';
 import 'package:app/service/auth/reciver.dart';
 import 'package:app/service/delivery/delivery_service.dart';
 import 'package:app/types/address/address.dart';
@@ -47,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSliderOpen = false;
 
   int _currentSenderStep = 0;
+  bool _isRealtimeListening = false;
+
+  StreamSubscription<List<DeliveryStatDisplayItem>>? _senderSubscription;
+  StreamSubscription<List<DeliveryStatDisplayItem>>? _receiverSubscription;
 
   @override
   void initState() {
@@ -59,6 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_hasLoadedData) {
       _loadData();
       _hasLoadedData = true;
+    }
+
+    if (!_isRealtimeListening) {
+      _startRealtimeListeners();
+      _isRealtimeListening = true;
     }
   }
 
@@ -95,6 +106,66 @@ class _HomeScreenState extends State<HomeScreen> {
       reciverItems.addAll(reciverListRes);
       filteredReciverItems = List.from(reciverItems);
     });
+  }
+
+  void _startRealtimeListeners() {
+    final appData = Provider.of<AppData>(context, listen: false);
+
+    _senderSubscription ??=
+        DeliveryService.watchDeliveryDisplayByUserId(
+          appData.currentUser!.id,
+          UserType.sender,
+        ).listen((items) {
+          if (!mounted) return;
+          setState(() {
+            senderItems
+              ..clear()
+              ..addAll(items);
+          });
+        }, onError: (error) => log('Sender realtime stream error: $error'));
+
+    _receiverSubscription ??=
+        DeliveryService.watchDeliveryDisplayByUserId(
+          appData.currentUser!.id,
+          UserType.receiver,
+        ).listen((items) {
+          if (!mounted) return;
+          setState(() {
+            receiverItems
+              ..clear()
+              ..addAll(items);
+          });
+        }, onError: (error) => log('Receiver realtime stream error: $error'));
+  }
+
+  Future<void> _refreshDeliveryStatusData() async {
+    final appData = Provider.of<AppData>(context, listen: false);
+
+    try {
+      final resposneSender = await DeliveryService.getDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.sender,
+      );
+
+      final resposneReceiver = await DeliveryService.getDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.receiver,
+      );
+
+      setState(() {
+        senderItems.clear();
+        receiverItems.clear();
+
+        senderItems.addAll(resposneSender);
+        receiverItems.addAll(resposneReceiver);
+      });
+
+      log(
+        "Delivery status data refreshed - Sender: ${senderItems.length}, Receiver: ${receiverItems.length}",
+      );
+    } catch (e) {
+      log("Error refreshing delivery status data: $e");
+    }
   }
 
   void _filterReciverItems(String query) {
@@ -264,7 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
           SlidingTemplate(
             isOpened: _isSliderOpen,
-            onModalClosed: () => onClosedModal(),
+            onModalClosed: () => {
+              onClosedModal(),
+              _refreshDeliveryStatusData(),
+            },
             customTopBar: Center(child: Text("test")),
             children: [
               _currentContentType == "sender"
@@ -277,64 +351,86 @@ class _HomeScreenState extends State<HomeScreen> {
           MapsLocationSelector(
             isOpened: _isMapOpen,
             isShowingAction: false,
-            onLocationSelected: (selectedLatLng) {
-              // log(
-              //   "Location selected: ${selectedLatLng.latitude}, ${selectedLatLng.longitude}",
-              // );
+            latitude: _selectedDeliveryIdForLocation != null
+                ? _getDeliveryAddress(_selectedDeliveryIdForLocation!)?.latitude
+                : null,
+            longitude: _selectedDeliveryIdForLocation != null
+                ? _getDeliveryAddress(
+                    _selectedDeliveryIdForLocation!,
+                  )?.longtitude
+                : null,
+            onAddressSelected: (latLng, address) async {
+              log(
+                "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
+              );
 
-              if (_selectedDeliveryIdForLocation != null) {
-                final newAddress = AddressInfo(
-                  addressId: DateTime.now().millisecondsSinceEpoch.toString(),
-                  detail:
-                      "Selected location: ${selectedLatLng.latitude.toStringAsFixed(6)}, ${selectedLatLng.longitude.toStringAsFixed(6)}",
-                  latitude: selectedLatLng.latitude,
-                  longtitude: selectedLatLng.longitude,
-                  createdAt: DateTime.now().toIso8601String(),
-                  updatedAt: DateTime.now().toIso8601String(),
-                );
-
-                final index = _addedJobItemToDeliver.indexWhere(
-                  (item) =>
-                      item.deliveryJob.deliveryId ==
-                      _selectedDeliveryIdForLocation,
-                );
-
-                if (index != -1) {
-                  setState(() {
-                    _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
-                        newAddress;
-                  });
-
-                  // log(
-                  //   "Updated delivery address for delivery: $_selectedDeliveryIdForLocation",
-                  // );
-                }
+              final currentDeliveryId = _selectedDeliveryIdForLocation;
+              if (currentDeliveryId == null) {
+                log("No delivery ID selected for location update");
+                return;
               }
 
-              setState(() {
-                _isMapOpen = false;
-                _selectedDeliveryIdForLocation = null;
-              });
+              try {
+                final index = _addedJobItemToDeliver.indexWhere(
+                  (item) => item.deliveryJob.deliveryId == currentDeliveryId,
+                );
 
-              if (_shouldRestoreDeliveryModal) {
-                Future.delayed(Duration(milliseconds: 300), () {
-                  if (mounted) {
-                    setState(() {
-                      _isSliderOpen = true;
-                      _currentContentType =
-                          _savedContentType ??
-                          _currentContentType; // Restore content type
-                      _shouldRestoreDeliveryModal = false;
-                      _savedContentType = null; // Clear saved state
-                    });
-                  }
+                if (index == -1) {
+                  log("Delivery item not found for ID: $currentDeliveryId");
+                  return;
+                }
+
+                final currentDeliveryAddress =
+                    _addedJobItemToDeliver[index].deliveryJob.deliveryAddress;
+
+                final updatedAddress = await AddressService.updateAddress(
+                  addressId: currentDeliveryAddress.addressId,
+                  latitude: latLng.latitude,
+                  longitude: latLng.longitude,
+                  detail: address,
+                );
+
+                log(
+                  "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
+                );
+
+                setState(() {
+                  _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
+                      updatedAddress;
                 });
+
+                setState(() {
+                  _isMapOpen = false;
+                  _selectedDeliveryIdForLocation = null;
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                });
+
+                _updateDeliveryJob(_addedJobItemToDeliver[index].deliveryJob);
+              } catch (e) {
+                log(
+                  "Error updating address for delivery $currentDeliveryId: $e",
+                );
+
+                setState(() {
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาดในการอัปเดตที่อยู่: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             onModalClosed: () {
+              final currentDeliveryId = _selectedDeliveryIdForLocation;
               setState(() {
                 _isMapOpen = false;
                 _selectedDeliveryIdForLocation = null;
+                if (currentDeliveryId != null) {
+                  _pendingLocationUpdates.remove(currentDeliveryId);
+                }
               });
 
               if (_shouldRestoreDeliveryModal) {
@@ -343,10 +439,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     setState(() {
                       _isSliderOpen = true;
                       _currentContentType =
-                          _savedContentType ??
-                          _currentContentType; // Restore content type
+                          _savedContentType ?? _currentContentType;
+                      _currentSenderStep =
+                          _savedSenderStep ?? _currentSenderStep;
                       _shouldRestoreDeliveryModal = false;
-                      _savedContentType = null; // Clear saved state
+                      _savedContentType = null;
+                      _savedSenderStep = null;
                     });
                   }
                 });
@@ -468,6 +566,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       return ReciverJobItem(
                         reciver: receiver,
                         onTap: () {
+                          log(receiver.address.addressId);
+
                           _selectedReciver = receiver;
 
                           _nextSenderStep();
@@ -489,9 +589,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isMapOpen = false;
   String? _selectedDeliveryIdForLocation;
-
   bool _shouldRestoreDeliveryModal = false;
   String? _savedContentType;
+  int? _savedSenderStep;
+
+  // Track which delivery items are pending location updates
+  final Set<String> _pendingLocationUpdates = {};
 
   AddressInfo? _getDeliveryAddress(String deliveryId) {
     final index = _addedJobItemToDeliver.indexWhere(
@@ -500,6 +603,25 @@ class _HomeScreenState extends State<HomeScreen> {
     return index != -1
         ? _addedJobItemToDeliver[index].deliveryJob.deliveryAddress
         : null;
+  }
+
+  Future<void> _updateDeliveryJob(DeliveryJob deliveryJob) async {
+    try {
+      final updatedDelivery = await DeliveryService.updateDeliveryJob(
+        deliveryJob,
+      );
+      if (updatedDelivery != null) {
+        log(
+          'Successfully updated delivery job location: ${deliveryJob.deliveryId}',
+        );
+      } else {
+        log(
+          'Failed to update delivery job location: ${deliveryJob.deliveryId}',
+        );
+      }
+    } catch (e) {
+      log('Error updating delivery job location: $e');
+    }
   }
 
   Future<void> _loadExistingPrepareJobs() async {
@@ -521,6 +643,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
           for (final delivery in prepareJobs) {
             final profileController = ProfileController();
+
+            profileController.addListener(() {
+              if (profileController.uploadedUrl != null) {
+                final index = _addedJobItemToDeliver.indexWhere(
+                  (item) => item.deliveryJob.deliveryId == delivery.deliveryId,
+                );
+
+                if (index != -1) {
+                  setState(() {
+                    _addedJobItemToDeliver[index]
+                        .deliveryJob
+                        .pickupPkgImagesUrl = [
+                      profileController.uploadedUrl!,
+                    ];
+                  });
+
+                  _updateDeliveryJob(_addedJobItemToDeliver[index].deliveryJob);
+                }
+              }
+            });
+
             _packageImageControllers[delivery.deliveryId] = profileController;
 
             final deliveryJob = DeliveryJob(
@@ -533,32 +676,64 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               reciver: UserInfo(
                 userId: delivery.receivedId,
-                name: delivery.name,
-                imagesUrl: delivery.profileImageUrl,
+                name: delivery.name ?? "",
+                imagesUrl: delivery.profileImageUrl ?? "",
               ),
               pickupAddress: AddressInfo(
-                addressId: delivery.pickupAddressId,
+                addressId: delivery.pickupAddressId ?? "",
                 detail: "Pickup Address",
                 latitude: 0.0,
                 longtitude: 0.0,
-                createdAt: delivery.createdAt,
+                createdAt: delivery.createdAt ?? "",
                 updatedAt: delivery.updatedAt,
               ),
               deliveryAddress: AddressInfo(
-                addressId: delivery.deliveryAddressId,
+                addressId: delivery.deliveryAddressId ?? "",
                 detail: "Delivery Address",
                 latitude: 0.0,
                 longtitude: 0.0,
-                createdAt: delivery.createdAt,
+                createdAt: delivery.createdAt ?? "",
                 updatedAt: delivery.updatedAt,
               ),
               pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+              sendedPkgDetail: delivery.sendedPkgDetail ?? "",
             );
 
             _addedJobItemToDeliver.add(
               DeliverJobItem(
                 deliveryJob: deliveryJob,
                 profileController: profileController,
+                userId: appData.currentUser!.id,
+                onLocationTap: (AddressInfo address) {
+                  log("Location tap for delivery: ${deliveryJob.deliveryId}");
+
+                  // Prevent opening map if already updating this delivery's location
+                  if (_pendingLocationUpdates.contains(
+                    deliveryJob.deliveryId,
+                  )) {
+                    log(
+                      "Location update already in progress for delivery: ${deliveryJob.deliveryId}",
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    _selectedDeliveryIdForLocation = deliveryJob.deliveryId;
+                    _pendingLocationUpdates.add(deliveryJob.deliveryId);
+                    _shouldRestoreDeliveryModal = _isSliderOpen;
+                    _savedContentType = _currentContentType;
+                    _savedSenderStep = _currentSenderStep;
+                    _isSliderOpen = false;
+                  });
+
+                  Future.delayed(Duration(milliseconds: 300), () {
+                    if (mounted) {
+                      setState(() {
+                        _isMapOpen = true;
+                      });
+                    }
+                  });
+                },
               ),
             );
           }
@@ -656,14 +831,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 name: _selectedReciver!.name,
                 imagesUrl: _selectedReciver!.imageUrl,
               ),
+              sendedPkgDetail: "",
             ),
             profileController: profileController,
             userId: appData.currentUser!.id,
             onLocationTap: (AddressInfo address) {
+              log("Location tap for delivery: ${createdDelivery.deliveryId}");
+
+              // Prevent opening map if already updating this delivery's location
+              if (_pendingLocationUpdates.contains(
+                createdDelivery.deliveryId,
+              )) {
+                log(
+                  "Location update already in progress for delivery: ${createdDelivery.deliveryId}",
+                );
+                return;
+              }
+
               setState(() {
                 _selectedDeliveryIdForLocation = createdDelivery.deliveryId;
+                _pendingLocationUpdates.add(createdDelivery.deliveryId);
                 _shouldRestoreDeliveryModal = _isSliderOpen;
                 _savedContentType = _currentContentType;
+                _savedSenderStep = _currentSenderStep;
                 _isSliderOpen = false;
               });
 
@@ -792,6 +982,21 @@ class _HomeScreenState extends State<HomeScreen> {
           throw Exception('Failed to delete delivery from Firebase');
         }
 
+        final deliveryAddress = jobItem.deliveryJob.deliveryAddress;
+        if (_selectedReciver != null &&
+            deliveryAddress.addressId != _selectedReciver!.address.addressId) {
+          try {
+            await AddressService.deleteAddress(deliveryAddress.addressId);
+            log(
+              "Deleted custom delivery address: ${deliveryAddress.addressId}",
+            );
+          } catch (addressError) {
+            log(
+              "Error deleting delivery address ${deliveryAddress.addressId}: $addressError",
+            );
+          }
+        }
+
         final controller = _packageImageControllers[deliveryId];
         if (controller != null) {
           controller.dispose();
@@ -847,6 +1052,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
+      await _refreshDeliveryStatusData();
+
       setState(() {
         for (final controller in _packageImageControllers.values) {
           controller.dispose();
@@ -883,6 +1090,9 @@ class _HomeScreenState extends State<HomeScreen> {
       controller.dispose();
     }
     _packageImageControllers.clear();
+
+    _senderSubscription?.cancel();
+    _receiverSubscription?.cancel();
     super.dispose();
   }
 }

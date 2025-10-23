@@ -17,6 +17,7 @@ class ButtonActions extends StatefulWidget {
     this.theme,
     this.onPressed,
     this.onLabelPressed,
+    this.disable = false,
 
     this.icon,
     this.iconPosition = IconPosition.right,
@@ -27,7 +28,10 @@ class ButtonActions extends StatefulWidget {
 
   final String? text;
   final String? label;
+
   final bool hasShadow;
+  final bool disable;
+
   final ButtonVariant variant;
   final Color? theme;
   final IconData? icon;
@@ -77,6 +81,8 @@ class _ButtonActionsState extends State<ButtonActions>
   }
 
   void _handleTapDown(TapDownDetails details) {
+    if (widget.disable) return;
+
     log("_handleTapDown work");
     log(details.toString());
 
@@ -85,12 +91,16 @@ class _ButtonActionsState extends State<ButtonActions>
   }
 
   void _handleTapUp(TapUpDetails details) {
+    if (widget.disable) return;
+
     log("_handleTapUp");
     setState(() => _isPressed = false);
     _animationController.reverse();
   }
 
   void _handleTapCancel() {
+    if (widget.disable) return;
+
     log("_handleTapCancel");
     setState(() => _isPressed = false);
     _animationController.reverse();
@@ -109,7 +119,7 @@ class _ButtonActionsState extends State<ButtonActions>
     final Color foregroundColor;
     final OutlinedBorder shape;
 
-    final List<BoxShadow> boxShadows = widget.hasShadow
+    final List<BoxShadow> boxShadows = widget.hasShadow && !widget.disable
         ? [
             BoxShadow(
               color:
@@ -124,74 +134,91 @@ class _ButtonActionsState extends State<ButtonActions>
           ]
         : const [];
 
-    switch (widget.variant) {
-      case ButtonVariant.primary:
-        backgroundColor = _isHovered
-            ? Color.lerp(accent, AppColors.primary2, 0.1)!
-            : accent;
-        foregroundColor = isSecondaryTheme ? AppColors.primary5 : Colors.white;
-        shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
-        break;
-      case ButtonVariant.secondary:
-        backgroundColor = AppColors.primary5;
-        foregroundColor = AppColors.primary1;
-        shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
-        break;
+    if (widget.disable) {
+      backgroundColor = Colors.grey[300]!;
+      foregroundColor = Colors.grey[600]!;
+      shape = RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[400]!, width: 1),
+      );
+    } else {
+      switch (widget.variant) {
+        case ButtonVariant.primary:
+          backgroundColor = _isHovered
+              ? Color.lerp(accent, AppColors.primary2, 0.1)!
+              : accent;
+          foregroundColor = isSecondaryTheme
+              ? AppColors.primary5
+              : Colors.white;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          );
+          break;
+        case ButtonVariant.secondary:
+          backgroundColor = AppColors.primary5;
+          foregroundColor = AppColors.primary1;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          );
+          break;
 
-      case ButtonVariant.light:
-        backgroundColor = _isHovered
-            ? Color.lerp(AppColors.primary5, effectiveAccent, 0.05)!
-            : AppColors.primary5;
-        foregroundColor = effectiveAccent;
-        shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
-        break;
+        case ButtonVariant.light:
+          backgroundColor = _isHovered
+              ? Color.lerp(AppColors.primary5, effectiveAccent, 0.05)!
+              : AppColors.primary5;
+          foregroundColor = effectiveAccent;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          );
+          break;
 
-      case ButtonVariant.outline:
-        backgroundColor = _isHovered
-            ? effectiveAccent.withOpacity(0.05)
-            : AppColors.primary5;
-        foregroundColor = effectiveAccent;
-        shape = RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: _isHovered
-                ? AppColors.primary1
-                : AppColors.primary1.withValues(alpha: 0.8),
-            width: _isHovered ? 2.5 : 2,
-          ),
-        );
-        break;
+        case ButtonVariant.outline:
+          backgroundColor = _isHovered
+              ? effectiveAccent.withOpacity(0.05)
+              : AppColors.primary5;
+          foregroundColor = effectiveAccent;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: _isHovered
+                  ? AppColors.primary1
+                  : AppColors.primary1.withValues(alpha: 0.8),
+              width: _isHovered ? 2.5 : 2,
+            ),
+          );
+          break;
 
-      case ButtonVariant.warning:
-        backgroundColor = _isHovered
-            ? Color.lerp(AppColors.lightWarning, AppColors.darkWarning, 0.1)!
-            : AppColors.lightWarning;
-        foregroundColor = AppColors.darkWarning;
-        shape = RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: _isHovered
-                ? AppColors.darkWarning
-                : AppColors.darkWarning.withOpacity(0.8),
-            width: _isHovered ? 2.5 : 2,
-          ),
-        );
-        break;
-      case ButtonVariant.danger:
-        backgroundColor = _isHovered
-            ? Color.lerp(AppColors.lightDanger, AppColors.darkDanger, 0.1)!
-            : AppColors.lightDanger;
-        foregroundColor = AppColors.darkDanger;
-        shape = RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: _isHovered
-                ? AppColors.darkDanger
-                : AppColors.darkDanger.withOpacity(0.8),
-            width: _isHovered ? 2.5 : 2,
-          ),
-        );
-        break;
+        case ButtonVariant.warning:
+          backgroundColor = _isHovered
+              ? Color.lerp(AppColors.lightWarning, AppColors.darkWarning, 0.1)!
+              : AppColors.lightWarning;
+          foregroundColor = AppColors.darkWarning;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: _isHovered
+                  ? AppColors.darkWarning
+                  : AppColors.darkWarning.withOpacity(0.8),
+              width: _isHovered ? 2.5 : 2,
+            ),
+          );
+          break;
+        case ButtonVariant.danger:
+          backgroundColor = _isHovered
+              ? Color.lerp(AppColors.lightDanger, AppColors.darkDanger, 0.1)!
+              : AppColors.lightDanger;
+          foregroundColor = AppColors.darkDanger;
+          shape = RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: _isHovered
+                  ? AppColors.darkDanger
+                  : AppColors.darkDanger.withOpacity(0.8),
+              width: _isHovered ? 2.5 : 2,
+            ),
+          );
+          break;
+      }
     }
 
     final buttonWidget = AnimatedBuilder(
@@ -202,14 +229,20 @@ class _ButtonActionsState extends State<ButtonActions>
           child: Opacity(
             opacity: _opacityAnimation.value,
             child: MouseRegion(
-              onEnter: (_) => setState(() => _isHovered = true),
-              onExit: (_) => setState(() => _isHovered = false),
-              cursor: SystemMouseCursors.click,
+              onEnter: widget.disable
+                  ? null
+                  : (_) => setState(() => _isHovered = true),
+              onExit: widget.disable
+                  ? null
+                  : (_) => setState(() => _isHovered = false),
+              cursor: widget.disable
+                  ? SystemMouseCursors.forbidden
+                  : SystemMouseCursors.click,
               child: GestureDetector(
-                onTapDown: _handleTapDown,
-                onTapUp: _handleTapUp,
-                onTapCancel: _handleTapCancel,
-                onTap: widget.onPressed,
+                onTapDown: widget.disable ? null : _handleTapDown,
+                onTapUp: widget.disable ? null : _handleTapUp,
+                onTapCancel: widget.disable ? null : _handleTapCancel,
+                onTap: widget.disable ? null : widget.onPressed,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
@@ -226,7 +259,9 @@ class _ButtonActionsState extends State<ButtonActions>
                           Radius.circular(12),
                         ),
                       ),
-                      shadows: widget.hasShadow ? boxShadows : null,
+                      shadows: widget.hasShadow && !widget.disable
+                          ? boxShadows
+                          : null,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),

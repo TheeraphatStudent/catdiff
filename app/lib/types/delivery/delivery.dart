@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'package:app/types/status.dart';
+import 'package:app/types/user/user_auth.dart';
 
 List<Delivery> deliveryFromJson(String str) =>
     List<Delivery>.from(json.decode(str).map((x) => Delivery.fromJson(x)));
@@ -12,39 +13,46 @@ String deliveryToJson(List<Delivery> data) =>
     json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class Delivery {
-  String profileImageUrl;
-  String name;
+  String? profileImageUrl;
+  String? name;
   StatusType status;
+
   String deliveryId;
   String sendedId;
   String receivedId;
 
-  String pickupAddressId;
-  String deliveryAddressId;
+  String? pickupAddressId;
+  String? deliveryAddressId;
   List<String> pickupPkgImagesUrl;
-  String createdAt;
+
+  String? createdAt;
   String updatedAt;
-  dynamic deliveredAt;
+
+  String? deliveredAt;
   String? pickupAt;
-  String sendedPkgDetail;
-  String sendedPkgImgUrl;
+
+  String? sendedPkgDetail;
+  String? sendedPkgImgUrl;
+
+  User? riderInfo;
 
   Delivery({
-    required this.profileImageUrl,
-    required this.name,
+    this.profileImageUrl,
+    this.name,
     required this.status,
     required this.deliveryId,
     required this.sendedId,
     required this.receivedId,
-    required this.pickupAddressId,
-    required this.deliveryAddressId,
+    this.pickupAddressId,
+    this.deliveryAddressId,
     required this.pickupPkgImagesUrl,
-    required this.createdAt,
+    this.createdAt,
     required this.updatedAt,
-    required this.deliveredAt,
-    required this.pickupAt,
+    this.deliveredAt,
+    this.pickupAt,
     required this.sendedPkgDetail,
     required this.sendedPkgImgUrl,
+    this.riderInfo,
   });
 
   factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
@@ -65,6 +73,9 @@ class Delivery {
     pickupAt: json["pickup_at"],
     sendedPkgDetail: json["sended_pkg_detail"],
     sendedPkgImgUrl: json["sended_pkg_img_url"],
+    riderInfo: json["rider_info"] != null
+        ? User.fromJson(json["rider_info"])
+        : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -85,5 +96,6 @@ class Delivery {
     "pickup_at": pickupAt,
     "sended_pkg_detail": sendedPkgDetail,
     "sended_pkg_img_url": sendedPkgImgUrl,
+    "rider_info": riderInfo?.toJson(),
   };
 }

@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:app/service/helper/firebase_connection.dart';
+import 'package:app/service/helper/time.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_home.dart';
@@ -146,6 +147,40 @@ class DeliveryService {
     }
   }
 
+  static Stream<List<DeliveryStatDisplayItem>> watchDeliveryDisplayByUserId(
+    String userId,
+    UserType displayType,
+  ) {
+    Query<Map<String, dynamic>> query =
+        FirebaseFirestore.instance.collection('delivery');
+
+    if (displayType == UserType.sender) {
+      query = query.where('sended_id', isEqualTo: userId);
+    } else if (displayType == UserType.receiver) {
+      query = query.where('received_id', isEqualTo: userId);
+    }
+
+    return query.snapshots().map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              final rawData = doc.data();
+              if (rawData.isEmpty) {
+                return null;
+              }
+              final data = Map<String, dynamic>.from(rawData);
+              data['delivery_id'] = doc.id;
+              return DeliveryStatDisplayItem.fromJson(data);
+            })
+            .whereType<DeliveryStatDisplayItem>()
+            .toList();
+      } catch (e) {
+        log('Error mapping delivery snapshots for user $userId: $e');
+        return <DeliveryStatDisplayItem>[];
+      }
+    });
+  }
+
   static Future<Delivery?> getDeliveryById(String id) async {
     try {
       final response = await FirebaseHelper().getDocumentById(
@@ -170,7 +205,7 @@ class DeliveryService {
 
   static Future<Delivery?> createDelivery(Delivery delivery) async {
     try {
-      final now = DateTime.now().toIso8601String();
+      final now = TimeHelper.getDateNow();
       final deliveryData = delivery.toJson();
 
       // Set timestamps
@@ -264,6 +299,51 @@ class DeliveryService {
     }
   }
 
+  static Future<Delivery?> updateDeliveryJob(DeliveryJob deliveryJob) async {
+    try {
+      final deliveryData = <String, dynamic>{
+        'status': StatusTypes().getStatusTypeString(deliveryJob.status),
+        'pickup_address_id': deliveryJob.pickupAddress.addressId,
+        'delivery_address_id': deliveryJob.deliveryAddress.addressId,
+        'pickup_pkg_images_url': deliveryJob.pickupPkgImagesUrl,
+        'sended_pkg_detail': deliveryJob.sendedPkgDetail,
+        'sended_id': deliveryJob.sender.userId,
+        'received_id': deliveryJob.reciver.userId,
+        'profileImageUrl': deliveryJob.reciver.imagesUrl,
+        'name': deliveryJob.reciver.name,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseHelper().updateDocument(
+        collection: 'delivery',
+        documentId: deliveryJob.deliveryId,
+        data: deliveryData,
+      );
+
+      log('Updated delivery job: ${deliveryJob.deliveryId}');
+
+      final updatedDelivery = Delivery(
+        deliveryId: deliveryJob.deliveryId,
+        status: deliveryJob.status,
+        sendedId: deliveryJob.sender.userId,
+        receivedId: deliveryJob.reciver.userId,
+        pickupAddressId: deliveryJob.pickupAddress.addressId,
+        deliveryAddressId: deliveryJob.deliveryAddress.addressId,
+        pickupPkgImagesUrl: deliveryJob.pickupPkgImagesUrl,
+        sendedPkgDetail: deliveryJob.sendedPkgDetail,
+        sendedPkgImgUrl: '',
+        updatedAt: DateTime.now().toIso8601String(),
+        profileImageUrl: deliveryJob.reciver.imagesUrl,
+        name: deliveryJob.reciver.name,
+      );
+
+      return updatedDelivery;
+    } catch (e) {
+      log('Error updating delivery job ${deliveryJob.deliveryId}: $e');
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> getDeliveryQueryByDate(
     DateTime targetDate,
   ) async {
@@ -294,38 +374,38 @@ class DeliveryService {
         throw Exception('Document data is null for delivery: ${doc.id}');
       }).toList();
 
-      // Convert Delivery objects to DeliveryJob objects
       final deliveryJobs = deliveries.map((delivery) {
         return DeliveryJob(
           deliveryId: delivery.deliveryId,
           status: delivery.status,
           sender: UserInfo(
             userId: delivery.sendedId,
-            name: delivery.name,
-            imagesUrl: delivery.profileImageUrl,
+            name: delivery.name ?? "",
+            imagesUrl: delivery.profileImageUrl ?? "",
           ),
           reciver: UserInfo(
             userId: delivery.receivedId,
-            name: delivery.name,
-            imagesUrl: delivery.profileImageUrl,
+            name: delivery.name ?? "",
+            imagesUrl: delivery.profileImageUrl ?? "",
           ),
           pickupAddress: AddressInfo(
-            addressId: delivery.pickupAddressId,
+            addressId: delivery.pickupAddressId!,
             detail: "Pickup Address",
             latitude: 0.0,
             longtitude: 0.0,
-            createdAt: delivery.createdAt,
+            createdAt: delivery.createdAt ?? "",
             updatedAt: delivery.updatedAt,
           ),
           deliveryAddress: AddressInfo(
-            addressId: delivery.deliveryAddressId,
+            addressId: delivery.deliveryAddressId!,
             detail: "Delivery Address",
             latitude: 0.0,
             longtitude: 0.0,
-            createdAt: delivery.createdAt,
+            createdAt: delivery.createdAt ?? "",
             updatedAt: delivery.updatedAt,
           ),
           pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+          sendedPkgDetail: delivery.sendedPkgDetail ?? "",
         );
       }).toList();
 
