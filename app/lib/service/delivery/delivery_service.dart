@@ -164,10 +164,15 @@ class DeliveryService {
       try {
         return snapshot.docs
             .map((doc) {
-              final data = doc.data();
+              final rawData = doc.data();
+              if (rawData.isEmpty) {
+                return null;
+              }
+              final data = Map<String, dynamic>.from(rawData);
               data['delivery_id'] = doc.id;
               return DeliveryStatDisplayItem.fromJson(data);
             })
+            .whereType<DeliveryStatDisplayItem>()
             .toList();
       } catch (e) {
         log('Error mapping delivery snapshots for user $userId: $e');

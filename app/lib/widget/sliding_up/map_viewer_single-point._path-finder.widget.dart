@@ -11,6 +11,8 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:math' as math;
 
+import 'package:latlong2/latlong.dart' as latlng;
+
 enum PathFinderMode { currentToDestination, originToDestination }
 
 class MapViewerSinglePointPathFinder extends StatefulWidget {
@@ -27,6 +29,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
   final PathFinderMode mode;
 
   final Duration locationUpdateInterval;
+  final double locationUpdateDistance;
 
   final VoidCallback? onModalClosed;
   final Function(MapRouteInfo)? getPathRouteInfo;
@@ -48,6 +51,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
     this.originLabel,
     this.mode = PathFinderMode.currentToDestination,
     this.locationUpdateInterval = const Duration(seconds: 10),
+    this.locationUpdateDistance = 5,
     this.onModalClosed,
     this.getPathRouteInfo,
   });
@@ -69,8 +73,8 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   );
   MapRouteInfo? _pathRouteInfo;
   bool _isLoadingLocation = false;
-  Timer? _locationUpdateTimer;
-  int _mapRebuildCounter = 0;
+  StreamSubscription<LatLng>? _locationSubscription;
+  final latlng.Distance _distanceCalculator = const latlng.Distance();
 
   @override
   void initState() {
@@ -82,7 +86,8 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   @override
   void didUpdateWidget(MapViewerSinglePointPathFinder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final hasDestinationChanged = oldWidget.lat != widget.lat ||
+    final hasDestinationChanged =
+        oldWidget.lat != widget.lat ||
         oldWidget.lng != widget.lng ||
         oldWidget.originLat != widget.originLat ||
         oldWidget.originLng != widget.originLng;
@@ -91,8 +96,11 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     final hasOpenedStateChanged = oldWidget.isOpened != widget.isOpened;
     final hasIntervalChanged =
         oldWidget.locationUpdateInterval != widget.locationUpdateInterval;
+    final hasDistanceChanged =
+        oldWidget.locationUpdateDistance != widget.locationUpdateDistance;
 
-    final shouldReinitializeLocations = hasDestinationChanged ||
+    final shouldReinitializeLocations =
+        hasDestinationChanged ||
         (hasOpenedStateChanged && widget.isOpened) ||
         hasModeChanged;
 
@@ -103,7 +111,8 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     if (hasDestinationChanged ||
         hasModeChanged ||
         hasOpenedStateChanged ||
-        hasIntervalChanged) {
+        hasIntervalChanged ||
+        hasDistanceChanged) {
       _stopLocationUpdates();
     }
 
@@ -152,10 +161,12 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
           _currentLocation = currentLoc;
           _originLocation = originLoc;
           _destinationLocation = destLoc;
-          _mapRebuildCounter++;
           _updatePathDestinations();
+          _pathRouteInfo = null;
           _isLoadingLocation = false;
         });
+
+        _updateManualRouteInfo();
       }
     } catch (e) {
       log('Error initializing locations: $e');
@@ -197,32 +208,35 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   }
 
   void _startLocationUpdatesIfNeeded() {
-    final shouldStart = widget.mode == PathFinderMode.currentToDestination &&
-        widget.isOpened;
+    final shouldStart =
+        widget.mode == PathFinderMode.currentToDestination && widget.isOpened;
 
-    if (!shouldStart || _locationUpdateTimer != null) {
+    if (!shouldStart || _locationSubscription != null) {
       return;
     }
 
     log(
-      "Starting real-time location updates every ${widget.locationUpdateInterval.inSeconds} seconds",
+      "Starting live location updates with distance filter: ${widget.locationUpdateDistance}m",
     );
 
-    _locationUpdateTimer = Timer.periodic(widget.locationUpdateInterval, (
-      timer,
-    ) {
-      _updateCurrentLocation();
-    });
+    _locationSubscription = MapService.getPositionStream(
+      distanceFilterMeters: widget.locationUpdateDistance,
+    ).listen(
+      _handleLiveLocation,
+      onError: (error) => log('Live location stream error: $error'),
+    );
+
+    unawaited(_updateCurrentLocation());
   }
 
   void _stopLocationUpdates() {
-    if (_locationUpdateTimer == null) {
+    if (_locationSubscription == null) {
       return;
     }
 
-    log("Stopping real-time location updates");
-    _locationUpdateTimer?.cancel();
-    _locationUpdateTimer = null;
+    log("Stopping live location updates");
+    _locationSubscription?.cancel();
+    _locationSubscription = null;
   }
 
   Future<void> _updateCurrentLocation() async {
@@ -234,36 +248,46 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
         "Updated current location: ${newLocation.latitude}, ${newLocation.longitude}",
       );
 
-      if (_currentLocation != null) {
-        final distance = _calculateDistance(
-          _currentLocation!.latitude,
-          _currentLocation!.longitude,
-          newLocation.latitude,
-          newLocation.longitude,
-        );
-
-        if (distance < 10) {
-          log(
-            "Location change too small (${distance.toStringAsFixed(1)}m), skipping update",
-          );
-          return;
-        }
-
-        log(
-          "Location changed by ${distance.toStringAsFixed(1)}m, updating route",
-        );
-      }
-
-      if (mounted) {
-        setState(() {
-          _currentLocation = newLocation;
-          _mapRebuildCounter++;
-          _updatePathDestinations();
-        });
-      }
+      _handleLiveLocation(newLocation, bypassThreshold: true);
     } catch (e) {
       log('Error updating current location: $e');
     }
+  }
+
+  void _handleLiveLocation(
+    LatLng newLocation, {
+    bool bypassThreshold = false,
+  }) {
+    if (!mounted) {
+      return;
+    }
+
+    if (_currentLocation != null && !bypassThreshold) {
+      final double distanceDelta = _calculateDistance(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
+        newLocation.latitude,
+        newLocation.longitude,
+      );
+
+      if (distanceDelta < widget.locationUpdateDistance / 2) {
+        log(
+          "Location change below threshold (${distanceDelta.toStringAsFixed(2)}m), skipping UI update",
+        );
+        return;
+      }
+
+      log(
+        "Location changed by ${distanceDelta.toStringAsFixed(1)}m, updating route",
+      );
+    }
+
+    setState(() {
+      _currentLocation = newLocation;
+      _updatePathDestinations();
+    });
+
+    _updateManualRouteInfo();
   }
 
   double _calculateDistance(
@@ -295,6 +319,42 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     } else {
       return _originLocation;
     }
+  }
+
+  void _updateManualRouteInfo() {
+    final LatLng? origin = _getOriginLocation;
+    final LatLng? destination = _destinationLocation;
+
+    if (origin == null || destination == null) {
+      return;
+    }
+
+    if (_pathRouteInfo != null &&
+        _pathRouteInfo!.distanceSource == MapRouteDistanceSource.api) {
+      // Defer to API-driven updates when available.
+      return;
+    }
+
+    final double distanceMeters = _distanceCalculator.as(
+      latlng.LengthUnit.Meter,
+      latlng.LatLng(origin.latitude, origin.longitude),
+      latlng.LatLng(destination.latitude, destination.longitude),
+    );
+
+    final MapRouteInfo manualInfo = MapRouteInfo(
+      points: <LatLng>[origin, destination],
+      distanceMeters: distanceMeters,
+      duration: null,
+      distanceSource: MapRouteDistanceSource.computed,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _pathRouteInfo = manualInfo;
+    });
+
+    widget.getPathRouteInfo?.call(manualInfo);
   }
 
   String _formatDistance(double distanceMeters) {
@@ -357,7 +417,6 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: MapPlaceholder(
-                key: ValueKey('map_rebuild_$_mapRebuildCounter'),
                 mode: MapPlaceholderMode.viewer,
                 viewerType: MapViewerType.path,
                 destinations: [_pathDestinations],

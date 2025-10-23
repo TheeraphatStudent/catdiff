@@ -18,6 +18,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as latlng;
 import 'package:provider/provider.dart';
 
 class RiderListProd extends StatefulWidget {
@@ -98,15 +99,48 @@ class _RiderListProdState extends State<RiderListProd> {
             "Current location set: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}",
           );
         }
+
+        if (_currentLocation != null) {
+          await _updateRouteInfoDistance(_currentLocation!, address);
+        }
       }
     } catch (e) {
       log('Error getting current location: $e');
       if (mounted) {
         setState(() {
           _isLoadingLocation = false;
-          _isMapOpen = true; // Still open map without current location
+          _isMapOpen = true;
         });
       }
+    }
+  }
+
+  Future<void> _updateRouteInfoDistance(
+    LatLng origin,
+    AddressInfo address,
+  ) async {
+    try {
+      final double distance =
+          await DeliveryRiderJob.calculateDistanceFromDestination(
+            latlng.LatLng(origin.latitude, origin.longitude),
+            latlng.LatLng(address.latitude, address.longtitude),
+          );
+
+      if (!mounted) return;
+
+      setState(() {
+        _routeInfo = MapRouteInfo(
+          points: <LatLng>[
+            origin,
+            LatLng(address.latitude, address.longtitude),
+          ],
+          distanceMeters: distance,
+          duration: _routeInfo.duration,
+          distanceSource: MapRouteDistanceSource.computed,
+        );
+      });
+    } catch (e) {
+      log('Error calculating route distance: $e');
     }
   }
 
@@ -366,7 +400,8 @@ class _RiderListProdState extends State<RiderListProd> {
             label: 'เส้นทางการจัดส่ง - #${_deliveryJob.deliveryId}',
 
             mode: PathFinderMode.currentToDestination,
-            locationUpdateInterval: Duration(seconds: 2),
+            locationUpdateInterval: Duration(seconds: 5),
+            locationUpdateDistance: 3,
 
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
