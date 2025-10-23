@@ -9,6 +9,7 @@ import 'package:app/service/map/map_service.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/card/rider_job.widget.dart';
+import 'package:app/widget/map/map_destination.dart';
 import 'package:app/widget/map/map_placeholder.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/sliding_template.dart';
@@ -195,7 +196,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
                   children: [
                     Tag(
                       color: AppColors.primary5,
-                      text: "#${_currentJob!.deliveryId.substring(0, 8)}",
+                      text: "#${_currentJob!.deliveryId}",
                     ),
                     ButtonActions(
                       variant: ButtonVariant.danger,
@@ -249,7 +250,18 @@ class _RiderJobPageState extends State<RiderJobPage> {
               ),
             ),
 
-          Expanded(child: MapPlaceholder()),
+          Expanded(
+            child: MapPlaceholder(
+              destinations: [
+                MapDestination(
+                  latitude: _currentJob!.deliveryAddress.latitude,
+                  longitude: _currentJob!.deliveryAddress.longtitude,
+                  label: _currentJob!.deliveryAddress.detail,
+                  markerId: 'destination',
+                ),
+              ],
+            ),
+          ),
 
           Padding(
             padding: EdgeInsetsGeometry.all(16),
@@ -262,6 +274,8 @@ class _RiderJobPageState extends State<RiderJobPage> {
               ],
             ),
           ),
+
+          SizedBox(height: 12),
 
           SlidingTemplate(
             isOpened: _isUploadingImage,

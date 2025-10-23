@@ -265,6 +265,51 @@ class DeliveryService {
     }
   }
 
+  static Future<Delivery?> updateDeliveryJob(DeliveryJob deliveryJob) async {
+    try {
+      final deliveryData = <String, dynamic>{
+        'status': StatusTypes().getStatusTypeString(deliveryJob.status),
+        'pickup_address_id': deliveryJob.pickupAddress.addressId,
+        'delivery_address_id': deliveryJob.deliveryAddress.addressId,
+        'pickup_pkg_images_url': deliveryJob.pickupPkgImagesUrl,
+        'sended_pkg_detail': deliveryJob.sendedPkgDetail,
+        'sended_id': deliveryJob.sender.userId,
+        'received_id': deliveryJob.reciver.userId,
+        'profileImageUrl': deliveryJob.reciver.imagesUrl,
+        'name': deliveryJob.reciver.name,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseHelper().updateDocument(
+        collection: 'delivery',
+        documentId: deliveryJob.deliveryId,
+        data: deliveryData,
+      );
+
+      log('Updated delivery job: ${deliveryJob.deliveryId}');
+
+      final updatedDelivery = Delivery(
+        deliveryId: deliveryJob.deliveryId,
+        status: deliveryJob.status,
+        sendedId: deliveryJob.sender.userId,
+        receivedId: deliveryJob.reciver.userId,
+        pickupAddressId: deliveryJob.pickupAddress.addressId,
+        deliveryAddressId: deliveryJob.deliveryAddress.addressId,
+        pickupPkgImagesUrl: deliveryJob.pickupPkgImagesUrl,
+        sendedPkgDetail: deliveryJob.sendedPkgDetail,
+        sendedPkgImgUrl: '',
+        updatedAt: DateTime.now().toIso8601String(),
+        profileImageUrl: deliveryJob.reciver.imagesUrl,
+        name: deliveryJob.reciver.name,
+      );
+
+      return updatedDelivery;
+    } catch (e) {
+      log('Error updating delivery job ${deliveryJob.deliveryId}: $e');
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> getDeliveryQueryByDate(
     DateTime targetDate,
   ) async {

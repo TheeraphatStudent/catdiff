@@ -23,6 +23,19 @@ class DeliveryJob {
     required this.reciver,
     required this.sendedPkgDetail,
   });
+
+  Map<String, dynamic> toJson() => {
+    'delivery_id': deliveryId,
+    'status': status.name,
+    'pickup_pkg_images_url': pickupPkgImagesUrl,
+    'pickup_address_id': pickupAddress.addressId,
+    'delivery_address_id': deliveryAddress.addressId,
+    'sended_pkg_detail': sendedPkgDetail,
+    'sended_id': sender.userId,
+    'received_id': reciver.userId,
+    'profileImageUrl': reciver.imagesUrl,
+    'name': reciver.name,
+  };
 }
 
 class UserInfo {

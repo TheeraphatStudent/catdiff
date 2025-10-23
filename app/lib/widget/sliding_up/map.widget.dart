@@ -55,6 +55,8 @@ class MapsLocationSelector extends StatefulWidget {
   final VoidCallback? onOpenModal;
   final Function(LatLng)? onLocationSelected;
   final Function(String)? onMapSearch;
+  final Function(LatLng, String)? onAddressSelected;
+
   final bool isShowingAction;
   final bool isOpened;
   final VoidCallback? onConfirmLocation;
@@ -72,6 +74,7 @@ class MapsLocationSelector extends StatefulWidget {
 
     this.onLocationSelected,
     this.onMapSearch,
+    this.onAddressSelected,
     this.onConfirmLocation,
     this.distanceStrategy = MapRouteDistanceStrategy.distanceMatrixPreferred,
     this.routesClientConfig,
@@ -421,6 +424,7 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                   if (result.address != null && result.address!.isNotEmpty) {
                     controller.locationStatus.value = result.address!;
                   }
+
                   widget.onLocationSelected?.call(position);
                 },
               ),
@@ -576,10 +580,14 @@ class _MapsLocationSelectorState extends State<MapsLocationSelector> {
                     icon: Icons.arrow_forward,
                     onPressed: controller.selectedLocation.value != null
                         ? () {
-                            final selectedLocation =
-                                controller.selectedLocation.value;
-                            if (selectedLocation != null) {
-                              widget.onLocationSelected?.call(selectedLocation);
+                            if (controller.selectedLocation.value != null) {
+                              widget.onLocationSelected?.call(
+                                controller.selectedLocation.value!,
+                              );
+                              widget.onAddressSelected?.call(
+                                controller.selectedLocation.value!,
+                                controller.locationStatus.value,
+                              );
                               widget.onModalClosed?.call();
                             }
                           }

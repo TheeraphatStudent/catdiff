@@ -81,7 +81,6 @@ class _RiderListProdState extends State<RiderListProd> {
     }
 
     try {
-      // Get current location for real-time tracking
       final currentLoc = await MapService.getCurrentLocation();
       log(
         "Got current location for map: ${currentLoc.latitude}, ${currentLoc.longitude}",
@@ -345,13 +344,13 @@ class _RiderListProdState extends State<RiderListProd> {
                         onCardTap: () {
                           log('Card tapped: ${job.deliveryId}');
                           _deliveryJob = job;
-                          _openMapForDelivery(job.deliveryAddress);
+                          _openMapForDelivery(job.pickupAddress);
                         },
                         onLocationTap: (address) {
-                          log('Location tapped: ${address.detail}');
+                          // log('Location tapped: ${address.detail}');
 
                           _deliveryJob = job;
-                          _openMapForDelivery(address);
+                          _openMapForDelivery(job.pickupAddress);
                         },
                       );
                     }).toList(),
@@ -367,7 +366,7 @@ class _RiderListProdState extends State<RiderListProd> {
             label: 'เส้นทางการจัดส่ง - #${_deliveryJob.deliveryId}',
 
             mode: PathFinderMode.currentToDestination,
-            locationUpdateInterval: Duration(seconds: 5),
+            locationUpdateInterval: Duration(seconds: 2),
 
             isOpened: _isMapOpen,
             onModalClosed: _closeMap,
@@ -416,7 +415,8 @@ class _RiderListProdState extends State<RiderListProd> {
                       Expanded(
                         child: ButtonActions(
                           variant: ButtonVariant.primary,
-                          text: 'รับงานนนี้ ${_routeInfo.distanceMeters}',
+                          text: 'รับงานนนี้',
+                          // text: 'รับงานนนี้ ${_routeInfo.distanceMeters}',
                           disable: _routeInfo.distanceMeters > 20,
                           iconPosition: IconPosition.right,
                           icon: Icons.check,

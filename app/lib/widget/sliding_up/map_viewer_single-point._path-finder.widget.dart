@@ -82,19 +82,37 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   @override
   void didUpdateWidget(MapViewerSinglePointPathFinder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.lat != widget.lat ||
+    final hasDestinationChanged = oldWidget.lat != widget.lat ||
         oldWidget.lng != widget.lng ||
         oldWidget.originLat != widget.originLat ||
-        oldWidget.originLng != widget.originLng ||
-        oldWidget.mode != widget.mode) {
+        oldWidget.originLng != widget.originLng;
+
+    final hasModeChanged = oldWidget.mode != widget.mode;
+    final hasOpenedStateChanged = oldWidget.isOpened != widget.isOpened;
+    final hasIntervalChanged =
+        oldWidget.locationUpdateInterval != widget.locationUpdateInterval;
+
+    final shouldReinitializeLocations = hasDestinationChanged ||
+        (hasOpenedStateChanged && widget.isOpened) ||
+        hasModeChanged;
+
+    if (shouldReinitializeLocations) {
       _initializeLocations();
-      _restartLocationUpdatesIfNeeded(oldWidget.mode);
     }
+
+    if (hasDestinationChanged ||
+        hasModeChanged ||
+        hasOpenedStateChanged ||
+        hasIntervalChanged) {
+      _stopLocationUpdates();
+    }
+
+    _startLocationUpdatesIfNeeded();
   }
 
   @override
   void dispose() {
-    _locationUpdateTimer?.cancel();
+    _stopLocationUpdates();
     super.dispose();
   }
 
@@ -179,25 +197,32 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   }
 
   void _startLocationUpdatesIfNeeded() {
-    if (widget.mode == PathFinderMode.currentToDestination && widget.isOpened) {
-      log(
-        "Starting real-time location updates every ${widget.locationUpdateInterval.inSeconds} seconds",
-      );
-      _locationUpdateTimer = Timer.periodic(widget.locationUpdateInterval, (
-        timer,
-      ) {
-        _updateCurrentLocation();
-      });
+    final shouldStart = widget.mode == PathFinderMode.currentToDestination &&
+        widget.isOpened;
+
+    if (!shouldStart || _locationUpdateTimer != null) {
+      return;
     }
+
+    log(
+      "Starting real-time location updates every ${widget.locationUpdateInterval.inSeconds} seconds",
+    );
+
+    _locationUpdateTimer = Timer.periodic(widget.locationUpdateInterval, (
+      timer,
+    ) {
+      _updateCurrentLocation();
+    });
   }
 
-  void _restartLocationUpdatesIfNeeded(PathFinderMode oldMode) {
+  void _stopLocationUpdates() {
+    if (_locationUpdateTimer == null) {
+      return;
+    }
+
+    log("Stopping real-time location updates");
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer = null;
-
-    if (widget.mode != oldMode) {
-      _startLocationUpdatesIfNeeded();
-    }
   }
 
   Future<void> _updateCurrentLocation() async {
