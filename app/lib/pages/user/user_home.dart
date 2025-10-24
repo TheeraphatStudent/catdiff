@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         log("on tap sender");
 
-                        Get.offNamed('/debug');
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -322,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        Get.offNamed('/debug');
+                        Get.offNamed('/single-tracking-test');
                       },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,
@@ -780,18 +780,58 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final profileController = ProfileController();
 
-      profileController.addListener(() {
+      profileController.addListener(() async {
         if (profileController.uploadedUrl != null) {
+          log(
+            "Image uploaded for delivery ${createdDelivery.deliveryId}: ${profileController.uploadedUrl}",
+          );
+
           final index = _addedJobItemToDeliver.indexWhere(
             (item) => item.deliveryJob.deliveryId == createdDelivery.deliveryId,
           );
 
           if (index != -1) {
+            final imageUrls = [profileController.uploadedUrl!];
+
             setState(() {
-              _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl = [
-                profileController.uploadedUrl!,
-              ];
+              _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl =
+                  imageUrls;
             });
+
+            try {
+              final success = await DeliveryService.updatePickupImages(
+                createdDelivery.deliveryId,
+                imageUrls,
+              );
+
+              if (success) {
+                log(
+                  "Successfully updated pickup images in Firebase for delivery: ${createdDelivery.deliveryId}",
+                );
+              } else {
+                log(
+                  "Failed to update pickup images in Firebase for delivery: ${createdDelivery.deliveryId}",
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ'),
+                      backgroundColor: AppColors.lightDanger,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              log("Error updating pickup images in Firebase: $e");
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: $e'),
+                    backgroundColor: AppColors.lightDanger,
+                  ),
+                );
+              }
+            }
           }
         }
       });

@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/user/role.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/input.widget.dart';
@@ -133,12 +134,29 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
       if (riderResult['success']) {
         log('Rider login successful');
-        Get.back();
         final User user = riderResult['user'] as User;
         appData.setCurrentUser(user);
         appData.setPreferredRole(UserRole.rider);
 
-        Get.offAllNamed('/');
+        final hasActiveJob = await DeliveryRiderJob.getRiderJobExist(user.id);
+
+        Get.back();
+
+        if (hasActiveJob) {
+          log('Rider has active job - redirecting to rider job page');
+          final activeJob = await DeliveryRiderJob.getActiveRiderJob(user.id);
+          if (activeJob != null) {
+            Get.offAllNamed(
+              '/rider-job',
+              arguments: {'deliveryJob': activeJob},
+            );
+          } else {
+            Get.offAllNamed('/rider');
+          }
+        } else {
+          log('Rider has no active job - redirecting to rider list');
+          Get.offAllNamed('/rider');
+        }
       } else {
         Get.back();
         appData.clearCurrentUser();
