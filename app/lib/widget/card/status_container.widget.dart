@@ -39,7 +39,7 @@ class StatusContainer extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(4.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -102,7 +102,7 @@ class StatusContainer extends StatelessWidget {
                             ),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.all(6.2),
                             child: SizedBox(
                               height: 96,
                               child: SingleChildScrollView(
