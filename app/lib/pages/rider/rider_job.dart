@@ -46,6 +46,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
   double _distanceToTarget = 0.0;
   bool _isUploadingImage = false;
   String? _processingImageUrl;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -94,16 +95,22 @@ class _RiderJobPageState extends State<RiderJobPage> {
 
   void _setupProfileController() {
     _profileController.addListener(() {
-      if (!mounted) {
-        log('Widget not mounted, skipping ProfileController callback');
+      if (!mounted || _isDisposed) {
+        log(
+          'Widget not mounted or disposed, skipping ProfileController callback',
+        );
         return;
       }
 
-      if (_profileController.uploadedUrl != null) {
-        log(
-          'ProfileController detected upload completion: ${_profileController.uploadedUrl}',
-        );
-        _handleImageUpload(_profileController.uploadedUrl!);
+      try {
+        if (_profileController.uploadedUrl != null) {
+          log(
+            'ProfileController detected upload completion: ${_profileController.uploadedUrl}',
+          );
+          _handleImageUpload(_profileController.uploadedUrl!);
+        }
+      } catch (e) {
+        log('Error in ProfileController listener: $e');
       }
     });
   }
@@ -260,8 +267,8 @@ class _RiderJobPageState extends State<RiderJobPage> {
   Future<void> _handleImageUpload(String imageUrl) async {
     if (_currentJob == null) return;
 
-    if (!mounted) {
-      log('Widget not mounted, skipping image upload handling');
+    if (!mounted || _isDisposed) {
+      log('Widget not mounted or disposed, skipping image upload handling');
       return;
     }
 
@@ -359,8 +366,17 @@ class _RiderJobPageState extends State<RiderJobPage> {
 
   @override
   void dispose() {
+    log('Disposing rider job page');
+    _isDisposed = true;
+
     _locationSubscription?.cancel();
-    _profileController.dispose();
+
+    try {
+      _profileController.dispose();
+    } catch (e) {
+      log('Error disposing ProfileController: $e');
+    }
+
     super.dispose();
   }
 
@@ -476,11 +492,13 @@ class _RiderJobPageState extends State<RiderJobPage> {
           SizedBox(height: 12),
 
           SlidingTemplate(
-            isOpened: _isUploadingImage,
+            isOpened: _isUploadingImage && !_isDisposed,
             onModalClosed: () {
-              setState(() {
-                _isUploadingImage = false;
-              });
+              if (mounted && !_isDisposed) {
+                setState(() {
+                  _isUploadingImage = false;
+                });
+              }
             },
             children: [
               Column(
@@ -492,17 +510,18 @@ class _RiderJobPageState extends State<RiderJobPage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 16),
-                  ProfileWidgets.managed(
-                    controller: _profileController,
-                    isEdited: true,
-                    autoUpload: true,
-                    size: ProfileSize.xl,
-                    userId: Provider.of<AppData>(
-                      context,
-                      listen: false,
-                    ).currentUser?.id,
-                    config: ProfileWidgetConfig(editIcon: Icons.upload),
-                  ),
+                  if (!_isDisposed)
+                    ProfileWidgets.managed(
+                      controller: _profileController,
+                      isEdited: true,
+                      autoUpload: true,
+                      size: ProfileSize.xl,
+                      userId: Provider.of<AppData>(
+                        context,
+                        listen: false,
+                      ).currentUser?.id,
+                      config: ProfileWidgetConfig(editIcon: Icons.upload),
+                    ),
                 ],
               ),
             ],
