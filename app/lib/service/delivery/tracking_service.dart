@@ -99,7 +99,7 @@ class TrackingService {
   static Future<List<Map<String, dynamic>>>
   getDeliveryJobsByUserIdGroupedByDate(String userId, UserType userType) async {
     try {
-      log('Fetching delivery jobs for user: $userId, type: ${userType.name}');
+      // log('Fetching delivery jobs for user: $userId, type: ${userType.name}');
 
       final String fieldName = userType == UserType.sender
           ? 'sended_id'
