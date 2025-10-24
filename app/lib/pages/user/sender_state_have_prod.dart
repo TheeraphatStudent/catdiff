@@ -211,7 +211,7 @@ class DeliveryController extends GetxController {
 
 // Main Screen
 class DeliveryTrackingScreen extends StatelessWidget {
-  const DeliveryTrackingScreen({Key? key}) : super(key: key);
+  const DeliveryTrackingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

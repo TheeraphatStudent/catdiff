@@ -262,7 +262,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         log("on tap sender");
 
-                        Get.offNamed('/single-tracking-test');
+                        Get.offNamed(
+                          '/overview',
+                          arguments: {'initialTabIsSender': true},
+                        );
                       },
                       type: UserType.sender,
                       deliveryStatDisplayItems: senderItems,
@@ -279,7 +282,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        Get.offNamed('/single-tracking-test');
+                        log("on tap receiver");
+
+                        Get.offNamed(
+                          '/overview',
+                          arguments: {'initialTabIsSender': false},
+                        );
                       },
                       type: UserType.receiver,
                       deliveryStatDisplayItems: receiverItems,

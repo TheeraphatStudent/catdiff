@@ -10,6 +10,8 @@ import 'package:app/pages/rider/raider_listprod.dart';
 import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/sender_state_have_prod.dart';
+import 'package:app/pages/user/tracking/overview.dart';
+import 'package:app/pages/user/tracking/single_tracking.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/user/role.dart';
@@ -55,7 +57,7 @@ class MyApp extends StatelessWidget {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
           theme: theme,
-          initialRoute: '/login',
+          initialRoute: '/',
           // initialRoute: '/rider',
           // initialRoute: '/debug-rider',
           getPages: <GetPage<dynamic>>[
@@ -71,16 +73,30 @@ class MyApp extends StatelessWidget {
 
             GetPage(name: '/profile', page: () => const ProfilePage()),
 
+            // Tracking
+            GetPage(
+              name: "/overview", 
+              page: () {
+                final args = Get.arguments as Map<String, dynamic>?;
+                final initialTabIsSender = args?['initialTabIsSender'] as bool?;
+                return OverviewPage(initialTabIsSender: initialTabIsSender);
+              },
+            ),
+
             GetPage(
               name: '/single-tracking-test',
               page: () => const DeliveryTrackingScreen(),
             ),
-            GetPage(name: '/debug', page: () => const DebugPage()),
 
-            // GetPage(name: '/single-tracking', page: () => const SingleTracking()),
+            GetPage(
+              name: '/single-tracking',
+              page: () => const SingleTracking(),
+            ),
+
             // GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
 
-            // GetPage(name: '/debug', page: () => const DebugPage()),
+            // Debug
+            GetPage(name: '/debug', page: () => const DebugPage()),
             GetPage(name: '/debug-rider', page: () => const DebugRider()),
             GetPage(name: '/slider-debug', page: () => const SilderDebug()),
             GetPage(name: '/map-debug', page: () => const MapDebugPage()),
