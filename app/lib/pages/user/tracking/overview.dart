@@ -3,7 +3,9 @@ import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/delivery/tracking_service.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
@@ -77,11 +79,27 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   void _handleLocationPress(DeliveryJob job) {
-    log("Handle location press work");
+    log("Handle location press work for delivery: ${job.deliveryId}");
+    log("Delivery status: ${job.status}");
+    log("Is rider tracking status: ${_isRiderTrackingStatus(job.status)}");
 
     setState(() {
       _selectedJobForMap = job;
-      _isMapOpen = true;
+      _isMapOpen = false;
+    });
+
+    log("After setState - _isMapOpen: $_isMapOpen");
+    log(
+      "After setState - _selectedJobForMap is null: ${_selectedJobForMap == null}",
+    );
+
+    Future.delayed(Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isMapOpen = true;
+        });
+        log("Delayed setState - _isMapOpen: $_isMapOpen");
+      }
     });
   }
 
@@ -92,6 +110,10 @@ class _OverviewPageState extends State<OverviewPage> {
       total += jobs.length;
     }
     return total;
+  }
+
+  bool _isRiderTrackingStatus(StatusType status) {
+    return status == StatusType.receiving || status == StatusType.riding;
   }
 
   @override
@@ -187,25 +209,29 @@ class _OverviewPageState extends State<OverviewPage> {
           ),
           Row(
             children: [
-              ButtonTab(
-                text: "ส่งพัสดุ",
-                isActive: _isActiveTabSender,
-                onTap: () {
-                  log("On tab sender work");
-                  setState(() {
-                    _isActiveTabSender = true;
-                  });
-                },
+              Expanded(
+                child: ButtonUnderline(
+                  text: "ส่งพัสดุ",
+                  active: _isActiveTabSender,
+                  onPressed: () {
+                    log("On tab sender work");
+                    setState(() {
+                      _isActiveTabSender = true;
+                    });
+                  },
+                ),
               ),
-              ButtonTab(
-                text: "รับพัสดุ",
-                isActive: !_isActiveTabSender,
-                onTap: () {
-                  log("On tab receiver work");
-                  setState(() {
-                    _isActiveTabSender = false;
-                  });
-                },
+              Expanded(
+                child: ButtonUnderline(
+                  text: "รับพัสดุ",
+                  active: !_isActiveTabSender,
+                  onPressed: () {
+                    log("On tab receiver work");
+                    setState(() {
+                      _isActiveTabSender = false;
+                    });
+                  },
+                ),
               ),
             ],
           ),
@@ -298,48 +324,64 @@ class _OverviewPageState extends State<OverviewPage> {
                     ),
                   )
                 : SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        if (_isActiveTabSender)
-                          ..._senderJobsGrouped.map((group) {
-                            final date = group['date'] as String;
-                            final jobs = group['jobs'] as List<DeliveryJob>;
-                            return JobContainerView(
-                              deliveryJobs: jobs,
-                              title: "รายการส่งพัสดุ",
-                              date: DateTime.parse(date.replaceAll('/', '-')),
-                              onLocationPress: _handleLocationPress,
-                            );
-                          }).toList()
-                        else
-                          ..._receiverJobsGrouped.map((group) {
-                            final date = group['date'] as String;
-                            final jobs = group['jobs'] as List<DeliveryJob>;
-                            return JobContainerView(
-                              deliveryJobs: jobs,
-                              title: "รายการรับพัสดุ",
-                              date: DateTime.parse(date.replaceAll('/', '-')),
-                              onLocationPress: _handleLocationPress,
-                            );
-                          }).toList(),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          if (_isActiveTabSender)
+                            ..._senderJobsGrouped.map((group) {
+                              final date = group['date'] as String;
+                              final jobs = group['jobs'] as List<DeliveryJob>;
+                              return JobContainerView(
+                                deliveryJobs: jobs,
+                                title: "รายการส่งพัสดุ",
+                                date: DateTime.parse(date.replaceAll('/', '-')),
+                                onLocationPress: _handleLocationPress,
+                              );
+                            })
+                          else
+                            ..._receiverJobsGrouped.map((group) {
+                              final date = group['date'] as String;
+                              final jobs = group['jobs'] as List<DeliveryJob>;
+                              return JobContainerView(
+                                deliveryJobs: jobs,
+                                title: "รายการรับพัสดุ",
+                                date: DateTime.parse(date.replaceAll('/', '-')),
+                                onLocationPress: _handleLocationPress,
+                              );
+                            }),
+                        ],
+                      ),
                     ),
                   ),
           ),
-          // if (_selectedJobForMap != null)
-          MapViewerSinglePointPathFinder(
-            isOpened: true,
-            lat: _selectedJobForMap!.deliveryAddress.latitude,
-            lng: _selectedJobForMap!.deliveryAddress.longtitude,
-            destLabel: _selectedJobForMap!.deliveryAddress.detail,
-            label: "ตำแหน่งจัดส่ง",
-            onModalClosed: () {
-              setState(() {
-                _isMapOpen = false;
-                _selectedJobForMap = null;
-              });
-            },
-          ),
+          if (_selectedJobForMap != null)
+            MapViewerSinglePointPathFinder(
+              key: ValueKey("overview_${_selectedJobForMap!.deliveryId}"),
+              isOpened: _isMapOpen,
+              // delivery address
+              lat: _selectedJobForMap!.deliveryAddress.latitude,
+              lng: _selectedJobForMap!.deliveryAddress.longtitude,
+              destLabel: _selectedJobForMap!.deliveryAddress.detail,
+              // pickup address
+              originLat: _selectedJobForMap!.pickupAddress.latitude,
+              originLng: _selectedJobForMap!.pickupAddress.longtitude,
+              originLabel: _selectedJobForMap!.pickupAddress.detail,
+              label: _isRiderTrackingStatus(_selectedJobForMap!.status)
+                  ? "ตำแหน่งไรเดอร์และจุดหมาย"
+                  : "จุดหมาย",
+              mode: _isRiderTrackingStatus(_selectedJobForMap!.status)
+                  ? PathFinderMode.currentToDestination
+                  : PathFinderMode.originToDestination,
+              locationUpdateInterval: const Duration(seconds: 10),
+              locationUpdateDistance: 5,
+              onModalClosed: () {
+                setState(() {
+                  _isMapOpen = false;
+                  _selectedJobForMap = null;
+                });
+              },
+            ),
         ],
       ),
     );
