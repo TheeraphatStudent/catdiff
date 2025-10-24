@@ -69,6 +69,26 @@ class _RiderListProdState extends State<RiderListProd> {
   double _selectedLat = 16.1872;
   double _selectedLng = 103.3045;
 
+  AddressInfo _getTargetAddressForJob(DeliveryJob job) {
+    switch (job.status.name) {
+      case 'receiving':
+        log(
+          'Job ${job.deliveryId} is in receiving state - target: pickup address',
+        );
+        return job.pickupAddress;
+      case 'riding':
+        log(
+          'Job ${job.deliveryId} is in riding state - target: delivery address',
+        );
+        return job.deliveryAddress;
+      default:
+        log(
+          'Job ${job.deliveryId} has unknown status ${job.status.name} - defaulting to pickup address',
+        );
+        return job.pickupAddress;
+    }
+  }
+
   void _openMapForDelivery(AddressInfo address) async {
     setState(() {
       _isLoadingLocation = true;
@@ -120,11 +140,12 @@ class _RiderListProdState extends State<RiderListProd> {
     AddressInfo address,
   ) async {
     try {
-      final double distance =
-          await DeliveryRiderJob.calculateDistanceFromDestination(
-            latlng.LatLng(origin.latitude, origin.longitude),
-            latlng.LatLng(address.latitude, address.longtitude),
-          );
+      final double distance = DeliveryRiderJob.calculateDistance(
+        origin.latitude,
+        origin.longitude,
+        address.latitude,
+        address.longtitude,
+      );
 
       if (!mounted) return;
 
@@ -154,7 +175,12 @@ class _RiderListProdState extends State<RiderListProd> {
     try {
       await DeliveryRiderJob.onWorkingDeliveryJob(job, _appData!.currentUser!);
 
-      Get.off(() => RiderJobPage(deliveryJob: job));
+      Get.off(
+        () => RiderJobPage(
+          deliveryJob: job,
+          initialUserLocation: _currentLocation,
+        ),
+      );
     } catch (e) {
       log('Error accepting job: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -378,13 +404,15 @@ class _RiderListProdState extends State<RiderListProd> {
                         onCardTap: () {
                           log('Card tapped: ${job.deliveryId}');
                           _deliveryJob = job;
-                          _openMapForDelivery(job.pickupAddress);
+                          final targetAddress = _getTargetAddressForJob(job);
+                          _openMapForDelivery(targetAddress);
                         },
                         onLocationTap: (address) {
                           // log('Location tapped: ${address.detail}');
 
                           _deliveryJob = job;
-                          _openMapForDelivery(job.pickupAddress);
+                          final targetAddress = _getTargetAddressForJob(job);
+                          _openMapForDelivery(targetAddress);
                         },
                       );
                     }).toList(),

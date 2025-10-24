@@ -11,6 +11,7 @@ import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/sender_state_have_prod.dart';
 import 'package:app/pages/user/user_home.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/user/role.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -109,13 +110,32 @@ class _RootLoadingCheckerState extends State<_RootLoadingChecker> {
         if (!_hasChecked) {
           _hasChecked = true;
 
-          Future.microtask(() {
+          Future.microtask(() async {
             if (user == null) {
               Get.offNamed('/onboarding');
             } else {
               switch (user.role) {
                 case UserRole.rider:
-                  Get.offNamed('/rider');
+                  final hasActiveJob = await DeliveryRiderJob.getRiderJobExist(
+                    user.id,
+                  );
+
+                  if (hasActiveJob) {
+                    final activeJob = await DeliveryRiderJob.getActiveRiderJob(
+                      user.id,
+                    );
+
+                    if (activeJob != null) {
+                      Get.offNamed(
+                        '/rider-job',
+                        arguments: {'deliveryJob': activeJob},
+                      );
+                    } else {
+                      Get.offNamed('/rider');
+                    }
+                  } else {
+                    Get.offNamed('/rider');
+                  }
                   break;
                 case UserRole.user:
                   Get.offNamed('/user');

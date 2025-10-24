@@ -24,8 +24,9 @@ import 'package:provider/provider.dart';
 
 class RiderJobPage extends StatefulWidget {
   final DeliveryJob? deliveryJob;
+  final gmaps.LatLng? initialUserLocation;
 
-  const RiderJobPage({super.key, this.deliveryJob});
+  const RiderJobPage({super.key, this.deliveryJob, this.initialUserLocation});
 
   @override
   State<RiderJobPage> createState() => _RiderJobPageState();
@@ -38,33 +39,134 @@ class _RiderJobPageState extends State<RiderJobPage> {
   final ProfileController _profileController = ProfileController();
 
   DeliveryJob? _currentJob;
-  Timer? _locationTimer;
+  StreamSubscription<gmaps.LatLng>? _locationSubscription;
   latlng.LatLng? _currentGeoLocation;
   gmaps.LatLng? _currentMapLocation;
 
   double _distanceToTarget = 0.0;
   bool _isUploadingImage = false;
+  String? _processingImageUrl;
 
   @override
   void initState() {
     super.initState();
-    _currentJob = widget.deliveryJob;
+
+    final arguments = Get.arguments as Map<String, dynamic>?;
+    if (arguments != null && arguments['deliveryJob'] != null) {
+      _currentJob = arguments['deliveryJob'] as DeliveryJob;
+      log('Loaded delivery job from arguments: ${_currentJob!.deliveryId}');
+    } else {
+      _currentJob = widget.deliveryJob;
+    }
+
+    if (_currentJob != null) {
+      switch (_currentJob!.status.name) {
+        case 'receiving':
+          _ridingState = RidingJobState.takeJob;
+          break;
+        case 'riding':
+          _ridingState = RidingJobState.deliveringJob;
+          break;
+        default:
+          _ridingState = RidingJobState.takeJob;
+      }
+      log(
+        'Set initial riding state: ${_ridingState.name} for status: ${_currentJob!.status.name}',
+      );
+    }
+
+    if (widget.initialUserLocation != null) {
+      _currentMapLocation = widget.initialUserLocation;
+      _currentGeoLocation = latlng.LatLng(
+        widget.initialUserLocation!.latitude,
+        widget.initialUserLocation!.longitude,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshDistanceToTarget();
+      });
+    }
     _startLocationTracking();
     _setupProfileController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateCurrentLocation();
+    });
   }
 
   void _setupProfileController() {
     _profileController.addListener(() {
-      if (_profileController.uploadedUrl != null && !_isUploadingImage) {
+      if (!mounted) {
+        log('Widget not mounted, skipping ProfileController callback');
+        return;
+      }
+
+      if (_profileController.uploadedUrl != null) {
+        log(
+          'ProfileController detected upload completion: ${_profileController.uploadedUrl}',
+        );
         _handleImageUpload(_profileController.uploadedUrl!);
       }
     });
   }
 
   void _startLocationTracking() {
-    _locationTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _updateCurrentLocation();
+    log('Starting location tracking with stream for rider job');
+
+    _locationSubscription =
+        MapService.getPositionStream(distanceFilterMeters: 5).listen(
+          _handleLiveLocation,
+          onError: (error) => log('Rider job location stream error: $error'),
+        );
+
+    _updateCurrentLocation();
+  }
+
+  void _handleLiveLocation(gmaps.LatLng newLocation) {
+    if (!mounted) return;
+
+    log(
+      'Live location update: ${newLocation.latitude}, ${newLocation.longitude}',
+    );
+
+    final geoLocation = latlng.LatLng(
+      newLocation.latitude,
+      newLocation.longitude,
+    );
+
+    setState(() {
+      _currentGeoLocation = geoLocation;
+      _currentMapLocation = newLocation;
     });
+
+    _updateRiderLocationAndDistance(geoLocation);
+  }
+
+  Future<void> _updateRiderLocationAndDistance(latlng.LatLng location) async {
+    if (_currentJob == null) return;
+
+    try {
+      final appData = Provider.of<AppData>(context, listen: false);
+
+      await DeliveryRiderJob.updateRiderLocation(
+        _currentJob!.deliveryId,
+        location,
+        appData.currentUser!.id,
+      );
+
+      final latlng.LatLng? targetLocation = _resolveTargetGeoLocation();
+
+      if (targetLocation != null) {
+        final distance = DeliveryRiderJob.calculateDistance(
+          location.latitude,
+          location.longitude,
+          targetLocation.latitude,
+          targetLocation.longitude,
+        );
+
+        _applyDistanceUpdate(distance);
+      }
+    } catch (e) {
+      log('Error updating rider location and distance: $e');
+    }
   }
 
   Future<void> _updateCurrentLocation() async {
@@ -78,26 +180,10 @@ class _RiderJobPageState extends State<RiderJobPage> {
       });
 
       if (_currentJob != null && _currentGeoLocation != null) {
-        final appData = Provider.of<AppData>(context, listen: false);
-        await DeliveryRiderJob.updateRiderLocation(
-          _currentJob!.deliveryId,
-          _currentGeoLocation!,
-          appData.currentUser!.id,
-        );
-
-        final latlng.LatLng? targetLocation = _resolveTargetGeoLocation();
-        if (targetLocation != null) {
-          final distance =
-              await DeliveryRiderJob.calculateDistanceFromDestination(
-                _currentGeoLocation!,
-                targetLocation,
-              );
-
-          _applyDistanceUpdate(distance);
-        }
+        await _updateRiderLocationAndDistance(geoLocation);
       }
     } catch (e) {
-      log('Error updating location: $e');
+      log('Error getting initial location: $e');
     }
   }
 
@@ -142,9 +228,11 @@ class _RiderJobPageState extends State<RiderJobPage> {
     final targetLocation = _resolveTargetGeoLocation();
     if (targetLocation == null) return;
 
-    final distance = await DeliveryRiderJob.calculateDistanceFromDestination(
-      _currentGeoLocation!,
-      targetLocation,
+    final distance = DeliveryRiderJob.calculateDistance(
+      _currentGeoLocation!.latitude,
+      _currentGeoLocation!.longitude,
+      targetLocation.latitude,
+      targetLocation.longitude,
     );
 
     _applyDistanceUpdate(distance);
@@ -156,9 +244,14 @@ class _RiderJobPageState extends State<RiderJobPage> {
     final shouldSubmit =
         _ridingState == RidingJobState.deliveringJob && distanceMeters <= 20;
 
+    log(
+      'Distance update: ${distanceMeters.toStringAsFixed(1)}m, State: ${_ridingState.name}, Should submit: $shouldSubmit',
+    );
+
     setState(() {
       _distanceToTarget = distanceMeters;
       if (shouldSubmit) {
+        log('Rider reached destination - enabling submit state');
         _ridingState = RidingJobState.submitJob;
       }
     });
@@ -167,23 +260,35 @@ class _RiderJobPageState extends State<RiderJobPage> {
   Future<void> _handleImageUpload(String imageUrl) async {
     if (_currentJob == null) return;
 
-    setState(() {
-      _isUploadingImage = true;
-    });
+    if (!mounted) {
+      log('Widget not mounted, skipping image upload handling');
+      return;
+    }
+
+    if (_processingImageUrl == imageUrl) {
+      log('Image $imageUrl already being processed, skipping duplicate call');
+      return;
+    }
+
+    log('Starting image upload process for: $imageUrl');
+    _processingImageUrl = imageUrl;
 
     try {
       final appData = Provider.of<AppData>(context, listen: false);
 
       if (_ridingState == RidingJobState.takeJob) {
+        log('Uploading pickup image for delivery: ${_currentJob!.deliveryId}');
         await DeliveryRiderJob.uploadPickupImage(
           _currentJob!.deliveryId,
           imageUrl,
           appData.currentUser!.id,
         );
-
-        setState(() {
-          _ridingState = RidingJobState.deliveringJob;
-        });
+        if (mounted) {
+          setState(() {
+            _ridingState = RidingJobState.deliveringJob;
+            _isUploadingImage = false;
+          });
+        }
 
         await _refreshDistanceToTarget();
 
@@ -206,10 +311,20 @@ class _RiderJobPageState extends State<RiderJobPage> {
           return;
         }
 
+        log(
+          'Uploading delivery completion image for delivery: ${_currentJob!.deliveryId}',
+        );
         await DeliveryRiderJob.uploadDeliveryImage(
           _currentJob!.deliveryId,
           imageUrl,
         );
+
+        log('Delivery completed successfully - redirecting to rider list');
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+          });
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -219,7 +334,9 @@ class _RiderJobPageState extends State<RiderJobPage> {
         );
 
         Future.delayed(Duration(seconds: 2), () {
-          Get.back();
+          if (mounted) {
+            Get.offAllNamed('/rider');
+          }
         });
       }
     } catch (e) {
@@ -231,15 +348,18 @@ class _RiderJobPageState extends State<RiderJobPage> {
         ),
       );
     } finally {
-      setState(() {
-        _isUploadingImage = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+      _processingImageUrl = null;
     }
   }
 
   @override
   void dispose() {
-    _locationTimer?.cancel();
+    _locationSubscription?.cancel();
     _profileController.dispose();
     super.dispose();
   }
@@ -310,7 +430,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
                   Icon(Icons.location_on, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    '${_distanceStatusLabel()}: ${_distanceToTarget.toStringAsFixed(1)} เมตร',
+                    '${_distanceStatusLabel()}: ${DeliveryRiderJob.formatDistance(_distanceToTarget)}',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -376,10 +496,12 @@ class _RiderJobPageState extends State<RiderJobPage> {
                     controller: _profileController,
                     isEdited: true,
                     autoUpload: true,
+                    size: ProfileSize.xl,
                     userId: Provider.of<AppData>(
                       context,
                       listen: false,
                     ).currentUser?.id,
+                    config: ProfileWidgetConfig(editIcon: Icons.upload),
                   ),
                 ],
               ),
