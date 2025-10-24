@@ -1,4 +1,5 @@
 import 'package:app/config/theme/app_theme.dart';
+import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/service/map/map_service.dart';
 import 'package:app/service/map/routes_service.dart';
 import 'package:app/widget/map/map_destination.dart';
@@ -219,12 +220,13 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
       "Starting live location updates with distance filter: ${widget.locationUpdateDistance}m",
     );
 
-    _locationSubscription = MapService.getPositionStream(
-      distanceFilterMeters: widget.locationUpdateDistance,
-    ).listen(
-      _handleLiveLocation,
-      onError: (error) => log('Live location stream error: $error'),
-    );
+    _locationSubscription =
+        MapService.getPositionStream(
+          distanceFilterMeters: widget.locationUpdateDistance,
+        ).listen(
+          _handleLiveLocation,
+          onError: (error) => log('Live location stream error: $error'),
+        );
 
     unawaited(_updateCurrentLocation());
   }
@@ -254,16 +256,13 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     }
   }
 
-  void _handleLiveLocation(
-    LatLng newLocation, {
-    bool bypassThreshold = false,
-  }) {
+  void _handleLiveLocation(LatLng newLocation, {bool bypassThreshold = false}) {
     if (!mounted) {
       return;
     }
 
     if (_currentLocation != null && !bypassThreshold) {
-      final double distanceDelta = _calculateDistance(
+      final double distanceDelta = DeliveryRiderJob.calculateDistance(
         _currentLocation!.latitude,
         _currentLocation!.longitude,
         newLocation.latitude,
@@ -288,29 +287,6 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
     });
 
     _updateManualRouteInfo();
-  }
-
-  double _calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const double earthRadius = 6371000;
-    final double dLat = _toRadians(lat2 - lat1);
-    final double dLon = _toRadians(lon2 - lon1);
-    final double a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_toRadians(lat1)) *
-            math.cos(_toRadians(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadius * c;
-  }
-
-  double _toRadians(double degrees) {
-    return degrees * (math.pi / 180);
   }
 
   LatLng? get _getOriginLocation {

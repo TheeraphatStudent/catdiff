@@ -151,8 +151,9 @@ class DeliveryService {
     String userId,
     UserType displayType,
   ) {
-    Query<Map<String, dynamic>> query =
-        FirebaseFirestore.instance.collection('delivery');
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(
+      'delivery',
+    );
 
     if (displayType == UserType.sender) {
       query = query.where('sended_id', isEqualTo: userId);
@@ -424,5 +425,30 @@ class DeliveryService {
   ) async {
     final status = StatusTypes().getStatusTypeEnum(statusString);
     return await updateDeliveryStatus(deliveryId, status);
+  }
+
+  static Future<bool> updatePickupImages(
+    String deliveryId,
+    List<String> imageUrls,
+  ) async {
+    try {
+      log('Updating pickup images for delivery: $deliveryId');
+      log('Image URLs: $imageUrls');
+
+      await FirebaseHelper().updateDocument(
+        collection: 'delivery',
+        documentId: deliveryId,
+        data: {
+          'pickup_pkg_images_url': imageUrls,
+          'updated_at': TimeHelper.getDateNow(),
+        },
+      );
+
+      log('Successfully updated pickup images for delivery: $deliveryId');
+      return true;
+    } catch (e) {
+      log('Error updating pickup images for delivery $deliveryId: $e');
+      return false;
+    }
   }
 }
