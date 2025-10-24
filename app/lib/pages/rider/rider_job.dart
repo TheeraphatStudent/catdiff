@@ -139,12 +139,31 @@ class _RiderJobPageState extends State<RiderJobPage> {
       newLocation.longitude,
     );
 
+    bool shouldUpdateMap = false;
+    if (_currentMapLocation != null) {
+      final distance = DeliveryRiderJob.calculateDistance(
+        _currentMapLocation!.latitude,
+        _currentMapLocation!.longitude,
+        newLocation.latitude,
+        newLocation.longitude,
+      );
+      shouldUpdateMap = distance >= 5.0;
+    } else {
+      shouldUpdateMap = true;
+    }
+
     setState(() {
       _currentGeoLocation = geoLocation;
       _currentMapLocation = newLocation;
     });
 
     _updateRiderLocationAndDistance(geoLocation);
+
+    if (shouldUpdateMap && _ridingState == RidingJobState.deliveringJob) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshDistanceToTarget();
+      });
+    }
   }
 
   Future<void> _updateRiderLocationAndDistance(latlng.LatLng location) async {
@@ -264,6 +283,16 @@ class _RiderJobPageState extends State<RiderJobPage> {
     });
   }
 
+  void _showSnackBar(String message, {Color? backgroundColor}) {
+    if (!mounted || _isDisposed) {
+      log('Skipping snackbar "$message" because widget is disposed');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
+  }
+
   Future<void> _handleImageUpload(String imageUrl) async {
     if (_currentJob == null) return;
 
@@ -290,30 +319,30 @@ class _RiderJobPageState extends State<RiderJobPage> {
           imageUrl,
           appData.currentUser!.id,
         );
-        if (mounted) {
-          setState(() {
-            _ridingState = RidingJobState.deliveringJob;
-            _isUploadingImage = false;
-          });
+
+        if (!mounted || _isDisposed) {
+          log(
+            'Widget disposed after pickup upload, skipping follow-up actions',
+          );
+          return;
         }
+
+        setState(() {
+          _ridingState = RidingJobState.deliveringJob;
+          _isUploadingImage = false;
+        });
 
         await _refreshDistanceToTarget();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('อัพโหลดรูปรับสินค้าสำเร็จ กำลังดำเนินการส่ง'),
-            backgroundColor: AppColors.primary3,
-          ),
+        _showSnackBar(
+          'อัพโหลดรูปรับสินค้าสำเร็จ กำลังดำเนินการส่ง',
+          backgroundColor: AppColors.primary3,
         );
       } else if (_ridingState == RidingJobState.submitJob) {
         if (_distanceToTarget > 20) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'คุณต้องอยู่ในระยะ 20 เมตรจากจุดหมายปลายทางเพื่ออัพโหลดรูป',
-              ),
-              backgroundColor: Colors.red,
-            ),
+          _showSnackBar(
+            'คุณต้องอยู่ในระยะ 20 เมตรจากจุดหมายปลายทางเพื่ออัพโหลดรูป',
+            backgroundColor: Colors.red,
           );
           return;
         }
@@ -326,39 +355,40 @@ class _RiderJobPageState extends State<RiderJobPage> {
           imageUrl,
         );
 
-        log('Delivery completed successfully - redirecting to rider list');
-        if (mounted) {
-          setState(() {
-            _isUploadingImage = false;
-          });
+        if (!mounted || _isDisposed) {
+          log(
+            'Widget disposed after delivery upload, skipping follow-up actions',
+          );
+          return;
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('จัดส่งสำเร็จ!'),
-            backgroundColor: AppColors.primary3,
-          ),
-        );
+        log('Delivery completed successfully - redirecting to rider list');
+        setState(() {
+          _isUploadingImage = false;
+        });
+
+        _showSnackBar('จัดส่งสำเร็จ!', backgroundColor: AppColors.primary3);
 
         Future.delayed(Duration(seconds: 2), () {
-          if (mounted) {
+          if (mounted && !_isDisposed) {
             Get.offAllNamed('/rider');
           }
         });
       }
     } catch (e) {
       log('Error uploading image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการอัพโหลดรูป'),
-          backgroundColor: Colors.red,
-        ),
+
+      _showSnackBar(
+        'เกิดข้อผิดพลาดในการอัพโหลดรูป',
+        backgroundColor: Colors.red,
       );
     } finally {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _isUploadingImage = false;
         });
+      } else {
+        _isUploadingImage = false;
       }
       _processingImageUrl = null;
     }
@@ -404,12 +434,12 @@ class _RiderJobPageState extends State<RiderJobPage> {
                       color: AppColors.primary5,
                       text: "#${_currentJob!.deliveryId}",
                     ),
-                    ButtonActions(
-                      variant: ButtonVariant.danger,
-                      icon: Icons.close,
-                      disable: _ridingState != RidingJobState.takeJob,
-                      onPressed: () {},
-                    ),
+                    // ButtonActions(
+                    //   variant: ButtonVariant.danger,
+                    //   icon: Icons.close,
+                    //   disable: _ridingState != RidingJobState.takeJob,
+                    //   onPressed: () {},
+                    // ),
                   ],
                 ),
                 StepperWidget(
