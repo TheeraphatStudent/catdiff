@@ -13,6 +13,10 @@ class StatusHelper {
   StatusHelper._();
 
   static const Map<StatusType, StatusColors> _colorMap = {
+    StatusType.prepare: StatusColors(
+      dark: AppColors.grayMedium,
+      light: AppColors.grayLight,
+    ),
     StatusType.pending: StatusColors(
       dark: AppColors.darkWarning,
       light: AppColors.lightWarning,
