@@ -42,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // Reciver list
   final List<ReciverList> reciverItems = [];
   List<ReciverList> filteredReciverItems = [];
-  String _searchQuery = '';
 
   bool _hasLoadedData = false;
   String _currentContentType = "";
@@ -88,9 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
       filteredReciverItems = List.from(reciverItems);
     });
 
-    log(
-      'Loaded ${reciverListRes.length} receivers. Delivery data will come from real-time streams.',
-    );
+    // log(
+    //   'Loaded ${reciverListRes.length} receivers. Delivery data will come from real-time streams.',
+    // );
   }
 
   void _startRealtimeListeners() {
@@ -102,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.sender,
         ).listen((items) {
           if (!mounted) return;
-          log('Real-time sender items received: ${items.length} items');
+          // log('Real-time sender items received: ${items.length} items');
           setState(() {
             senderItems
               ..clear()
@@ -116,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.receiver,
         ).listen((items) {
           if (!mounted) return;
-          log('Real-time receiver items received: ${items.length} items');
+          // log('Real-time receiver items received: ${items.length} items');
           setState(() {
             receiverItems
               ..clear()
@@ -142,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final senderItems = await senderStream.first.timeout(
         Duration(seconds: 5),
         onTimeout: () {
-          log('Sender stream timeout - using existing data');
+          // log('Sender stream timeout - using existing data');
           return this.senderItems;
         },
       );
@@ -150,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final receiverItems = await receiverStream.first.timeout(
         Duration(seconds: 5),
         onTimeout: () {
-          log('Receiver stream timeout - using existing data');
+          // log('Receiver stream timeout - using existing data');
           return this.receiverItems;
         },
       );
@@ -164,28 +163,34 @@ class _HomeScreenState extends State<HomeScreen> {
             ..clear()
             ..addAll(receiverItems);
         });
-        log('Delivery stats refreshed successfully');
+        // log('Delivery stats refreshed successfully');
       }
     } catch (e) {
       log('Error refreshing delivery stats: $e');
-      if (e.toString().contains('failed-precondition')) {
-        log(
-          'Skipping refresh due to missing Firebase index - please create the required index',
-        );
-      }
+      // if (e.toString().contains('failed-precondition')) {
+      //   log(
+      //     'Skipping refresh due to missing Firebase index - please create the required index',
+      //   );
+      // }
     }
   }
 
   void _filterReciverItems(String query) {
+    // log(query);
+
     setState(() {
-      _searchQuery = query;
       if (query.isEmpty) {
         filteredReciverItems = List.from(reciverItems);
       } else {
+        // log(reciverItems.first.phoneNumber);
+
         filteredReciverItems = reciverItems
             .where(
               (receiver) =>
-                  receiver.name.toLowerCase().contains(query.toLowerCase()),
+                  receiver.name.toLowerCase().contains(query.toLowerCase()) ||
+                  receiver.phoneNumber.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
             )
             .toList();
       }
@@ -311,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _loadExistingPrepareJobs();
                       },
                       onTap: () {
-                        log("on tap sender");
+                        // log("on tap sender");
 
                         Get.offNamed(
                           '/overview',
@@ -333,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        log("on tap receiver");
+                        // log("on tap receiver");
 
                         Get.offNamed(
                           '/overview',
@@ -373,13 +378,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   )?.longtitude
                 : null,
             onAddressSelected: (latLng, address) async {
-              log(
-                "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
-              );
+              // log(
+              //   "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
+              // );
 
               final currentDeliveryId = _selectedDeliveryIdForLocation;
               if (currentDeliveryId == null) {
-                log("No delivery ID selected for location update");
+                // log("No delivery ID selected for location update");
                 return;
               }
 
@@ -389,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
 
                 if (index == -1) {
-                  log("Delivery item not found for ID: $currentDeliveryId");
+                  // log("Delivery item not found for ID: $currentDeliveryId");
                   return;
                 }
 
@@ -403,9 +408,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   detail: address,
                 );
 
-                log(
-                  "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
-                );
+                // log(
+                //   "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
+                // );
 
                 setState(() {
                   _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
@@ -578,8 +583,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: filteredReciverItems.map((receiver) {
                       return ReciverJobItem(
                         reciver: receiver,
+                        onAvatarTap: (reciver) {
+                          log("On tap avatar");
+                        },
                         onTap: () {
-                          log(receiver.address.addressId);
+                          // log(receiver.address.addressId);
 
                           _selectedReciver = receiver;
 

@@ -11,8 +11,14 @@ import 'package:flutter/material.dart';
 class ReciverJobItem extends StatelessWidget {
   final ReciverList reciver;
   final VoidCallback onTap;
+  final Function(ReciverList)? onAvatarTap;
 
-  const ReciverJobItem({super.key, required this.reciver, required this.onTap});
+  const ReciverJobItem({
+    super.key,
+    required this.reciver,
+    required this.onTap,
+    this.onAvatarTap,
+  });
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -39,15 +45,32 @@ class ReciverJobItem extends StatelessWidget {
                 size: ProfileSize.sm,
                 imageUrl: reciver.imageUrl,
                 shape: ProfileShape.circular,
+                onPressed: () {
+                  onAvatarTap?.call(reciver);
+                },
               ),
               SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Tag(color: AppColors.primary5, text: reciver.name),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      spacing: 8,
+                      children: [
+                        Tag(color: AppColors.primary5, text: reciver.name),
+                        Text(
+                          reciver.phoneNumber,
+                          style: TextStyle(
+                            color: AppColors.primary2,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            height: 1.2,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 8),
                     InputField(

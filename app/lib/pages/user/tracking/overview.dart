@@ -514,6 +514,21 @@ class _OverviewPageState extends State<OverviewPage> {
                       Column(
                         spacing: 12,
                         children: [
+                          Text("รูปภาพจุดรับสินค้า"),
+                          ProfileWidgets.avatar(
+                            shape: ProfileShape.rectangle,
+                            isEdited: false,
+                            config: ProfileWidgetConfig(
+                              placeholderIcon: Icons.inbox_outlined,
+                            ),
+                            imageUrl: _selectedJobForMap!.pickupPkgImagesUrl,
+                          ),
+                        ],
+                      ),
+
+                      Column(
+                        spacing: 12,
+                        children: [
                           Text("รูปภาพการเข้ารับสินค้า"),
                           ProfileWidgets.avatar(
                             shape: ProfileShape.rectangle,
@@ -522,11 +537,7 @@ class _OverviewPageState extends State<OverviewPage> {
                               placeholderIcon: Icons.inbox_outlined,
                             ),
                             imageUrl:
-                                _selectedJobForMap!
-                                    .pickupPkgImagesUrl
-                                    .isNotEmpty
-                                ? _selectedJobForMap!.pickupPkgImagesUrl
-                                : "",
+                                _selectedJobForMap!.deliveredPkgImgUrl ?? "",
                           ),
                         ],
                       ),
