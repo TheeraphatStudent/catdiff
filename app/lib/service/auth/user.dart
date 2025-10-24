@@ -63,7 +63,7 @@ class AuthService {
             password: password,
           );
 
-      log("User credentiaL: $userCredential");
+      // log("User credentiaL: $userCredential");
 
       // ข้อมูลพื้นฐาน - different structure for User vs Raider
       final Map<String, dynamic> userData;
@@ -99,13 +99,13 @@ class AuthService {
         };
       }
 
-      log("Attempting to save user data to Firestore: $userData");
-      log("User ID: ${userCredential.user!.uid}");
-      log("Address ID: $address");
-      log("Profile Image URL: $profileImageUrl");
-      log("Vehicle Image URL: $vehicleImageUrl");
-      log("License Plate: $licencePlate");
-      log("Vehicle Type: $vehicleType");
+      // log("Attempting to save user data to Firestore: $userData");
+      // log("User ID: ${userCredential.user!.uid}");
+      // log("Address ID: $address");
+      // log("Profile Image URL: $profileImageUrl");
+      // log("Vehicle Image URL: $vehicleImageUrl");
+      // log("License Plate: $licencePlate");
+      // log("Vehicle Type: $vehicleType");
 
       // บันทึกลง Firestore
       await FirebaseHelper().setDocument(
@@ -113,7 +113,7 @@ class AuthService {
         documentId: userCredential.user!.uid,
         data: userData,
       );
-      log("Successfully saved user data to Firestore");
+      // log("Successfully saved user data to Firestore");
 
       // แปลงเป็น object
       final userObject = User.fromJson(userData);

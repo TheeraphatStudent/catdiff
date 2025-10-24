@@ -16,7 +16,10 @@ class JwtHelper {
     }
   }
 
-  static Map<String, dynamic>? decodeTokenWithLogging(String token, {String? context}) {
+  static Map<String, dynamic>? decodeTokenWithLogging(
+    String token, {
+    String? context,
+  }) {
     try {
       if (token.isEmpty) {
         print('${context ?? 'JWT'}: Token is empty');

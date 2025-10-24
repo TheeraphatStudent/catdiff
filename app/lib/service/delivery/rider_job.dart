@@ -174,6 +174,7 @@ class DeliveryRiderJob {
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
             sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+            deliveredPkgImgUrl: delivery.deliveredPkgImgUrl,
           );
         }
         throw Exception('Document data is null for delivery: ${doc.id}');
@@ -233,6 +234,37 @@ class DeliveryRiderJob {
     } catch (e) {
       log("Error getting rider location: ${e.toString()}");
       return null;
+    }
+  }
+
+  static Stream<LatLng?> watchRiderLocationOnJob(String deliveryId) {
+    try {
+      return FirebaseFirestore.instance
+          .collection('rider_location')
+          .doc(deliveryId)
+          .snapshots()
+          .map((DocumentSnapshot snapshot) {
+            if (!snapshot.exists) {
+              return null;
+            }
+
+            final data = snapshot.data() as Map<String, dynamic>?;
+            if (data == null) {
+              return null;
+            }
+
+            final double? latitude = (data['latitude'] as num?)?.toDouble();
+            final double? longitude = (data['longitude'] as num?)?.toDouble();
+
+            if (latitude == null || longitude == null) {
+              return null;
+            }
+
+            return LatLng(latitude, longitude);
+          });
+    } catch (e) {
+      log('Error watching rider location: ${e.toString()}');
+      return const Stream<LatLng?>.empty();
     }
   }
 
@@ -348,6 +380,7 @@ class DeliveryRiderJob {
         pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
         sendedPkgDetail: delivery.sendedPkgDetail ?? '???',
         sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? '???',
+        deliveredPkgImgUrl: delivery.deliveredPkgImgUrl ?? '???',
       );
 
       log(
@@ -397,7 +430,7 @@ class DeliveryRiderJob {
         data: {
           'status': 'riding',
           'pickup_at': TimeHelper.getDateNow(),
-          'pickup_pkg_images_url': FieldValue.arrayUnion([imageUrl]),
+          'pickup_pkg_images_url': imageUrl,
           'rider_info': {
             'rider_id': riderId,
             'updated_at': TimeHelper.getDateNow(),

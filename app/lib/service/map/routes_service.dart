@@ -166,10 +166,7 @@ class _CachedRoute {
 }
 
 class _ThrottleEntry {
-  _ThrottleEntry({
-    required this.request,
-    required this.completer,
-  });
+  _ThrottleEntry({required this.request, required this.completer});
 
   Future<MapRouteResult> Function() request;
   final Completer<MapRouteResult> completer;
@@ -557,8 +554,9 @@ class MapRoutesService {
     RouteComputationException? cause,
   }) async {
     if (_debugLogging) {
-      final String reason =
-          cause != null && cause.message.isNotEmpty ? ' (reason: ${cause.message})' : '';
+      final String reason = cause != null && cause.message.isNotEmpty
+          ? ' (reason: ${cause.message})'
+          : '';
       _logDebug('Using fallback route calculation$reason');
     }
 
@@ -588,20 +586,21 @@ class MapRoutesService {
       destination,
     ]);
 
-    List<LatLng> polyline =
-        directions != null && directions.polyline.isNotEmpty
-            ? directions.polyline
-            : interpolated;
+    List<LatLng> polyline = directions != null && directions.polyline.isNotEmpty
+        ? directions.polyline
+        : interpolated;
     double? distanceMeters = directions?.distanceMeters;
     Duration? duration = directions?.duration;
-    RouteDistanceSource distanceSource =
-        directions != null ? RouteDistanceSource.routesApi : RouteDistanceSource.geometry;
+    RouteDistanceSource distanceSource = directions != null
+        ? RouteDistanceSource.routesApi
+        : RouteDistanceSource.geometry;
 
     if (distanceStrategy == MapRouteDistanceStrategy.localGeometry) {
       distanceMeters = _distanceFromPolyline(polyline);
       distanceSource = RouteDistanceSource.geometry;
       duration = null;
-    } else if (distanceStrategy == MapRouteDistanceStrategy.distanceMatrixPreferred) {
+    } else if (distanceStrategy ==
+        MapRouteDistanceStrategy.distanceMatrixPreferred) {
       try {
         final _DistanceMatrixInfo? matrix = await _fetchDistanceMatrix(
           origin: origin,
@@ -688,8 +687,7 @@ class MapRoutesService {
       return null;
     }
 
-    final Map<String, dynamic>? route =
-        routes.first as Map<String, dynamic>?;
+    final Map<String, dynamic>? route = routes.first as Map<String, dynamic>?;
     if (route == null) {
       return null;
     }
@@ -697,8 +695,9 @@ class MapRoutesService {
     final Map<String, dynamic>? overview =
         route['overview_polyline'] as Map<String, dynamic>?;
     final String? encoded = overview?['points'] as String?;
-    final List<LatLng> polyline =
-        encoded != null && encoded.isNotEmpty ? _decodePolyline(encoded) : <LatLng>[];
+    final List<LatLng> polyline = encoded != null && encoded.isNotEmpty
+        ? _decodePolyline(encoded)
+        : <LatLng>[];
 
     double? totalDistance;
     Duration? totalDuration;
@@ -715,7 +714,9 @@ class MapRoutesService {
         final Map<String, dynamic>? durationData =
             leg['duration'] as Map<String, dynamic>?;
         final double? legDistance = _coerceToDouble(distanceData?['value']);
-        final double? legDurationSeconds = _coerceToDouble(durationData?['value']);
+        final double? legDurationSeconds = _coerceToDouble(
+          durationData?['value'],
+        );
         if (legDistance != null) {
           distanceAccumulator += legDistance;
         }

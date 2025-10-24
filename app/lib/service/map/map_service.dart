@@ -95,9 +95,8 @@ class MapService {
       distanceFilter: distanceFilterMeters.round(),
     );
 
-    return Geolocator.getPositionStream(locationSettings: locationSettings)
-        .map(
-          (position) => LatLng(position.latitude, position.longitude),
-        );
+    return Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).map((position) => LatLng(position.latitude, position.longitude));
   }
 }

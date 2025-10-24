@@ -74,7 +74,7 @@ class DeliverJobItem extends StatelessWidget {
                     isEdited: false,
                     size: ProfileSize.md,
                     imageUrl: deliveryJob.pickupPkgImagesUrl.isNotEmpty
-                        ? deliveryJob.pickupPkgImagesUrl.first
+                        ? deliveryJob.pickupPkgImagesUrl
                         : null,
                     shape: ProfileShape.rectangle,
                     config: ProfileWidgetConfig(

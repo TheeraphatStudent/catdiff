@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/widget/tracking/job_item.widget.dart';
@@ -24,6 +26,7 @@ class JobContainerView extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        log("JobContainerView tapped with ${deliveryJobs.length} jobs");
         onContainerPress?.call(deliveryJobs);
       },
       child: Container(
@@ -110,6 +113,7 @@ class JobContainerView extends StatelessWidget {
                 )
               else
                 Column(
+                  spacing: 16,
                   children: deliveryJobs.map((job) {
                     return JobItem(
                       deliveryJob: job,

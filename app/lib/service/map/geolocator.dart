@@ -10,11 +10,7 @@ class GeolocatorService {
     final uri = Uri.https(
       'nominatim.openstreetmap.org',
       '/reverse',
-      <String, String>{
-        'lat': '$lat',
-        'lon': '$lon',
-        'format': 'json',
-      },
+      <String, String>{'lat': '$lat', 'lon': '$lon', 'format': 'json'},
     );
 
     return http.get(

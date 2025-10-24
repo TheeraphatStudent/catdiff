@@ -42,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // Reciver list
   final List<ReciverList> reciverItems = [];
   List<ReciverList> filteredReciverItems = [];
-  String _searchQuery = '';
 
   bool _hasLoadedData = false;
   String _currentContentType = "";
@@ -88,9 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
       filteredReciverItems = List.from(reciverItems);
     });
 
-    log(
-      'Loaded ${reciverListRes.length} receivers. Delivery data will come from real-time streams.',
-    );
+    // log(
+    //   'Loaded ${reciverListRes.length} receivers. Delivery data will come from real-time streams.',
+    // );
   }
 
   void _startRealtimeListeners() {
@@ -102,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.sender,
         ).listen((items) {
           if (!mounted) return;
-          log('Real-time sender items received: ${items.length} items');
+          // log('Real-time sender items received: ${items.length} items');
           setState(() {
             senderItems
               ..clear()
@@ -116,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.receiver,
         ).listen((items) {
           if (!mounted) return;
-          log('Real-time receiver items received: ${items.length} items');
+          // log('Real-time receiver items received: ${items.length} items');
           setState(() {
             receiverItems
               ..clear()
@@ -125,16 +124,73 @@ class _HomeScreenState extends State<HomeScreen> {
         }, onError: (error) => log('Receiver realtime stream error: $error'));
   }
 
+  Future<void> _refreshDeliveryStats() async {
+    final appData = Provider.of<AppData>(context, listen: false);
+
+    try {
+      final senderStream = DeliveryService.watchDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.sender,
+      );
+
+      final receiverStream = DeliveryService.watchDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.receiver,
+      );
+
+      final senderItems = await senderStream.first.timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          // log('Sender stream timeout - using existing data');
+          return this.senderItems;
+        },
+      );
+
+      final receiverItems = await receiverStream.first.timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          // log('Receiver stream timeout - using existing data');
+          return this.receiverItems;
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          this.senderItems
+            ..clear()
+            ..addAll(senderItems);
+          this.receiverItems
+            ..clear()
+            ..addAll(receiverItems);
+        });
+        // log('Delivery stats refreshed successfully');
+      }
+    } catch (e) {
+      log('Error refreshing delivery stats: $e');
+      // if (e.toString().contains('failed-precondition')) {
+      //   log(
+      //     'Skipping refresh due to missing Firebase index - please create the required index',
+      //   );
+      // }
+    }
+  }
+
   void _filterReciverItems(String query) {
+    // log(query);
+
     setState(() {
-      _searchQuery = query;
       if (query.isEmpty) {
         filteredReciverItems = List.from(reciverItems);
       } else {
+        // log(reciverItems.first.phoneNumber);
+
         filteredReciverItems = reciverItems
             .where(
               (receiver) =>
-                  receiver.name.toLowerCase().contains(query.toLowerCase()),
+                  receiver.name.toLowerCase().contains(query.toLowerCase()) ||
+                  receiver.phoneNumber.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
             )
             .toList();
       }
@@ -260,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _loadExistingPrepareJobs();
                       },
                       onTap: () {
-                        log("on tap sender");
+                        // log("on tap sender");
 
                         Get.offNamed(
                           '/overview',
@@ -282,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         });
                       },
                       onTap: () {
-                        log("on tap receiver");
+                        // log("on tap receiver");
 
                         Get.offNamed(
                           '/overview',
@@ -301,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SlidingTemplate(
             isOpened: _isSliderOpen,
             onModalClosed: () => {onClosedModal()},
-            customTopBar: Center(child: Text("test")),
+            customTopBar: Center(child: Text("การจัดส่ง")),
             children: [
               _currentContentType == "sender"
                   ? _buildSenderContent()
@@ -322,13 +378,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   )?.longtitude
                 : null,
             onAddressSelected: (latLng, address) async {
-              log(
-                "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
-              );
+              // log(
+              //   "Address selected: $address at coordinates: ${latLng.latitude}, ${latLng.longitude}",
+              // );
 
               final currentDeliveryId = _selectedDeliveryIdForLocation;
               if (currentDeliveryId == null) {
-                log("No delivery ID selected for location update");
+                // log("No delivery ID selected for location update");
                 return;
               }
 
@@ -338,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
 
                 if (index == -1) {
-                  log("Delivery item not found for ID: $currentDeliveryId");
+                  // log("Delivery item not found for ID: $currentDeliveryId");
                   return;
                 }
 
@@ -352,9 +408,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   detail: address,
                 );
 
-                log(
-                  "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
-                );
+                // log(
+                //   "Updated address for delivery $currentDeliveryId: ${updatedAddress.addressId}",
+                // );
 
                 setState(() {
                   _addedJobItemToDeliver[index].deliveryJob.deliveryAddress =
@@ -434,21 +490,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _previousSenderStep() {
-    if (_currentSenderStep > 0) {
-      setState(() {
-        _currentSenderStep--;
-      });
-    }
-  }
+  // void _previousSenderStep() {
+  //   if (_currentSenderStep > 0) {
+  //     setState(() {
+  //       _currentSenderStep--;
+  //     });
+  //   }
+  // }
 
-  void _goToSenderStep(int step) {
-    if (step >= 0 && step <= 1) {
-      setState(() {
-        _currentSenderStep = step;
-      });
-    }
-  }
+  // void _goToSenderStep(int step) {
+  //   if (step >= 0 && step <= 1) {
+  //     setState(() {
+  //       _currentSenderStep = step;
+  //     });
+  //   }
+  // }
 
   Widget _getCurrentSenderStepContent() {
     switch (_currentSenderStep) {
@@ -527,8 +583,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: filteredReciverItems.map((receiver) {
                       return ReciverJobItem(
                         reciver: receiver,
+                        onAvatarTap: (reciver) {
+                          log("On tap avatar");
+                        },
                         onTap: () {
-                          log(receiver.address.addressId);
+                          // log(receiver.address.addressId);
 
                           _selectedReciver = receiver;
 
@@ -615,10 +674,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (index != -1) {
                   setState(() {
                     _addedJobItemToDeliver[index]
-                        .deliveryJob
-                        .pickupPkgImagesUrl = [
-                      profileController.uploadedUrl!,
-                    ];
+                            .deliveryJob
+                            .pickupPkgImagesUrl =
+                        profileController.uploadedUrl!;
                   });
 
                   _updateDeliveryJob(_addedJobItemToDeliver[index].deliveryJob);
@@ -727,7 +785,7 @@ class _HomeScreenState extends State<HomeScreen> {
         receivedId: _selectedReciver!.userId,
         pickupAddressId: appData.currentUser!.addressId,
         deliveryAddressId: _selectedReciver!.address.addressId,
-        pickupPkgImagesUrl: [],
+        pickupPkgImagesUrl: '',
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
         deliveredAt: null,
@@ -754,17 +812,15 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
           if (index != -1) {
-            final imageUrls = [profileController.uploadedUrl!];
-
             setState(() {
               _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl =
-                  imageUrls;
+                  profileController.uploadedUrl!;
             });
 
             try {
               final success = await DeliveryService.updatePickupImages(
                 createdDelivery.deliveryId,
-                imageUrls,
+                profileController.uploadedUrl!,
               );
 
               if (success) {
@@ -779,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ'),
-                      backgroundColor: AppColors.lightDanger,
+                      backgroundColor: AppColors.darkDanger,
                     ),
                   );
                 }
@@ -790,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: $e'),
-                    backgroundColor: AppColors.lightDanger,
+                    backgroundColor: AppColors.darkDanger,
                   ),
                 );
               }
@@ -807,7 +863,7 @@ class _HomeScreenState extends State<HomeScreen> {
             deliveryJob: DeliveryJob(
               deliveryId: createdDelivery.deliveryId,
               status: StatusType.pending,
-              pickupPkgImagesUrl: [],
+              pickupPkgImagesUrl: '',
               pickupAddress: AddressInfo(
                 addressId: appData.currentUser!.addressId,
                 detail: "",
@@ -842,7 +898,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onLocationTap: (AddressInfo address) {
               log("Location tap for delivery: ${createdDelivery.deliveryId}");
 
-              // Prevent opening map if already updating this delivery's location
               if (_pendingLocationUpdates.contains(
                 createdDelivery.deliveryId,
               )) {
@@ -877,7 +932,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการสร้างพัสดุ: $e'),
-          backgroundColor: AppColors.lightDanger,
+          backgroundColor: AppColors.darkDanger,
         ),
       );
     }
@@ -1015,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาดในการลบพัสดุ: $e'),
-            backgroundColor: AppColors.lightDanger,
+            backgroundColor: AppColors.darkDanger,
           ),
         );
       }
@@ -1042,6 +1097,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (updatedDelivery != null) {
           log("Successfully updated delivery $deliveryId to pending status");
+
+          if (mounted) {
+            _refreshDeliveryStats();
+          }
         } else {
           log("Failed to update delivery $deliveryId to pending status");
         }

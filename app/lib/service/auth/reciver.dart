@@ -38,7 +38,7 @@ class ReciverService {
           final String addressId = userData['address_id'] ?? '';
           AddressInfo address;
 
-          log("Address: $addressId");
+          // log("Address: $addressId");
 
           if (addressId.isNotEmpty) {
             address = await AddressService.getAddressById(addressId);
@@ -57,6 +57,7 @@ class ReciverService {
             userId: doc.id,
             imageUrl: userData['images_url'] ?? '',
             name: userName,
+            phoneNumber: userData['phone'] ?? '',
             address: address,
           );
 
@@ -67,6 +68,7 @@ class ReciverService {
             userId: doc.id,
             imageUrl: userData['images_url'] ?? '',
             name: userName,
+            phoneNumber: userData['phone'] ?? '',
             address: AddressInfo(
               addressId: '',
               latitude: 0.0,

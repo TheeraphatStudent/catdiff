@@ -44,7 +44,7 @@ class _RiderListProdState extends State<RiderListProd> {
   DeliveryJob _deliveryJob = DeliveryJob(
     deliveryId: '???',
     status: StatusType.pending,
-    pickupPkgImagesUrl: [],
+    pickupPkgImagesUrl: '',
     pickupAddress: AddressInfo(
       addressId: '???',
       detail: '???',

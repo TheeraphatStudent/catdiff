@@ -23,6 +23,8 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
   final String? label;
   final bool isOpened;
   final bool isShowingDetail;
+  final String? deliveryId;
+  final bool trackRiderLocation;
 
   final double? originLat;
   final double? originLng;
@@ -47,6 +49,8 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
     this.lng,
     this.isOpened = false,
     this.isShowingDetail = true,
+    this.deliveryId,
+    this.trackRiderLocation = false,
     this.destLabel,
     this.label,
     this.originLat,
@@ -78,6 +82,18 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   bool _isLoadingLocation = false;
   StreamSubscription<LatLng>? _locationSubscription;
   final latlng.Distance _distanceCalculator = const latlng.Distance();
+  bool _isRiderLocationActive = false;
+
+  bool get _isCurrentToDestination =>
+      widget.mode == PathFinderMode.currentToDestination;
+
+  bool get _shouldUseRiderTracking =>
+      _isCurrentToDestination &&
+      widget.trackRiderLocation &&
+      (widget.deliveryId?.isNotEmpty ?? false);
+
+  bool get _shouldUseDeviceLocationFeatures =>
+      _isCurrentToDestination && !_isRiderLocationActive;
 
   @override
   void initState() {
@@ -101,13 +117,21 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
         oldWidget.locationUpdateInterval != widget.locationUpdateInterval;
     final hasDistanceChanged =
         oldWidget.locationUpdateDistance != widget.locationUpdateDistance;
+    final hasTrackingFlagChanged =
+        oldWidget.trackRiderLocation != widget.trackRiderLocation;
+    final hasDeliveryChanged = oldWidget.deliveryId != widget.deliveryId;
 
     final shouldReinitializeLocations =
         hasDestinationChanged ||
         (hasOpenedStateChanged && widget.isOpened) ||
-        hasModeChanged;
+        hasModeChanged ||
+        hasTrackingFlagChanged ||
+        hasDeliveryChanged;
 
     if (shouldReinitializeLocations) {
+      if (!widget.trackRiderLocation && _isRiderLocationActive) {
+        _isRiderLocationActive = false;
+      }
       _initializeLocations();
     }
 
@@ -115,7 +139,9 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
         hasModeChanged ||
         hasOpenedStateChanged ||
         hasIntervalChanged ||
-        hasDistanceChanged) {
+        hasDistanceChanged ||
+        hasTrackingFlagChanged ||
+        hasDeliveryChanged) {
       _stopLocationUpdates();
     }
 
@@ -146,6 +172,13 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
 
       LatLng? originLoc;
       LatLng? currentLoc;
+      bool riderLocationActive = false;
+
+      if (_shouldUseRiderTracking) {
+        log(
+          "Attempting to initialize rider location for delivery ${widget.deliveryId}",
+        );
+      }
 
       if (widget.mode == PathFinderMode.originToDestination) {
         if (widget.originLat != null && widget.originLng != null) {
@@ -153,10 +186,32 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
           log("Origin (fixed): ${originLoc.latitude}, ${originLoc.longitude}");
         }
       } else {
-        currentLoc = await MapService.getCurrentLocation();
-        log(
-          "Current location: ${currentLoc.latitude}, ${currentLoc.longitude}",
-        );
+        if (_shouldUseRiderTracking) {
+          final riderLocation = await DeliveryRiderJob.getRiderLocationOnJob(
+            widget.deliveryId!,
+          );
+          if (riderLocation != null) {
+            currentLoc = LatLng(
+              riderLocation.latitude,
+              riderLocation.longitude,
+            );
+            riderLocationActive = true;
+            log(
+              "Initialized rider location: ${currentLoc.latitude}, ${currentLoc.longitude}",
+            );
+          } else {
+            log(
+              "Rider location not yet available for ${widget.deliveryId}, using device location until updates arrive",
+            );
+          }
+        }
+
+        currentLoc ??= await MapService.getCurrentLocation();
+        if (currentLoc != null) {
+          log(
+            "Current origin location: ${currentLoc.latitude}, ${currentLoc.longitude}",
+          );
+        }
       }
 
       if (mounted) {
@@ -164,6 +219,7 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
           _currentLocation = currentLoc;
           _originLocation = originLoc;
           _destinationLocation = destLoc;
+          _isRiderLocationActive = riderLocationActive;
           _updatePathDestinations();
           _pathRouteInfo = null;
           _isLoadingLocation = false;
@@ -176,6 +232,9 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
       if (mounted) {
         setState(() {
           _isLoadingLocation = false;
+          if (!_shouldUseRiderTracking) {
+            _isRiderLocationActive = false;
+          }
         });
       }
     }
@@ -211,10 +270,28 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
   }
 
   void _startLocationUpdatesIfNeeded() {
-    final shouldStart =
-        widget.mode == PathFinderMode.currentToDestination && widget.isOpened;
+    final bool shouldStart = _isCurrentToDestination && widget.isOpened;
 
     if (!shouldStart || _locationSubscription != null) {
+      return;
+    }
+
+    if (_shouldUseRiderTracking) {
+      log("Starting rider location stream for delivery ${widget.deliveryId}");
+
+      _locationSubscription =
+          DeliveryRiderJob.watchRiderLocationOnJob(widget.deliveryId!)
+              .where((location) => location != null)
+              .map((location) => LatLng(location!.latitude, location.longitude))
+              .listen(
+                (LatLng location) => _handleLiveLocation(
+                  location,
+                  bypassThreshold: true,
+                  isRiderLocation: true,
+                ),
+                onError: (error) => log('Rider location stream error: $error'),
+              );
+
       return;
     }
 
@@ -226,7 +303,7 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
         MapService.getPositionStream(
           distanceFilterMeters: widget.locationUpdateDistance,
         ).listen(
-          _handleLiveLocation,
+          (location) => _handleLiveLocation(location),
           onError: (error) => log('Live location stream error: $error'),
         );
 
@@ -252,15 +329,29 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
         "Updated current location: ${newLocation.latitude}, ${newLocation.longitude}",
       );
 
-      _handleLiveLocation(newLocation, bypassThreshold: true);
+      _handleLiveLocation(
+        newLocation,
+        bypassThreshold: true,
+        isRiderLocation: false,
+      );
     } catch (e) {
       log('Error updating current location: $e');
     }
   }
 
-  void _handleLiveLocation(LatLng newLocation, {bool bypassThreshold = false}) {
+  void _handleLiveLocation(
+    LatLng newLocation, {
+    bool bypassThreshold = false,
+    bool isRiderLocation = false,
+  }) {
     if (!mounted) {
       return;
+    }
+
+    if (isRiderLocation) {
+      log(
+        "Received rider location update: ${newLocation.latitude}, ${newLocation.longitude}",
+      );
     }
 
     if (_currentLocation != null && !bypassThreshold) {
@@ -285,6 +376,11 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
 
     setState(() {
       _currentLocation = newLocation;
+      if (isRiderLocation) {
+        _isRiderLocationActive = true;
+      } else if (!_shouldUseRiderTracking) {
+        _isRiderLocationActive = false;
+      }
       _updatePathDestinations();
     });
 
@@ -358,11 +454,15 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
 
   @override
   Widget build(BuildContext context) {
+    final bool showDeviceLocationFeatures = _shouldUseDeviceLocationFeatures;
+    final bool isWaitingForRider =
+        _shouldUseRiderTracking && !_isRiderLocationActive;
+
     return SlidingTemplate(
       customTopBar: Center(
         child: Text(
           widget.label ?? 'เส้นทางการจัดส่ง',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             fontFamily: 'Mali',
@@ -399,16 +499,12 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                 viewerType: MapViewerType.path,
                 destinations: [_pathDestinations],
                 initialPosition: _pathDestinations.latLng,
-                initialUserLocation:
-                    widget.mode == PathFinderMode.currentToDestination
+                initialUserLocation: _isCurrentToDestination
                     ? _currentLocation
                     : null,
-                showMyLocation:
-                    widget.mode == PathFinderMode.currentToDestination,
-                showMyLocationButton:
-                    widget.mode == PathFinderMode.currentToDestination,
-                enableLiveLocation:
-                    widget.mode == PathFinderMode.currentToDestination,
+                showMyLocation: showDeviceLocationFeatures,
+                showMyLocationButton: showDeviceLocationFeatures,
+                enableLiveLocation: showDeviceLocationFeatures,
                 distanceStrategy:
                     MapRouteDistanceStrategy.distanceMatrixPreferred,
                 onRouteChanged: (info) {
@@ -422,6 +518,25 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
                   });
                 },
               ),
+            ),
+          ),
+        if (isWaitingForRider)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.pedal_bike_outlined,
+                  size: 16,
+                  color: Colors.orange,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'กำลังค้นหาตำแหน่งไรเดอร์...',
+                  style: TextStyle(fontSize: 12, fontFamily: 'Mali'),
+                ),
+              ],
             ),
           ),
         if (_pathRouteInfo != null && widget.isShowingDetail) ...[
