@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:app/config/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
 import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
+import 'package:app/widget/sliding_up/map_viewer_multiple-point.widget.dart';
 import 'package:app/widget/tracking/job_container.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -27,44 +29,79 @@ class OverviewPage extends StatefulWidget {
 
 class _OverviewPageState extends State<OverviewPage> {
   bool _isActiveTabSender = true;
+  bool _isLoading = true;
+
   List<Map<String, dynamic>> _senderJobsGrouped = [];
   List<Map<String, dynamic>> _receiverJobsGrouped = [];
-  bool _isLoading = false;
-  bool _isMapOpen = false;
+
   DeliveryJob? _selectedJobForMap;
+  bool _isMapOpen = false;
+  bool _isMultipleMapOpen = false;
+  List<DeliveryJob>? _selectedJobsForMultipleMap;
+
+  StreamSubscription<List<Map<String, dynamic>>>? _senderSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _receiverSubscription;
 
   @override
   void initState() {
     super.initState();
     _isActiveTabSender = widget.initialTabIsSender ?? true;
-    _loadDeliveryJobs();
+    _startRealtimeStreams();
   }
 
-  Future<void> _loadDeliveryJobs() async {
+  void _startRealtimeStreams() {
     final appData = Provider.of<AppData>(context, listen: false);
-    if (appData.currentUser == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
 
     try {
-      final senderJobsGrouped =
-          await TrackingService.getDeliveryJobsByUserIdGroupedByDate(
+      setState(() {
+        _isLoading = true;
+      });
+
+      _senderSubscription =
+          TrackingService.watchDeliveryJobsByUserIdGroupedByDate(
             appData.currentUser!.id,
             UserType.sender,
-          );
-      final receiverJobsGrouped =
-          await TrackingService.getDeliveryJobsByUserIdGroupedByDate(
-            appData.currentUser!.id,
-            UserType.receiver,
+          ).listen(
+            (senderJobsGrouped) {
+              if (mounted) {
+                setState(() {
+                  _senderJobsGrouped = senderJobsGrouped;
+                  _isLoading = false;
+                });
+              }
+            },
+            onError: (error) {
+              log('Sender stream error: $error');
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            },
           );
 
-      setState(() {
-        _senderJobsGrouped = senderJobsGrouped;
-        _receiverJobsGrouped = receiverJobsGrouped;
-        _isLoading = false;
-      });
+      _receiverSubscription =
+          TrackingService.watchDeliveryJobsByUserIdGroupedByDate(
+            appData.currentUser!.id,
+            UserType.receiver,
+          ).listen(
+            (receiverJobsGrouped) {
+              if (mounted) {
+                setState(() {
+                  _receiverJobsGrouped = receiverJobsGrouped;
+                  _isLoading = false;
+                });
+              }
+            },
+            onError: (error) {
+              log('Receiver stream error: $error');
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            },
+          );
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -78,27 +115,34 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _senderSubscription?.cancel();
+    _receiverSubscription?.cancel();
+    super.dispose();
+  }
+
   void _handleLocationPress(DeliveryJob job) {
-    log("Handle location press work for delivery: ${job.deliveryId}");
-    log("Delivery status: ${job.status}");
-    log("Is rider tracking status: ${_isRiderTrackingStatus(job.status)}");
+    // log("Handle location press work for delivery: ${job.deliveryId}");
+    // log("Delivery status: ${job.status}");
+    // log("Is rider tracking status: ${_isRiderTrackingStatus(job.status)}");
 
     setState(() {
       _selectedJobForMap = job;
       _isMapOpen = false;
     });
 
-    log("After setState - _isMapOpen: $_isMapOpen");
-    log(
-      "After setState - _selectedJobForMap is null: ${_selectedJobForMap == null}",
-    );
+    // log("After setState - _isMapOpen: $_isMapOpen");
+    // log(
+    //   "After setState - _selectedJobForMap is null: ${_selectedJobForMap == null}",
+    // );
 
     Future.delayed(Duration(milliseconds: 100), () {
       if (mounted) {
         setState(() {
           _isMapOpen = true;
         });
-        log("Delayed setState - _isMapOpen: $_isMapOpen");
+        // log("Delayed setState - _isMapOpen: $_isMapOpen");
       }
     });
   }
@@ -114,6 +158,47 @@ class _OverviewPageState extends State<OverviewPage> {
 
   bool _isRiderTrackingStatus(StatusType status) {
     return status == StatusType.receiving || status == StatusType.riding;
+  }
+
+  void _openMultipleMap() {
+    final currentJobs = _isActiveTabSender
+        ? _senderJobsGrouped
+        : _receiverJobsGrouped;
+    final allJobs = <DeliveryJob>[];
+
+    for (final group in currentJobs) {
+      final jobs = group['jobs'] as List<DeliveryJob>;
+      allJobs.addAll(jobs);
+    }
+
+    if (allJobs.isNotEmpty) {
+      setState(() {
+        _isMultipleMapOpen = true;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ไม่มีรายการจัดส่งให้แสดงบนแผนที่'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  void _openMultipleMapWithJobs(List<DeliveryJob> jobs) {
+    if (jobs.isNotEmpty) {
+      setState(() {
+        _selectedJobsForMultipleMap = jobs;
+        _isMultipleMapOpen = true;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ไม่มีรายการจัดส่งให้แสดงบนแผนที่'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   @override
@@ -197,12 +282,22 @@ class _OverviewPageState extends State<OverviewPage> {
                     ),
                   ],
                 ),
-                ButtonActions(
-                  variant: ButtonVariant.danger,
-                  icon: Icons.close,
-                  onPressed: () {
-                    Get.offNamed("/");
-                  },
+                Row(
+                  children: [
+                    // ButtonActions(
+                    //   variant: ButtonVariant.primary,
+                    //   icon: Icons.map,
+                    //   onPressed: _openMultipleMap,
+                    // ),
+                    // SizedBox(width: 8),
+                    ButtonActions(
+                      variant: ButtonVariant.danger,
+                      icon: Icons.close,
+                      onPressed: () {
+                        Get.offNamed("/");
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -333,6 +428,9 @@ class _OverviewPageState extends State<OverviewPage> {
                               final date = group['date'] as String;
                               final jobs = group['jobs'] as List<DeliveryJob>;
                               return JobContainerView(
+                                onContainerPress: (jobsContainer) {
+                                  _openMultipleMapWithJobs(jobsContainer);
+                                },
                                 deliveryJobs: jobs,
                                 title: "รายการส่งพัสดุ",
                                 date: DateTime.parse(date.replaceAll('/', '-')),
@@ -344,6 +442,9 @@ class _OverviewPageState extends State<OverviewPage> {
                               final date = group['date'] as String;
                               final jobs = group['jobs'] as List<DeliveryJob>;
                               return JobContainerView(
+                                onContainerPress: (jobsContainer) {
+                                  _openMultipleMapWithJobs(jobsContainer);
+                                },
                                 deliveryJobs: jobs,
                                 title: "รายการรับพัสดุ",
                                 date: DateTime.parse(date.replaceAll('/', '-')),
@@ -369,9 +470,9 @@ class _OverviewPageState extends State<OverviewPage> {
               originLat: _selectedJobForMap!.pickupAddress.latitude,
               originLng: _selectedJobForMap!.pickupAddress.longtitude,
               originLabel: _selectedJobForMap!.pickupAddress.detail,
-              label: _isRiderTrackingStatus(_selectedJobForMap!.status)
-                  ? "ตำแหน่งไรเดอร์และจุดหมาย"
-                  : "จุดหมาย",
+              label:
+                  // "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${StatusTypes().getStatusMeaning(_selectedJobForMap!.status)}",
+                  "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${_selectedJobForMap!.deliveryId}",
               mode: _isRiderTrackingStatus(_selectedJobForMap!.status)
                   ? PathFinderMode.currentToDestination
                   : PathFinderMode.originToDestination,
@@ -395,15 +496,17 @@ class _OverviewPageState extends State<OverviewPage> {
                     ),
                   ),
                   SizedBox(height: 8),
-                  // Text(
-                  //   "${_selectedJobForMap!.sendedPkgDetail}",
-                  //   style: TextStyle(
-                  //     fontFamily: 'Mali',
-                  //     fontSize: 14,
-                  //     fontWeight: FontWeight.w400,
-                  //   ),
-                  // ),
-                  SizedBox(height: 12),
+                  Text(
+                    StatusTypes().getStatusMeaning(_selectedJobForMap!.status),
+                    style: TextStyle(
+                      fontFamily: 'Mali',
+                      fontSize: 14,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  SizedBox(height: 24),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -417,7 +520,7 @@ class _OverviewPageState extends State<OverviewPage> {
                             shape: ProfileShape.rectangle,
                             isEdited: false,
                             config: ProfileWidgetConfig(
-                              editIcon: Icons.inbox_outlined,
+                              placeholderIcon: Icons.inbox_outlined,
                             ),
                             imageUrl:
                                 _selectedJobForMap!
@@ -437,7 +540,7 @@ class _OverviewPageState extends State<OverviewPage> {
                             shape: ProfileShape.rectangle,
                             isEdited: false,
                             config: ProfileWidgetConfig(
-                              editIcon: Icons.inbox_outlined,
+                              placeholderIcon: Icons.inbox_outlined,
                             ),
                             imageUrl: _selectedJobForMap!.sendedPkgImgUrl,
                           ),
@@ -447,6 +550,23 @@ class _OverviewPageState extends State<OverviewPage> {
                   ),
                 ],
               ),
+            ),
+
+          if (_selectedJobsForMultipleMap != null &&
+              _selectedJobsForMultipleMap!.isNotEmpty)
+            MapViewerMultiplePoint(
+              deliveryJobs: _selectedJobsForMultipleMap!,
+              isOpened: _isMultipleMapOpen,
+              label: _isActiveTabSender
+                  ? "แผนที่จุดส่ง (${_selectedJobsForMultipleMap!.length} จุด)"
+                  : "แผนที่จุดรับ (${_selectedJobsForMultipleMap!.length} จุด)",
+              aspectRatio: 9 / 12,
+              onModalClosed: () {
+                setState(() {
+                  _isMultipleMapOpen = false;
+                  _selectedJobsForMultipleMap = null;
+                });
+              },
             ),
         ],
       ),

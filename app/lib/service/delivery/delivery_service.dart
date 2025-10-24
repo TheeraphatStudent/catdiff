@@ -159,13 +159,19 @@ class DeliveryService {
       query = query.where('sended_id', isEqualTo: userId);
       query = query.where(
         'status',
-        isNotEqualTo: StatusTypes().getStatusTypeString(StatusType.success),
+        whereNotIn: [
+          StatusTypes().getStatusTypeString(StatusType.success),
+          StatusTypes().getStatusTypeString(StatusType.prepare),
+        ],
       );
     } else if (displayType == UserType.receiver) {
       query = query.where('received_id', isEqualTo: userId);
       query = query.where(
         'status',
-        isNotEqualTo: StatusTypes().getStatusTypeString(StatusType.success),
+        whereNotIn: [
+          StatusTypes().getStatusTypeString(StatusType.success),
+          StatusTypes().getStatusTypeString(StatusType.prepare),
+        ],
       );
     }
 

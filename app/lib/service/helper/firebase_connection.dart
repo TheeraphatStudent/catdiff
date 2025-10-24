@@ -68,12 +68,20 @@ class FirebaseHelper {
   Future<List<DocumentSnapshot<Map<String, dynamic>>>> getDocumentsQuery({
     required String collection,
     required Map<String, dynamic> where,
+
+    Map<List<String>, dynamic>? whereNotIn,
   }) async {
     Query<Map<String, dynamic>> query = _firestore.collection(collection);
 
     if (where.isNotEmpty) {
       where.forEach((field, value) {
         query = query.where(field, isEqualTo: value);
+      });
+    }
+
+    if (whereNotIn != null && whereNotIn.isNotEmpty) {
+      whereNotIn.forEach((field, value) {
+        query = query.where(field, whereNotIn: value);
       });
     }
 
