@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:app/config/theme/app_theme.dart';
 import 'package:app/layout/MainLayout.dart';
 import 'package:app/service/delivery/tracking_service.dart';
-import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
