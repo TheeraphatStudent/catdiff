@@ -99,6 +99,7 @@ class DeliveryRiderJob {
                     deliveryAddress: deliveryAddress,
                     pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
                     sendedPkgDetail: delivery.sendedPkgDetail ?? '???',
+                    sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? '???',
                   );
                 } catch (e) {
                   log('Error processing individual delivery job ${doc.id}: $e');
@@ -171,6 +172,7 @@ class DeliveryRiderJob {
               updatedAt: delivery.updatedAt,
             ),
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+            sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
           );
         }
@@ -345,6 +347,7 @@ class DeliveryRiderJob {
         deliveryAddress: deliveryAddress,
         pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
         sendedPkgDetail: delivery.sendedPkgDetail ?? '???',
+        sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? '???',
       );
 
       log(

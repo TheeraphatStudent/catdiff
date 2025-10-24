@@ -1,3 +1,4 @@
+import 'package:app/config/theme/app_theme.dart';
 import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/widget/tracking/job_item.widget.dart';
 import 'package:flutter/material.dart';
@@ -21,11 +22,11 @@ class JobContainerView extends StatelessWidget {
     return Container(
       margin: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: AppColors.grayMedium.withValues(alpha: 0.1),
             spreadRadius: 2,
             blurRadius: 5,
             offset: Offset(0, 2),
@@ -38,37 +39,27 @@ class JobContainerView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Mali',
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                if (date != null)
                   Text(
-                    title,
+                    "${date!.day}/${date!.month}/${date!.year}",
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey[600],
                       fontFamily: 'Mali',
                     ),
                   ),
-                  if (date != null)
-                    Text(
-                      "${date!.day}/${date!.month}/${date!.year}",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontFamily: 'Mali',
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
 
             SizedBox(height: 6),

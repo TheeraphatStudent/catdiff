@@ -11,7 +11,6 @@ import 'package:app/pages/rider/rider_job.dart';
 import 'package:app/pages/slider_debug.dart';
 import 'package:app/pages/user/sender_state_have_prod.dart';
 import 'package:app/pages/user/tracking/overview.dart';
-import 'package:app/pages/user/tracking/single_tracking.dart';
 import 'package:app/pages/user/user_home.dart';
 import 'package:app/service/delivery/rider_job.dart';
 import 'package:app/types/user/role.dart';
@@ -75,7 +74,7 @@ class MyApp extends StatelessWidget {
 
             // Tracking
             GetPage(
-              name: "/overview", 
+              name: "/overview",
               page: () {
                 final args = Get.arguments as Map<String, dynamic>?;
                 final initialTabIsSender = args?['initialTabIsSender'] as bool?;
@@ -87,12 +86,6 @@ class MyApp extends StatelessWidget {
               name: '/single-tracking-test',
               page: () => const DeliveryTrackingScreen(),
             ),
-
-            GetPage(
-              name: '/single-tracking',
-              page: () => const SingleTracking(),
-            ),
-
             // GetPage(name: '/multi-tracking', page: () => const MockupMulti()),
 
             // Debug

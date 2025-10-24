@@ -22,6 +22,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
   final String? destLabel;
   final String? label;
   final bool isOpened;
+  final bool isShowingDetail;
 
   final double? originLat;
   final double? originLng;
@@ -45,6 +46,7 @@ class MapViewerSinglePointPathFinder extends StatefulWidget {
     this.lat,
     this.lng,
     this.isOpened = false,
+    this.isShowingDetail = true,
     this.destLabel,
     this.label,
     this.originLat,
@@ -422,7 +424,7 @@ class _MapViewerSinglePointState extends State<MapViewerSinglePointPathFinder> {
               ),
             ),
           ),
-        if (_pathRouteInfo != null) ...[
+        if (_pathRouteInfo != null && widget.isShowingDetail) ...[
           SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(

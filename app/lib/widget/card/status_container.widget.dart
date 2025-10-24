@@ -114,32 +114,39 @@ class StatusContainer extends StatelessWidget {
                                       ? [
                                           Container(
                                             width: double.infinity,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: ShapeDecoration(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
+                                            height: 80,
+                                            child: Column(
                                               mainAxisAlignment:
-                                                  MainAxisAlignment.start,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              spacing: 8,
+                                                  MainAxisAlignment.center,
                                               children: [
+                                                Icon(
+                                                  Icons.inbox_outlined,
+                                                  size: 32,
+                                                  color: AppColors.primary2
+                                                      .withValues(alpha: 0.6),
+                                                ),
+                                                SizedBox(height: 8),
                                                 Text(
-                                                  'ไม่มีพัสดุจัดส่ง',
+                                                  type == UserType.sender
+                                                      ? 'ไม่มีพัสดุที่ต้องส่ง'
+                                                      : 'ไม่มีพัสดุที่ต้องรับ',
                                                   style: TextStyle(
-                                                    color: AppColors
-                                                        .primary2 /* Primary-Green2 */,
+                                                    color: AppColors.primary2,
                                                     fontSize: 12,
                                                     fontFamily: 'Mali',
                                                     fontWeight: FontWeight.w400,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  type == UserType.sender
+                                                      ? 'กดปุ่มเพื่อส่งพัสดุใหม่'
+                                                      : 'รอพัสดุจากผู้ส่ง',
+                                                  style: TextStyle(
+                                                    color: AppColors.primary2
+                                                        .withValues(alpha: 0.7),
+                                                    fontSize: 10,
+                                                    fontFamily: 'Mali',
+                                                    fontWeight: FontWeight.w300,
                                                   ),
                                                 ),
                                               ],

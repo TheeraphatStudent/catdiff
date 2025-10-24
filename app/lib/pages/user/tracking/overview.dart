@@ -7,6 +7,7 @@ import 'package:app/types/delivery/delivery_job.dart';
 import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
 import 'package:app/widget/button.widget.dart';
+import 'package:app/widget/profile_img.widget.dart';
 import 'package:app/widget/sliding_up/map_viewer_single-point._path-finder.widget.dart';
 import 'package:app/widget/tracking/job_container.widget.dart';
 import 'package:flutter/material.dart';
@@ -355,7 +356,9 @@ class _OverviewPageState extends State<OverviewPage> {
                   ),
           ),
           if (_selectedJobForMap != null)
+            // Single Tracking
             MapViewerSinglePointPathFinder(
+              isShowingDetail: false,
               key: ValueKey("overview_${_selectedJobForMap!.deliveryId}"),
               isOpened: _isMapOpen,
               // delivery address
@@ -374,12 +377,76 @@ class _OverviewPageState extends State<OverviewPage> {
                   : PathFinderMode.originToDestination,
               locationUpdateInterval: const Duration(seconds: 10),
               locationUpdateDistance: 5,
+              aspectRatio: 9 / 12,
               onModalClosed: () {
                 setState(() {
                   _isMapOpen = false;
                   _selectedJobForMap = null;
                 });
               },
+              content: Column(
+                children: [
+                  Text(
+                    "รายละเอียดการส่งพัสดุ",
+                    style: TextStyle(
+                      fontFamily: 'Mali',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  // Text(
+                  //   "${_selectedJobForMap!.sendedPkgDetail}",
+                  //   style: TextStyle(
+                  //     fontFamily: 'Mali',
+                  //     fontSize: 14,
+                  //     fontWeight: FontWeight.w400,
+                  //   ),
+                  // ),
+                  SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 24,
+                    children: [
+                      Column(
+                        spacing: 12,
+                        children: [
+                          Text("รูปภาพการเข้ารับสินค้า"),
+                          ProfileWidgets.avatar(
+                            shape: ProfileShape.rectangle,
+                            isEdited: false,
+                            config: ProfileWidgetConfig(
+                              editIcon: Icons.inbox_outlined,
+                            ),
+                            imageUrl:
+                                _selectedJobForMap!
+                                    .pickupPkgImagesUrl
+                                    .isNotEmpty
+                                ? _selectedJobForMap!.pickupPkgImagesUrl.first
+                                : "",
+                          ),
+                        ],
+                      ),
+
+                      Column(
+                        spacing: 12,
+                        children: [
+                          Text("รูปภาพการส่งสินค้า"),
+                          ProfileWidgets.avatar(
+                            shape: ProfileShape.rectangle,
+                            isEdited: false,
+                            config: ProfileWidgetConfig(
+                              editIcon: Icons.inbox_outlined,
+                            ),
+                            imageUrl: _selectedJobForMap!.sendedPkgImgUrl,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
         ],
       ),

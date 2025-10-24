@@ -659,6 +659,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
               sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+              sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
             );
 
             _addedJobItemToDeliver.add(
@@ -834,6 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 imagesUrl: _selectedReciver!.imageUrl,
               ),
               sendedPkgDetail: "",
+              sendedPkgImgUrl: "",
             ),
             profileController: profileController,
             userId: appData.currentUser!.id,

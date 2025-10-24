@@ -76,6 +76,7 @@ class TrackingService {
             deliveryAddress: deliveryAddress,
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+            sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
           );
 
           deliveryJobs.add(deliveryJob);
@@ -153,6 +154,7 @@ class TrackingService {
             pickupAddress: pickupAddress,
             deliveryAddress: deliveryAddress,
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+            sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
           );
 

@@ -61,7 +61,7 @@ class Delivery {
     status: StatusTypes().getStatusTypeEnum(json["status"]),
     deliveryId: json["delivery_id"],
     sendedId: json["sended_id"],
-    receivedId: json["receiver_id"],
+    receivedId: json["received_id"],
     pickupAddressId: json["pickup_address_id"],
     deliveryAddressId: json["delivery_address_id"],
     pickupPkgImagesUrl: List<String>.from(
@@ -84,7 +84,7 @@ class Delivery {
     "status": StatusTypes().getStatusTypeString(status),
     "delivery_id": deliveryId,
     "sended_id": sendedId,
-    "receiver_id": receivedId,
+    "received_id": receivedId,
     "pickup_address_id": pickupAddressId,
     "delivery_address_id": deliveryAddressId,
     "pickup_pkg_images_url": List<dynamic>.from(

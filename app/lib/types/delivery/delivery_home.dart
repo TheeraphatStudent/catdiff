@@ -15,12 +15,14 @@ class DeliveryStatDisplayItem {
 
   factory DeliveryStatDisplayItem.fromJson(Map<String, dynamic> json) {
     final statusTypes = StatusTypes();
-    
+
     return DeliveryStatDisplayItem(
       sendedId: json['sended_id'] as String? ?? '',
-      receiverId: json['receiver_id'] as String? ?? '',
+      receiverId: json['received_id'] as String? ?? '',
       deliveryId: json['delivery_id'] as String? ?? '',
-      status: statusTypes.getStatusTypeEnum(json['status'] as String? ?? 'pending'),
+      status: statusTypes.getStatusTypeEnum(
+        json['status'] as String? ?? 'pending',
+      ),
     );
   }
 }
