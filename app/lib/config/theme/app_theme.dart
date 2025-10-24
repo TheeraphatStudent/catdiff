@@ -4,25 +4,25 @@ import 'package:flutter/services.dart';
 class AppColors {
   AppColors._();
 
-// Gradient color
+  // Gradient color
   static const LinearGradient gradientStatus1 = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [Color(0xFFFFFEE3), white],
   );
-  
+
   static const LinearGradient gradientStatus2 = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [Color(0xFFE3F9FF), white],
   );
-  
+
   static const LinearGradient gradientStatus3 = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [Color(0xFFF9E3FF), white],
   );
-  
+
   static const LinearGradient gradientStatus4 = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -31,23 +31,35 @@ class AppColors {
 
   static const LinearGradient gradientPrimary = LinearGradient(
     begin: Alignment(0.50, -0.00),
-      end: Alignment(0.50, 0.85),
+    end: Alignment(0.50, 0.85),
     colors: [Color(0x00D3ECA5), Color(0xC6D3ECA5), Color(0xFFD3ECA5)],
   );
-  
+
   static const LinearGradient gradientSender = LinearGradient(
-      begin: Alignment(1.00, 0.00),
-      end: Alignment(0.00, 1.00),
-      colors: [Color(0xFF8AD9BD), Color(0x7F8AD9BD), Color(0x00BFE6D2), Color(0x7FEDF2E5), Color(0xFF8AD9BD)]
-    );
+    begin: Alignment(1.00, 0.00),
+    end: Alignment(0.00, 1.00),
+    colors: [
+      Color(0xFF8AD9BD),
+      Color(0x7F8AD9BD),
+      Color(0x00BFE6D2),
+      Color(0x7FEDF2E5),
+      Color(0xFF8AD9BD),
+    ],
+  );
 
-static const LinearGradient gradientRecever = LinearGradient(
-      begin: Alignment(1.00, 0.00),
-      end: Alignment(0.00, 1.00),
-      colors: [Color(0xFF8A90D9), Color(0x7F8A91D9), Color(0x008A91D9), Color(0x7FEDF2E5), Color(0xFF8A91D9)],
-    );
+  static const LinearGradient gradientRecever = LinearGradient(
+    begin: Alignment(1.00, 0.00),
+    end: Alignment(0.00, 1.00),
+    colors: [
+      Color(0xFF8A90D9),
+      Color(0x7F8A91D9),
+      Color(0x008A91D9),
+      Color(0x7FEDF2E5),
+      Color(0xFF8A91D9),
+    ],
+  );
 
-// Solid color
+  // Solid color
   static const Color white = Color(0xFFFAFFF1);
   static const Color black = Color(0xFF011F02);
 

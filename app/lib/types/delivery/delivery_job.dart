@@ -5,8 +5,10 @@ class DeliveryJob {
   String deliveryId;
   StatusType status;
 
-  List<String> pickupPkgImagesUrl;
+  String pickupPkgImagesUrl;
   String sendedPkgImgUrl = '';
+  String? deliveredPkgImgUrl = '';
+
   AddressInfo pickupAddress;
   AddressInfo deliveryAddress;
   String sendedPkgDetail;
@@ -24,6 +26,7 @@ class DeliveryJob {
     required this.reciver,
     required this.sendedPkgDetail,
     required this.sendedPkgImgUrl,
+    this.deliveredPkgImgUrl = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -38,6 +41,7 @@ class DeliveryJob {
     'profileImageUrl': reciver.imagesUrl,
     'name': reciver.name,
     'sended_pkg_img_url': sendedPkgImgUrl,
+    'delivered_pkg_img_url': deliveredPkgImgUrl,
   };
 }
 

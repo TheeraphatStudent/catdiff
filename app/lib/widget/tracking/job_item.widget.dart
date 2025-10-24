@@ -33,7 +33,7 @@ class JobItem extends StatelessWidget {
               ),
               isEdited: false,
               imageUrl: deliveryJob.pickupPkgImagesUrl.isNotEmpty
-                  ? deliveryJob.pickupPkgImagesUrl[0]
+                  ? deliveryJob.pickupPkgImagesUrl
                   : '',
             ),
             // Text(

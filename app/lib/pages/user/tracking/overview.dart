@@ -466,8 +466,9 @@ class _OverviewPageState extends State<OverviewPage> {
               originLng: _selectedJobForMap!.pickupAddress.longtitude,
               originLabel: _selectedJobForMap!.pickupAddress.detail,
               deliveryId: _selectedJobForMap!.deliveryId,
-              trackRiderLocation:
-                  _isRiderTrackingStatus(_selectedJobForMap!.status),
+              trackRiderLocation: _isRiderTrackingStatus(
+                _selectedJobForMap!.status,
+              ),
               label:
                   // "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${StatusTypes().getStatusMeaning(_selectedJobForMap!.status)}",
                   "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${_selectedJobForMap!.deliveryId}",
@@ -476,7 +477,7 @@ class _OverviewPageState extends State<OverviewPage> {
                   : PathFinderMode.originToDestination,
               locationUpdateInterval: const Duration(seconds: 10),
               locationUpdateDistance: 5,
-              aspectRatio: 9 / 12,
+              aspectRatio: 12 / 16,
               onModalClosed: () {
                 setState(() {
                   _isMapOpen = false;
@@ -524,7 +525,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                 _selectedJobForMap!
                                     .pickupPkgImagesUrl
                                     .isNotEmpty
-                                ? _selectedJobForMap!.pickupPkgImagesUrl.first
+                                ? _selectedJobForMap!.pickupPkgImagesUrl
                                 : "",
                           ),
                         ],
@@ -561,7 +562,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 : "แผนที่จุดรับ (${_selectedJobsForMultipleMap.length} จุด)",
             aspectRatio: 9 / 12,
             onModalClosed: () {
-              log("MapViewerMultiplePoint closed");
+              // log("MapViewerMultiplePoint closed");
               setState(() {
                 _isMultipleMapOpen = false;
                 _selectedJobsForMultipleMap = [];

@@ -10,9 +10,24 @@ SenderJob senderJobFromJson(String str) => SenderJob.fromJson(json.decode(str));
 
 String senderJobToJson(SenderJob data) => json.encode(data.toJson());
 
+String _parsePickupPkgImage(dynamic value) {
+  if (value is String) {
+    return value;
+  }
+
+  if (value is List && value.isNotEmpty) {
+    final first = value.first;
+    if (first is String) {
+      return first;
+    }
+  }
+
+  return '';
+}
+
 class SenderJob {
   String sendedName;
-  List<String> pickupPkgImagesUrl;
+  String pickupPkgImagesUrl;
   String pickupAddressId;
   String deliveryAddressId;
   String sendedPkgImgUrl;
@@ -33,9 +48,7 @@ class SenderJob {
 
   factory SenderJob.fromJson(Map<String, dynamic> json) => SenderJob(
     sendedName: json["sended_name"],
-    pickupPkgImagesUrl: List<String>.from(
-      json["pickup_pkg_images_url"].map((x) => x),
-    ),
+    pickupPkgImagesUrl: _parsePickupPkgImage(json["pickup_pkg_images_url"]),
     pickupAddressId: json["pickup_address_id"],
     deliveryAddressId: json["delivery_address_id"],
     sendedPkgImgUrl: json["sended_pkg_img_url"],
@@ -46,9 +59,7 @@ class SenderJob {
 
   Map<String, dynamic> toJson() => {
     "sended_name": sendedName,
-    "pickup_pkg_images_url": List<dynamic>.from(
-      pickupPkgImagesUrl.map((x) => x),
-    ),
+    "pickup_pkg_images_url": pickupPkgImagesUrl,
     "pickup_address_id": pickupAddressId,
     "delivery_address_id": deliveryAddressId,
     "sended_pkg_img_url": sendedPkgImgUrl,

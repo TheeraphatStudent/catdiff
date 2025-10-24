@@ -666,10 +666,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (index != -1) {
                   setState(() {
                     _addedJobItemToDeliver[index]
-                        .deliveryJob
-                        .pickupPkgImagesUrl = [
-                      profileController.uploadedUrl!,
-                    ];
+                            .deliveryJob
+                            .pickupPkgImagesUrl =
+                        profileController.uploadedUrl!;
                   });
 
                   _updateDeliveryJob(_addedJobItemToDeliver[index].deliveryJob);
@@ -778,7 +777,7 @@ class _HomeScreenState extends State<HomeScreen> {
         receivedId: _selectedReciver!.userId,
         pickupAddressId: appData.currentUser!.addressId,
         deliveryAddressId: _selectedReciver!.address.addressId,
-        pickupPkgImagesUrl: [],
+        pickupPkgImagesUrl: '',
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
         deliveredAt: null,
@@ -805,17 +804,15 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
           if (index != -1) {
-            final imageUrls = [profileController.uploadedUrl!];
-
             setState(() {
               _addedJobItemToDeliver[index].deliveryJob.pickupPkgImagesUrl =
-                  imageUrls;
+                  profileController.uploadedUrl!;
             });
 
             try {
               final success = await DeliveryService.updatePickupImages(
                 createdDelivery.deliveryId,
-                imageUrls,
+                profileController.uploadedUrl!,
               );
 
               if (success) {
@@ -858,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen> {
             deliveryJob: DeliveryJob(
               deliveryId: createdDelivery.deliveryId,
               status: StatusType.pending,
-              pickupPkgImagesUrl: [],
+              pickupPkgImagesUrl: '',
               pickupAddress: AddressInfo(
                 addressId: appData.currentUser!.addressId,
                 detail: "",

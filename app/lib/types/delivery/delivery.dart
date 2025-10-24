@@ -23,7 +23,8 @@ class Delivery {
 
   String? pickupAddressId;
   String? deliveryAddressId;
-  List<String> pickupPkgImagesUrl;
+  String pickupPkgImagesUrl;
+  String? deliveredPkgImgUrl;
 
   String? createdAt;
   String updatedAt;
@@ -45,6 +46,7 @@ class Delivery {
     required this.receivedId,
     this.pickupAddressId,
     this.deliveryAddressId,
+    this.deliveredPkgImgUrl,
     required this.pickupPkgImagesUrl,
     this.createdAt,
     required this.updatedAt,
@@ -64,9 +66,8 @@ class Delivery {
     receivedId: json["received_id"],
     pickupAddressId: json["pickup_address_id"],
     deliveryAddressId: json["delivery_address_id"],
-    pickupPkgImagesUrl: List<String>.from(
-      json["pickup_pkg_images_url"].map((x) => x),
-    ),
+    pickupPkgImagesUrl: json["pickup_pkg_images_url"],
+    deliveredPkgImgUrl: json["delivered_pkg_img_url"],
     createdAt: json["created_at"],
     updatedAt: json["updated_at"],
     deliveredAt: json["delivered_at"],
@@ -87,9 +88,7 @@ class Delivery {
     "received_id": receivedId,
     "pickup_address_id": pickupAddressId,
     "delivery_address_id": deliveryAddressId,
-    "pickup_pkg_images_url": List<dynamic>.from(
-      pickupPkgImagesUrl.map((x) => x),
-    ),
+    "pickup_pkg_images_url": pickupPkgImagesUrl,
     "created_at": createdAt,
     "updated_at": updatedAt,
     "delivered_at": deliveredAt,

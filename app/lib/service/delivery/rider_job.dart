@@ -174,6 +174,7 @@ class DeliveryRiderJob {
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
             sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+            deliveredPkgImgUrl: delivery.deliveredPkgImgUrl,
           );
         }
         throw Exception('Document data is null for delivery: ${doc.id}');
@@ -379,6 +380,7 @@ class DeliveryRiderJob {
         pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
         sendedPkgDetail: delivery.sendedPkgDetail ?? '???',
         sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? '???',
+        deliveredPkgImgUrl: delivery.deliveredPkgImgUrl ?? '???',
       );
 
       log(
@@ -428,7 +430,7 @@ class DeliveryRiderJob {
         data: {
           'status': 'riding',
           'pickup_at': TimeHelper.getDateNow(),
-          'pickup_pkg_images_url': FieldValue.arrayUnion([imageUrl]),
+          'pickup_pkg_images_url': imageUrl,
           'rider_info': {
             'rider_id': riderId,
             'updated_at': TimeHelper.getDateNow(),

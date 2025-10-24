@@ -303,6 +303,7 @@ class DeliveryService {
           pickupAt: delivery.pickupAt,
           sendedPkgDetail: delivery.sendedPkgDetail,
           sendedPkgImgUrl: delivery.sendedPkgImgUrl,
+          deliveredPkgImgUrl: delivery.deliveredPkgImgUrl,
         );
 
         return await updateDelivery(updatedDelivery);
@@ -347,6 +348,7 @@ class DeliveryService {
         pickupPkgImagesUrl: deliveryJob.pickupPkgImagesUrl,
         sendedPkgDetail: deliveryJob.sendedPkgDetail,
         sendedPkgImgUrl: '',
+        deliveredPkgImgUrl: '',
         updatedAt: DateTime.now().toIso8601String(),
         profileImageUrl: deliveryJob.reciver.imagesUrl,
         name: deliveryJob.reciver.name,
@@ -373,17 +375,17 @@ class DeliveryService {
 
   static Future<bool> updatePickupImages(
     String deliveryId,
-    List<String> imageUrls,
+    String imageUrl,
   ) async {
     try {
       log('Updating pickup images for delivery: $deliveryId');
-      log('Image URLs: $imageUrls');
+      log('Image URL: $imageUrl');
 
       await FirebaseHelper().updateDocument(
         collection: 'delivery',
         documentId: deliveryId,
         data: {
-          'pickup_pkg_images_url': imageUrls,
+          'pickup_pkg_images_url': imageUrl,
           'updated_at': TimeHelper.getDateNow(),
         },
       );
