@@ -5,7 +5,9 @@ import 'package:app/service/auth/user.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_job.dart';
+import 'package:app/types/status.dart';
 import 'package:app/types/user/type.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TrackingService {
   static Future<Map<String, dynamic>> getDeliveryQueryByDate(
@@ -76,6 +78,7 @@ class TrackingService {
             deliveryAddress: deliveryAddress,
             pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
             sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+            sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
           );
 
           deliveryJobs.add(deliveryJob);
@@ -96,140 +99,128 @@ class TrackingService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>>
-  getDeliveryJobsByUserIdGroupedByDate(String userId, UserType userType) async {
-    try {
-      // log('Fetching delivery jobs for user: $userId, type: ${userType.name}');
+  static Stream<List<Map<String, dynamic>>>
+  watchDeliveryJobsByUserIdGroupedByDate(String userId, UserType userType) {
+    final String fieldName = userType == UserType.sender
+        ? 'sended_id'
+        : 'received_id';
 
-      final String fieldName = userType == UserType.sender
-          ? 'sended_id'
-          : 'received_id';
+    return FirebaseFirestore.instance
+        .collection('delivery')
+        .where(fieldName, isEqualTo: userId)
+        .where(
+          'status',
+          whereNotIn: [
+            StatusTypes().getStatusTypeString(StatusType.success),
+            StatusTypes().getStatusTypeString(StatusType.prepare),
+          ],
+        )
+        .snapshots()
+        .asyncMap((snapshot) async {
+          try {
+            log(
+              'Real-time delivery jobs received: ${snapshot.docs.length} documents',
+            );
 
-      final response = await FirebaseHelper().getDocumentsQuery(
-        collection: 'delivery',
-        where: {fieldName: userId},
-      );
+            final List<DeliveryJob> deliveryJobs = [];
 
-      final deliveries = response.map((doc) {
-        final data = doc.data();
-        if (data != null) {
-          data['delivery_id'] = doc.id;
-          return Delivery.fromJson(data);
-        }
-        throw Exception('Document data is null for delivery: ${doc.id}');
-      }).toList();
+            for (final doc in snapshot.docs) {
+              try {
+                final data = doc.data();
+                data['delivery_id'] = doc.id;
+                final delivery = Delivery.fromJson(data);
 
-      final List<DeliveryJob> deliveryJobs = [];
+                final pickupAddress = await AddressService.getAddressById(
+                  delivery.pickupAddressId!,
+                );
+                final deliveryAddress = await AddressService.getAddressById(
+                  delivery.deliveryAddressId!,
+                );
 
-      for (final delivery in deliveries) {
-        try {
-          final pickupAddress = await AddressService.getAddressById(
-            delivery.pickupAddressId!,
-          );
-          final deliveryAddress = await AddressService.getAddressById(
-            delivery.deliveryAddressId!,
-          );
+                final senderUser = await AuthService.getUserById(
+                  userId: delivery.sendedId,
+                );
+                final receiverUser = await AuthService.getUserById(
+                  userId: delivery.receivedId,
+                );
 
-          final senderUser = await AuthService.getUserById(
-            userId: delivery.sendedId,
-          );
-          final receiverUser = await AuthService.getUserById(
-            userId: delivery.receivedId,
-          );
+                final deliveryJob = DeliveryJob(
+                  deliveryId: delivery.deliveryId,
+                  status: delivery.status,
+                  sender: UserInfo(
+                    userId: delivery.sendedId,
+                    name: senderUser?.name ?? "Unknown Sender",
+                    imagesUrl: senderUser?.imagesUrl ?? "",
+                  ),
+                  reciver: UserInfo(
+                    userId: delivery.receivedId,
+                    name: receiverUser?.name ?? "Unknown Receiver",
+                    imagesUrl: receiverUser?.imagesUrl ?? "",
+                  ),
+                  pickupAddress: pickupAddress,
+                  deliveryAddress: deliveryAddress,
+                  pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
+                  sendedPkgImgUrl: delivery.sendedPkgImgUrl ?? "",
+                  sendedPkgDetail: delivery.sendedPkgDetail ?? "",
+                );
 
-          final deliveryJob = DeliveryJob(
-            deliveryId: delivery.deliveryId,
-            status: delivery.status,
-            sender: UserInfo(
-              userId: delivery.sendedId,
-              name: senderUser?.name ?? "Unknown Sender",
-              imagesUrl: senderUser?.imagesUrl ?? "",
-            ),
-            reciver: UserInfo(
-              userId: delivery.receivedId,
-              name: receiverUser?.name ?? "Unknown Receiver",
-              imagesUrl: receiverUser?.imagesUrl ?? "",
-            ),
-            pickupAddress: pickupAddress,
-            deliveryAddress: deliveryAddress,
-            pickupPkgImagesUrl: delivery.pickupPkgImagesUrl,
-            sendedPkgDetail: delivery.sendedPkgDetail ?? "",
-          );
+                deliveryJobs.add(deliveryJob);
+              } catch (e) {
+                log('Error processing delivery ${doc.id}: $e');
+              }
+            }
 
-          deliveryJobs.add(deliveryJob);
-        } catch (e) {
-          log('Error processing delivery ${delivery.deliveryId}: $e');
-        }
-      }
+            final Map<String, List<DeliveryJob>> groupedJobs = {};
 
-      final Map<String, List<DeliveryJob>> groupedJobs = {};
+            for (final job in deliveryJobs) {
+              String dateKey;
+              try {
+                final delivery = snapshot.docs
+                    .firstWhere((doc) => doc.id == job.deliveryId)
+                    .data();
+                if (delivery['created_at'] != null) {
+                  final createdDate = DateTime.parse(delivery['created_at']);
+                  dateKey =
+                      '${createdDate.year}/${createdDate.month.toString().padLeft(2, '0')}/${createdDate.day.toString().padLeft(2, '0')}';
+                } else {
+                  final now = DateTime.now();
+                  dateKey =
+                      '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}';
+                }
+              } catch (e) {
+                final now = DateTime.now();
+                dateKey =
+                    '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}';
+              }
 
-      for (final job in deliveryJobs) {
-        String dateKey;
-        try {
-          final delivery = deliveries.firstWhere(
-            (d) => d.deliveryId == job.deliveryId,
-          );
-          if (delivery.createdAt != null) {
-            final createdDate = DateTime.parse(delivery.createdAt!);
-            dateKey =
-                '${createdDate.year}/${createdDate.month.toString().padLeft(2, '0')}/${createdDate.day.toString().padLeft(2, '0')}';
-          } else {
-            final now = DateTime.now();
-            dateKey =
-                '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}';
+              if (!groupedJobs.containsKey(dateKey)) {
+                groupedJobs[dateKey] = [];
+              }
+              groupedJobs[dateKey]!.add(job);
+            }
+
+            final List<Map<String, dynamic>> result = groupedJobs.entries
+                .map((entry) => {'date': entry.key, 'jobs': entry.value})
+                .toList();
+
+            result.sort((a, b) {
+              try {
+                final dateA = DateTime.parse(a['date'].replaceAll('/', '-'));
+                final dateB = DateTime.parse(b['date'].replaceAll('/', '-'));
+                return dateB.compareTo(dateA);
+              } catch (e) {
+                return 0;
+              }
+            });
+
+            log(
+              'Real-time grouped delivery jobs: ${result.length} date groups',
+            );
+            return result;
+          } catch (e) {
+            log('Error in real-time delivery jobs stream: $e');
+            return <Map<String, dynamic>>[];
           }
-        } catch (e) {
-          final now = DateTime.now();
-          dateKey =
-              '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}';
-        }
-
-        if (!groupedJobs.containsKey(dateKey)) {
-          groupedJobs[dateKey] = [];
-        }
-        groupedJobs[dateKey]!.add(job);
-      }
-
-      final List<Map<String, dynamic>> result = groupedJobs.entries
-          .map((entry) => {'date': entry.key, 'jobs': entry.value})
-          .toList();
-
-      result.sort((a, b) {
-        try {
-          final dateA = DateTime.parse(a['date'].replaceAll('/', '-'));
-          final dateB = DateTime.parse(b['date'].replaceAll('/', '-'));
-          return dateB.compareTo(dateA);
-        } catch (e) {
-          return 0;
-        }
-      });
-
-      log(
-        'Successfully fetched and grouped ${deliveryJobs.length} delivery jobs into ${result.length} date groups for user $userId',
-      );
-      return result;
-    } catch (e) {
-      log('Error fetching delivery jobs for user $userId: $e');
-      return [];
-    }
-  }
-
-  static Future<List<DeliveryJob>> getDeliveryJobsByUserId(
-    String userId,
-    UserType userType,
-  ) async {
-    final groupedData = await getDeliveryJobsByUserIdGroupedByDate(
-      userId,
-      userType,
-    );
-    final List<DeliveryJob> allJobs = [];
-
-    for (final group in groupedData) {
-      final jobs = group['jobs'] as List<DeliveryJob>;
-      allJobs.addAll(jobs);
-    }
-
-    return allJobs;
+        });
   }
 }

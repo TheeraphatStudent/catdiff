@@ -64,6 +64,7 @@ class _RiderListProdState extends State<RiderListProd> {
     sender: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
     reciver: UserInfo(userId: '???', name: '???', imagesUrl: '???'),
     sendedPkgDetail: '???',
+    sendedPkgImgUrl: '???',
   );
 
   double _selectedLat = 16.1872;

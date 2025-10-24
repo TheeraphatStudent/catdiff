@@ -157,8 +157,22 @@ class DeliveryService {
 
     if (displayType == UserType.sender) {
       query = query.where('sended_id', isEqualTo: userId);
+      query = query.where(
+        'status',
+        whereNotIn: [
+          StatusTypes().getStatusTypeString(StatusType.success),
+          StatusTypes().getStatusTypeString(StatusType.prepare),
+        ],
+      );
     } else if (displayType == UserType.receiver) {
       query = query.where('received_id', isEqualTo: userId);
+      query = query.where(
+        'status',
+        whereNotIn: [
+          StatusTypes().getStatusTypeString(StatusType.success),
+          StatusTypes().getStatusTypeString(StatusType.prepare),
+        ],
+      );
     }
 
     return query.snapshots().map((snapshot) {
