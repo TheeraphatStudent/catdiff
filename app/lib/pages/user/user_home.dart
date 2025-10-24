@@ -62,29 +62,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasLoadedData) {
-      _loadData();
-      _hasLoadedData = true;
-    }
 
     if (!_isRealtimeListening) {
       _startRealtimeListeners();
       _isRealtimeListening = true;
     }
+
+    if (!_hasLoadedData) {
+      _loadReceiverData();
+      _hasLoadedData = true;
+    }
   }
 
-  void _loadData() async {
+  void _loadReceiverData() async {
     final appData = Provider.of<AppData>(context, listen: false);
-
-    final resposneSender = await DeliveryService.getDeliveryDisplayByUserId(
-      appData.currentUser!.id,
-      UserType.sender,
-    );
-
-    final resposneReceiver = await DeliveryService.getDeliveryDisplayByUserId(
-      appData.currentUser!.id,
-      UserType.receiver,
-    );
 
     final reciverListRes = await ReciverService.getReciverList(
       '',
@@ -92,20 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     setState(() {
-      // senderItems = resposne.where((item) => item.status == 'sender').toList();
-      // receiverItems = resposne
-      //     .where((item) => item.status == 'receiver')
-      //     .toList();
-
-      senderItems.addAll(resposneSender);
-      receiverItems.addAll(resposneReceiver);
-
-      // log(senderItems.length.toString());
-      // log(receiverItems.length.toString());
-
+      reciverItems.clear();
       reciverItems.addAll(reciverListRes);
       filteredReciverItems = List.from(reciverItems);
     });
+
+    log(
+      'Loaded ${reciverListRes.length} receivers. Delivery data will come from real-time streams.',
+    );
   }
 
   void _startRealtimeListeners() {
@@ -117,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.sender,
         ).listen((items) {
           if (!mounted) return;
+          log('Real-time sender items received: ${items.length} items');
           setState(() {
             senderItems
               ..clear()
@@ -130,42 +116,13 @@ class _HomeScreenState extends State<HomeScreen> {
           UserType.receiver,
         ).listen((items) {
           if (!mounted) return;
+          log('Real-time receiver items received: ${items.length} items');
           setState(() {
             receiverItems
               ..clear()
               ..addAll(items);
           });
         }, onError: (error) => log('Receiver realtime stream error: $error'));
-  }
-
-  Future<void> _refreshDeliveryStatusData() async {
-    final appData = Provider.of<AppData>(context, listen: false);
-
-    try {
-      final resposneSender = await DeliveryService.getDeliveryDisplayByUserId(
-        appData.currentUser!.id,
-        UserType.sender,
-      );
-
-      final resposneReceiver = await DeliveryService.getDeliveryDisplayByUserId(
-        appData.currentUser!.id,
-        UserType.receiver,
-      );
-
-      setState(() {
-        senderItems.clear();
-        receiverItems.clear();
-
-        senderItems.addAll(resposneSender);
-        receiverItems.addAll(resposneReceiver);
-      });
-
-      log(
-        "Delivery status data refreshed - Sender: ${senderItems.length}, Receiver: ${receiverItems.length}",
-      );
-    } catch (e) {
-      log("Error refreshing delivery status data: $e");
-    }
   }
 
   void _filterReciverItems(String query) {
@@ -335,10 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           SlidingTemplate(
             isOpened: _isSliderOpen,
-            onModalClosed: () => {
-              onClosedModal(),
-              _refreshDeliveryStatusData(),
-            },
+            onModalClosed: () => {onClosedModal()},
             customTopBar: Center(child: Text("test")),
             children: [
               _currentContentType == "sender"
@@ -1092,7 +1046,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      await _refreshDeliveryStatusData();
+      // Real-time streams will handle data updates automatically
+      log('Package delivery confirmed - real-time streams will update UI');
 
       setState(() {
         for (final controller in _packageImageControllers.values) {
