@@ -125,6 +125,57 @@ class _HomeScreenState extends State<HomeScreen> {
         }, onError: (error) => log('Receiver realtime stream error: $error'));
   }
 
+  Future<void> _refreshDeliveryStats() async {
+    final appData = Provider.of<AppData>(context, listen: false);
+
+    try {
+      final senderStream = DeliveryService.watchDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.sender,
+      );
+
+      final receiverStream = DeliveryService.watchDeliveryDisplayByUserId(
+        appData.currentUser!.id,
+        UserType.receiver,
+      );
+
+      final senderItems = await senderStream.first.timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          log('Sender stream timeout - using existing data');
+          return this.senderItems;
+        },
+      );
+
+      final receiverItems = await receiverStream.first.timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          log('Receiver stream timeout - using existing data');
+          return this.receiverItems;
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          this.senderItems
+            ..clear()
+            ..addAll(senderItems);
+          this.receiverItems
+            ..clear()
+            ..addAll(receiverItems);
+        });
+        log('Delivery stats refreshed successfully');
+      }
+    } catch (e) {
+      log('Error refreshing delivery stats: $e');
+      if (e.toString().contains('failed-precondition')) {
+        log(
+          'Skipping refresh due to missing Firebase index - please create the required index',
+        );
+      }
+    }
+  }
+
   void _filterReciverItems(String query) {
     setState(() {
       _searchQuery = query;
@@ -301,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SlidingTemplate(
             isOpened: _isSliderOpen,
             onModalClosed: () => {onClosedModal()},
-            customTopBar: Center(child: Text("test")),
+            customTopBar: Center(child: Text("การจัดส่ง")),
             children: [
               _currentContentType == "sender"
                   ? _buildSenderContent()
@@ -434,21 +485,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _previousSenderStep() {
-    if (_currentSenderStep > 0) {
-      setState(() {
-        _currentSenderStep--;
-      });
-    }
-  }
+  // void _previousSenderStep() {
+  //   if (_currentSenderStep > 0) {
+  //     setState(() {
+  //       _currentSenderStep--;
+  //     });
+  //   }
+  // }
 
-  void _goToSenderStep(int step) {
-    if (step >= 0 && step <= 1) {
-      setState(() {
-        _currentSenderStep = step;
-      });
-    }
-  }
+  // void _goToSenderStep(int step) {
+  //   if (step >= 0 && step <= 1) {
+  //     setState(() {
+  //       _currentSenderStep = step;
+  //     });
+  //   }
+  // }
 
   Widget _getCurrentSenderStepContent() {
     switch (_currentSenderStep) {
@@ -779,7 +830,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ'),
-                      backgroundColor: AppColors.lightDanger,
+                      backgroundColor: AppColors.darkDanger,
                     ),
                   );
                 }
@@ -790,7 +841,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: $e'),
-                    backgroundColor: AppColors.lightDanger,
+                    backgroundColor: AppColors.darkDanger,
                   ),
                 );
               }
@@ -842,7 +893,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onLocationTap: (AddressInfo address) {
               log("Location tap for delivery: ${createdDelivery.deliveryId}");
 
-              // Prevent opening map if already updating this delivery's location
               if (_pendingLocationUpdates.contains(
                 createdDelivery.deliveryId,
               )) {
@@ -877,7 +927,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการสร้างพัสดุ: $e'),
-          backgroundColor: AppColors.lightDanger,
+          backgroundColor: AppColors.darkDanger,
         ),
       );
     }
@@ -1015,7 +1065,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาดในการลบพัสดุ: $e'),
-            backgroundColor: AppColors.lightDanger,
+            backgroundColor: AppColors.darkDanger,
           ),
         );
       }
@@ -1042,6 +1092,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (updatedDelivery != null) {
           log("Successfully updated delivery $deliveryId to pending status");
+
+          if (mounted) {
+            _refreshDeliveryStats();
+          }
         } else {
           log("Failed to update delivery $deliveryId to pending status");
         }

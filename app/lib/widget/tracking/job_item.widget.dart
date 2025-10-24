@@ -19,7 +19,7 @@ class JobItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 12,
+      spacing: 16,
       children: [
         // Rider
         Column(
@@ -77,7 +77,7 @@ class JobItem extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 4),
 
               // Sender Info
               Text(
@@ -105,33 +105,38 @@ class JobItem extends StatelessWidget {
               GestureDetector(
                 onTap: () => onLocationPress(deliveryJob),
                 child: Container(
-                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          deliveryJob.deliveryAddress.detail,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[700],
-                            fontFamily: 'Mali',
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 4.0,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.grey[600],
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            deliveryJob.deliveryAddress.detail,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              fontFamily: 'Mali',
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

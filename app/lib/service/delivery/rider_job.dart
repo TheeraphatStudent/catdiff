@@ -236,6 +236,37 @@ class DeliveryRiderJob {
     }
   }
 
+  static Stream<LatLng?> watchRiderLocationOnJob(String deliveryId) {
+    try {
+      return FirebaseFirestore.instance
+          .collection('rider_location')
+          .doc(deliveryId)
+          .snapshots()
+          .map((DocumentSnapshot snapshot) {
+            if (!snapshot.exists) {
+              return null;
+            }
+
+            final data = snapshot.data() as Map<String, dynamic>?;
+            if (data == null) {
+              return null;
+            }
+
+            final double? latitude = (data['latitude'] as num?)?.toDouble();
+            final double? longitude = (data['longitude'] as num?)?.toDouble();
+
+            if (latitude == null || longitude == null) {
+              return null;
+            }
+
+            return LatLng(latitude, longitude);
+          });
+    } catch (e) {
+      log('Error watching rider location: ${e.toString()}');
+      return const Stream<LatLng?>.empty();
+    }
+  }
+
   static Future<bool> getRiderJobExist(String userId) async {
     try {
       log("Checking for active rider job for user: $userId");

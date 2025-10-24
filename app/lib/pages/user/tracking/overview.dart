@@ -37,7 +37,7 @@ class _OverviewPageState extends State<OverviewPage> {
   DeliveryJob? _selectedJobForMap;
   bool _isMapOpen = false;
   bool _isMultipleMapOpen = false;
-  List<DeliveryJob>? _selectedJobsForMultipleMap;
+  List<DeliveryJob> _selectedJobsForMultipleMap = [];
 
   StreamSubscription<List<Map<String, dynamic>>>? _senderSubscription;
   StreamSubscription<List<Map<String, dynamic>>>? _receiverSubscription;
@@ -160,45 +160,40 @@ class _OverviewPageState extends State<OverviewPage> {
     return status == StatusType.receiving || status == StatusType.riding;
   }
 
-  void _openMultipleMap() {
-    final currentJobs = _isActiveTabSender
-        ? _senderJobsGrouped
-        : _receiverJobsGrouped;
-    final allJobs = <DeliveryJob>[];
-
-    for (final group in currentJobs) {
-      final jobs = group['jobs'] as List<DeliveryJob>;
-      allJobs.addAll(jobs);
-    }
-
-    if (allJobs.isNotEmpty) {
-      setState(() {
-        _isMultipleMapOpen = true;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ไม่มีรายการจัดส่งให้แสดงบนแผนที่'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
   void _openMultipleMapWithJobs(List<DeliveryJob> jobs) {
-    if (jobs.isNotEmpty) {
-      setState(() {
-        _selectedJobsForMultipleMap = jobs;
-        _isMultipleMapOpen = true;
-      });
-    } else {
+    log("Open multiple map with job");
+    log("Jobs count: ${jobs.length}");
+
+    if (jobs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('ไม่มีรายการจัดส่งให้แสดงบนแผนที่'),
           backgroundColor: Colors.orange,
         ),
       );
+      return;
     }
+
+    final List<DeliveryJob> newSelection = List<DeliveryJob>.from(jobs);
+    final bool wasMapOpen = _isMultipleMapOpen;
+
+    setState(() {
+      _selectedJobsForMultipleMap = newSelection;
+      _isMultipleMapOpen = wasMapOpen ? false : true;
+    });
+
+    if (wasMapOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _isMultipleMapOpen = true;
+        });
+      });
+    }
+
+    log(
+      "Multiple map state set: wasOpen=$wasMapOpen, reopened=$_isMultipleMapOpen, selection length=${_selectedJobsForMultipleMap.length}",
+    );
   }
 
   @override
@@ -470,6 +465,9 @@ class _OverviewPageState extends State<OverviewPage> {
               originLat: _selectedJobForMap!.pickupAddress.latitude,
               originLng: _selectedJobForMap!.pickupAddress.longtitude,
               originLabel: _selectedJobForMap!.pickupAddress.detail,
+              deliveryId: _selectedJobForMap!.deliveryId,
+              trackRiderLocation:
+                  _isRiderTrackingStatus(_selectedJobForMap!.status),
               label:
                   // "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${StatusTypes().getStatusMeaning(_selectedJobForMap!.status)}",
                   "${_isRiderTrackingStatus(_selectedJobForMap!.status) ? "ตำแหน่งไรเดอร์และจุดหมาย" : "จุดหมาย"} - ${_selectedJobForMap!.deliveryId}",
@@ -552,22 +550,24 @@ class _OverviewPageState extends State<OverviewPage> {
               ),
             ),
 
-          if (_selectedJobsForMultipleMap != null &&
-              _selectedJobsForMultipleMap!.isNotEmpty)
-            MapViewerMultiplePoint(
-              deliveryJobs: _selectedJobsForMultipleMap!,
-              isOpened: _isMultipleMapOpen,
-              label: _isActiveTabSender
-                  ? "แผนที่จุดส่ง (${_selectedJobsForMultipleMap!.length} จุด)"
-                  : "แผนที่จุดรับ (${_selectedJobsForMultipleMap!.length} จุด)",
-              aspectRatio: 9 / 12,
-              onModalClosed: () {
-                setState(() {
-                  _isMultipleMapOpen = false;
-                  _selectedJobsForMultipleMap = null;
-                });
-              },
+          MapViewerMultiplePoint(
+            key: ValueKey(
+              'multiple_map_${_selectedJobsForMultipleMap.map((job) => job.deliveryId).join('_')}',
             ),
+            deliveryJobs: _selectedJobsForMultipleMap,
+            isOpened: _isMultipleMapOpen,
+            label: _isActiveTabSender
+                ? "แผนที่จุดส่ง (${_selectedJobsForMultipleMap.length} จุด)"
+                : "แผนที่จุดรับ (${_selectedJobsForMultipleMap.length} จุด)",
+            aspectRatio: 9 / 12,
+            onModalClosed: () {
+              log("MapViewerMultiplePoint closed");
+              setState(() {
+                _isMultipleMapOpen = false;
+                _selectedJobsForMultipleMap = [];
+              });
+            },
+          ),
         ],
       ),
     );
