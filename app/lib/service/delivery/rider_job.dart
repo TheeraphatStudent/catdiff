@@ -5,6 +5,7 @@ import 'package:app/service/address/address_service.dart';
 import 'package:app/service/auth/user.dart';
 import 'package:app/service/helper/firebase_connection.dart';
 import 'package:app/service/helper/time.dart';
+import 'package:app/service/map/map_distance_service.dart';
 import 'package:app/types/address/address.dart';
 import 'package:app/types/delivery/delivery.dart';
 import 'package:app/types/delivery/delivery_job.dart';
@@ -305,8 +306,7 @@ class DeliveryRiderJob {
     LatLng currentLocation,
     LatLng destinationLocation,
   ) async {
-    final Distance distance = Distance();
-    return distance.as(LengthUnit.Meter, currentLocation, destinationLocation);
+    return MapDistanceService.straightLine(currentLocation, destinationLocation);
   }
 
   static void dispose() {

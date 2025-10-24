@@ -335,8 +335,8 @@ class _RiderJobPageState extends State<RiderJobPage> {
               enableLiveLocation: true,
               distanceStrategy:
                   MapRouteDistanceStrategy.distanceMatrixPreferred,
-              onRouteChanged: (info) {
-                _applyDistanceUpdate(info.distanceMeters);
+              onRouteChanged: (_) {
+                _refreshDistanceToTarget();
               },
             ),
           ),
