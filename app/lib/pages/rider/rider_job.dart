@@ -37,6 +37,7 @@ enum RidingJobState { takeJob, deliveringJob, submitJob }
 class _RiderJobPageState extends State<RiderJobPage> {
   RidingJobState _ridingState = RidingJobState.takeJob;
   final ProfileController _profileController = ProfileController();
+  VoidCallback? _profileControllerListener;
 
   DeliveryJob? _currentJob;
   StreamSubscription<gmaps.LatLng>? _locationSubscription;
@@ -94,7 +95,7 @@ class _RiderJobPageState extends State<RiderJobPage> {
   }
 
   void _setupProfileController() {
-    _profileController.addListener(() {
+    _profileControllerListener = () {
       if (!mounted || _isDisposed) {
         log(
           'Widget not mounted or disposed, skipping ProfileController callback',
@@ -112,7 +113,9 @@ class _RiderJobPageState extends State<RiderJobPage> {
       } catch (e) {
         log('Error in ProfileController listener: $e');
       }
-    });
+    };
+
+    _profileController.addListener(_profileControllerListener!);
   }
 
   void _startLocationTracking() {
@@ -401,13 +404,18 @@ class _RiderJobPageState extends State<RiderJobPage> {
 
     _locationSubscription?.cancel();
 
+    if (_profileControllerListener != null) {
+      _profileController.removeListener(_profileControllerListener!);
+      _profileControllerListener = null;
+    }
+
+    super.dispose();
+
     try {
       _profileController.dispose();
     } catch (e) {
       log('Error disposing ProfileController: $e');
     }
-
-    super.dispose();
   }
 
   @override

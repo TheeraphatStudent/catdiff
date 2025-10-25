@@ -105,30 +105,38 @@ class TrackingService {
         ? 'sended_id'
         : 'received_id';
 
+    final List<String> activeStatuses = <String>[
+      StatusTypes().getStatusTypeString(StatusType.pending),
+      StatusTypes().getStatusTypeString(StatusType.receiving),
+      StatusTypes().getStatusTypeString(StatusType.riding),
+      StatusTypes().getStatusTypeString(StatusType.success),
+    ];
+
     return FirebaseFirestore.instance
         .collection('delivery')
         .where(fieldName, isEqualTo: userId)
-        .where(
-          'status',
-          whereNotIn: [
-            StatusTypes().getStatusTypeString(StatusType.success),
-            StatusTypes().getStatusTypeString(StatusType.prepare),
-          ],
-        )
+        .where('status', whereIn: activeStatuses)
         .snapshots()
         .asyncMap((snapshot) async {
           try {
-            log(
-              'Real-time delivery jobs received: ${snapshot.docs.length} documents',
-            );
-
             final List<DeliveryJob> deliveryJobs = [];
 
             for (final doc in snapshot.docs) {
               try {
                 final data = doc.data();
+
+                log("Address Id: ${data['delivery_id']}");
+
                 data['delivery_id'] = doc.id;
                 final delivery = Delivery.fromJson(data);
+
+                if (delivery.pickupAddressId == null ||
+                    delivery.deliveryAddressId == null) {
+                  log(
+                    'Delivery ${delivery.deliveryId} missing address IDs. pickup: ${delivery.pickupAddressId}, delivery: ${delivery.deliveryAddressId}',
+                  );
+                  continue;
+                }
 
                 final pickupAddress = await AddressService.getAddressById(
                   delivery.pickupAddressId!,

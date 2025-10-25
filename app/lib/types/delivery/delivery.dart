@@ -58,24 +58,25 @@ class Delivery {
   });
 
   factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
-    profileImageUrl: json["profileImageUrl"],
-    name: json["name"],
-    status: StatusTypes().getStatusTypeEnum(json["status"]),
-    deliveryId: json["delivery_id"],
-    sendedId: json["sended_id"],
-    receivedId: json["received_id"],
-    pickupAddressId: json["pickup_address_id"],
-    deliveryAddressId: json["delivery_address_id"],
-    pickupPkgImagesUrl: json["pickup_pkg_images_url"],
-    deliveredPkgImgUrl: json["delivered_pkg_img_url"],
-    createdAt: json["created_at"],
-    updatedAt: json["updated_at"],
-    deliveredAt: json["delivered_at"],
-    pickupAt: json["pickup_at"],
-    sendedPkgDetail: json["sended_pkg_detail"],
-    sendedPkgImgUrl: json["sended_pkg_img_url"],
-    riderInfo: json["rider_info"] != null
-        ? User.fromJson(json["rider_info"])
+    profileImageUrl: json["profileImageUrl"] as String?,
+    name: json["name"] as String?,
+    status: StatusTypes().getStatusTypeEnum((json["status"] as String?) ?? ''),
+    deliveryId: (json["delivery_id"] as String?) ?? '',
+    sendedId: (json["sended_id"] as String?) ?? '',
+    receivedId: (json["received_id"] as String?) ?? '',
+    pickupAddressId: json["pickup_address_id"] as String?,
+    deliveryAddressId: json["delivery_address_id"] as String?,
+    pickupPkgImagesUrl: (json["pickup_pkg_images_url"] as String?) ?? '',
+    deliveredPkgImgUrl: json["delivered_pkg_img_url"] as String?,
+    createdAt: json["created_at"] as String?,
+    updatedAt:
+        (json["updated_at"] as String?) ?? DateTime.now().toIso8601String(),
+    deliveredAt: json["delivered_at"] as String?,
+    pickupAt: json["pickup_at"] as String?,
+    sendedPkgDetail: (json["sended_pkg_detail"] as String?) ?? '',
+    sendedPkgImgUrl: (json["sended_pkg_img_url"] as String?) ?? '',
+    riderInfo: json["rider_info"] is Map<String, dynamic>
+        ? User.fromJson(json["rider_info"] as Map<String, dynamic>)
         : null,
   );
 
