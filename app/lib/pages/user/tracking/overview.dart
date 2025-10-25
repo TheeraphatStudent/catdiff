@@ -161,8 +161,8 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   void _openMultipleMapWithJobs(List<DeliveryJob> jobs) {
-    log("Open multiple map with job");
-    log("Jobs count: ${jobs.length}");
+    // log("Open multiple map with job");
+    // log("Jobs count: ${jobs.length}");
 
     if (jobs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,9 +191,33 @@ class _OverviewPageState extends State<OverviewPage> {
       });
     }
 
-    log(
-      "Multiple map state set: wasOpen=$wasMapOpen, reopened=$_isMultipleMapOpen, selection length=${_selectedJobsForMultipleMap.length}",
-    );
+    // log(
+    //   "Multiple map state set: wasOpen=$wasMapOpen, reopened=$_isMultipleMapOpen, selection length=${_selectedJobsForMultipleMap.length}",
+    // );
+  }
+
+  void _closeSingleMap() {
+    if (!mounted) return;
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      setState(() {
+        _isMapOpen = false;
+        _selectedJobForMap = null;
+      });
+    });
+  }
+
+  void _closeMultipleMap() {
+    if (!mounted) return;
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      setState(() {
+        _isMultipleMapOpen = false;
+        _selectedJobsForMultipleMap = [];
+      });
+    });
   }
 
   @override
@@ -479,12 +503,10 @@ class _OverviewPageState extends State<OverviewPage> {
               locationUpdateDistance: 5,
               aspectRatio: 12 / 16,
               onModalClosed: () {
-                setState(() {
-                  _isMapOpen = false;
-                  _selectedJobForMap = null;
-                });
+                _closeSingleMap();
               },
               content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     "รายละเอียดการส่งพัสดุ",
@@ -507,78 +529,99 @@ class _OverviewPageState extends State<OverviewPage> {
 
                   SizedBox(height: 24),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 24,
-                    children: [
-                      Column(
-                        spacing: 12,
-                        children: [
-                          Text("รูปภาพจุดรับสินค้า"),
-                          ProfileWidgets.avatar(
-                            shape: ProfileShape.rectangle,
-                            isEdited: false,
-                            config: ProfileWidgetConfig(
-                              placeholderIcon: Icons.inbox_outlined,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 24,
+                      children: [
+                        Column(
+                          spacing: 12,
+                          children: [
+                            Text("รูปภาพจุดรับสินค้า"),
+                            ProfileWidgets.avatar(
+                              shape: ProfileShape.rectangle,
+                              isEdited: false,
+                              config: ProfileWidgetConfig(
+                                placeholderIcon: Icons.inbox_outlined,
+                              ),
+                              imageUrl: _selectedJobForMap!.pickupPkgImagesUrl,
                             ),
-                            imageUrl: _selectedJobForMap!.pickupPkgImagesUrl,
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      Column(
-                        spacing: 12,
-                        children: [
-                          Text("รูปภาพการเข้ารับสินค้า"),
-                          ProfileWidgets.avatar(
-                            shape: ProfileShape.rectangle,
-                            isEdited: false,
-                            config: ProfileWidgetConfig(
-                              placeholderIcon: Icons.inbox_outlined,
+                        Column(
+                          spacing: 12,
+                          children: [
+                            Text("รูปภาพการเข้ารับสินค้า"),
+                            ProfileWidgets.avatar(
+                              shape: ProfileShape.rectangle,
+                              isEdited: false,
+                              config: ProfileWidgetConfig(
+                                placeholderIcon: Icons.inbox_outlined,
+                              ),
+                              imageUrl:
+                                  _selectedJobForMap!.deliveredPkgImgUrl ?? "",
                             ),
-                            imageUrl:
-                                _selectedJobForMap!.deliveredPkgImgUrl ?? "",
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      Column(
-                        spacing: 12,
-                        children: [
-                          Text("รูปภาพการส่งสินค้า"),
-                          ProfileWidgets.avatar(
-                            shape: ProfileShape.rectangle,
-                            isEdited: false,
-                            config: ProfileWidgetConfig(
-                              placeholderIcon: Icons.inbox_outlined,
+                        Column(
+                          spacing: 12,
+                          children: [
+                            Text("รูปภาพการส่งสินค้า"),
+                            ProfileWidgets.avatar(
+                              shape: ProfileShape.rectangle,
+                              isEdited: false,
+                              config: ProfileWidgetConfig(
+                                placeholderIcon: Icons.inbox_outlined,
+                              ),
+                              imageUrl: _selectedJobForMap!.sendedPkgImgUrl,
                             ),
-                            imageUrl: _selectedJobForMap!.sendedPkgImgUrl,
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 24),
+
+                  ButtonActions(
+                    variant: ButtonVariant.danger,
+                    text: "ปิด",
+                    icon: Icons.close,
+                    iconPosition: IconPosition.left,
+                    onPressed: () {
+                      _closeSingleMap();
+                    },
                   ),
                 ],
               ),
             ),
 
           MapViewerMultiplePoint(
-            key: ValueKey(
-              'multiple_map_${_selectedJobsForMultipleMap.map((job) => job.deliveryId).join('_')}',
-            ),
+            key: ValueKey('multiple_map_overview'),
             deliveryJobs: _selectedJobsForMultipleMap,
             isOpened: _isMultipleMapOpen,
             label: _isActiveTabSender
                 ? "แผนที่จุดส่ง (${_selectedJobsForMultipleMap.length} จุด)"
                 : "แผนที่จุดรับ (${_selectedJobsForMultipleMap.length} จุด)",
-            aspectRatio: 9 / 12,
+            aspectRatio: 14 / 12,
             onModalClosed: () {
-              // log("MapViewerMultiplePoint closed");
-              setState(() {
-                _isMultipleMapOpen = false;
-                _selectedJobsForMultipleMap = [];
-              });
+              _closeMultipleMap();
             },
+            content: SizedBox(
+              height: 60,
+              child: ButtonActions(
+                variant: ButtonVariant.danger,
+                text: "ปิด",
+                icon: Icons.close,
+                iconPosition: IconPosition.left,
+                onPressed: () {
+                  _closeMultipleMap();
+                },
+              ),
+            ),
           ),
         ],
       ),

@@ -176,7 +176,7 @@ class StatusContainer extends StatelessWidget {
                                                   MainAxisAlignment.start,
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.center,
-                                              spacing: 4,
+                                              spacing: 2,
                                               children: [
                                                 Row(
                                                   spacing: 4,
@@ -199,7 +199,7 @@ class StatusContainer extends StatelessWidget {
                                                   ],
                                                 ),
                                                 Text(
-                                                  '- ${statusTypes.getStatusMeaning(item.status)}',
+                                                  '-${statusTypes.getStatusMeaning(item.status)}',
                                                   style: TextStyle(
                                                     color: AppColors
                                                         .primary2 /* Primary-Green2 */,

@@ -45,9 +45,9 @@ class StatusTypes {
     Map<StatusType, String> statusMap = {
       StatusType.prepare: 'กำลังตรียมสินค้า',
       StatusType.pending: 'รอไรเดอร์มารับสินค้า',
-      StatusType.receiving: 'ไรเดอร์รับงาน',
-      StatusType.riding: 'ไรเดอร์รับสินค้าแล้วและกำลังเดินทางไปส่ง',
-      StatusType.success: 'ไรเดอร์นำส่งสินค้าแล้ว',
+      StatusType.receiving: 'กำลังเดินทางมารับสินค้า',
+      StatusType.riding: 'กำลังเดินทางไปส่ง',
+      StatusType.success: 'ส่งสินค้าแล้ว',
     };
 
     return statusMap[status] ?? 'ไม่พบข้อมูล';

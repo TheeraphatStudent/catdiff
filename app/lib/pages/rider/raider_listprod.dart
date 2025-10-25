@@ -167,8 +167,10 @@ class _RiderListProdState extends State<RiderListProd> {
   }
 
   void _closeMap() {
-    setState(() {
-      _isMapOpen = false;
+    Future.delayed(const Duration(milliseconds: 150), () {
+      setState(() {
+        _isMapOpen = false;
+      });
     });
   }
 

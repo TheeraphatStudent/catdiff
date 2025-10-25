@@ -160,7 +160,7 @@ class DeliveryService {
       query = query.where(
         'status',
         whereNotIn: [
-          StatusTypes().getStatusTypeString(StatusType.success),
+          // StatusTypes().getStatusTypeString(StatusType.success),
           StatusTypes().getStatusTypeString(StatusType.prepare),
         ],
       );

@@ -430,11 +430,11 @@ class DeliveryRiderJob {
         data: {
           'status': 'riding',
           'pickup_at': TimeHelper.getDateNow(),
-          'pickup_pkg_images_url': imageUrl,
-          'rider_info': {
-            'rider_id': riderId,
-            'updated_at': TimeHelper.getDateNow(),
-          },
+          'delivered_pkg_img_url': imageUrl,
+          // 'rider_info': {
+          //   'rider_id': riderId,
+          //   'updated_at': TimeHelper.getDateNow(),
+          // },
           'updated_at': TimeHelper.getDateNow(),
         },
       );

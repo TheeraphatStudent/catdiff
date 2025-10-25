@@ -272,6 +272,9 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
 
     try {
       final LatLng current = await MapService.getCurrentLocation();
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _currentLocation = current;
         _locationDenied = false;
@@ -290,6 +293,9 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     } catch (_) {
       final LatLng? fallback =
           widget.initialUserLocation ?? widget.initialPosition;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _locationDenied = true;
         _currentLocation ??= fallback;

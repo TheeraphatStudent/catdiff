@@ -357,7 +357,16 @@ class _HomeScreenState extends State<HomeScreen> {
           SlidingTemplate(
             isOpened: _isSliderOpen,
             onModalClosed: () => {onClosedModal()},
-            customTopBar: Center(child: Text("การจัดส่ง")),
+            customTopBar: Center(
+              child: Text(
+                "การจัดส่ง",
+                style: TextStyle(
+                  color: AppColors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             children: [
               _currentContentType == "sender"
                   ? _buildSenderContent()
